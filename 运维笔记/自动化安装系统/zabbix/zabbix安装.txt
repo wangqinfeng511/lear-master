@@ -1,0 +1,86 @@
+http://www.zabbix.com/download.php
+servier+agent端
+zabbix-2.4.7-1.el6.x86_64.rpm       核心依赖 
+zabbix-sender-2.4.7-1.el6.x86_64.rpm
+zabbix-agent-2.4.7-1.el6.x86_64.rpm
+zabbix-web-2.4.7-1.el6.noarch.rpm
+zabbix-get-2.4.7-1.el6.x86_64.rpm	用于
+zabbix-server-mysql-2.4.7-1.el6.x86_64.rpm
+
+agent端：
+zabbix-2.4.7-1.el6.x86_64.rpm       
+zabbix-sender-2.4.7-1.el6.x86_64.rpm
+zabbix-agent-2.4.7-1.el6.x86_64.rpm  
+###############################################################################
+安装mysql-server 
+create database zabbix character set utf8 #创建数据库并指定字符为utf8
+
+grant all on zabbix.* to 'zbxuser'@'%' identified by 'fengzi';#创建用户并授权
+
+导入zabbix的数据库文件：
+顺序：
+schema.sql
+images.sql
+data.sql
+################################################################################
+vim /etc/zabbix/zabbix_server.conf 
+	ListenPort=10051 监听端口
+	SourceIP=	监听的IP
+	LogFileSize=0	日志文件多大滚动0为不滚动
+DBUser=zabbix		访问数据库的用户名
+DBPassword=		访问数据库的密码
+DBName=zabbix		数据库的名
+启动服务service zabbix-server start
+################################################################################修改php.ini时区
+date.timezone = Asia/Chongqing
+中文支持：复制中文字体到 fontes/
+修改：..include/defines.inc.php 
+define('ZBX_GRAPH_FONT_NAME',           '复制过来的字休名，不用加ttf')
+################################################################################agent节点
+	添加自定义key，用于item
+vim zabbix_agent.conf 添加
+    内存	UserParameter=os.free.total,free -m | awk '/Mem/ {print $2}'
+        UserParameter=os.free.used, free -m | awk '/Mem/ {print $3}'
+        UserParameter=os.free.free, free -m | awk '/Mem/ {print $4}'
+常用内置KEY：
+	net.if.in[if<mode>] 入站流量
+	net.if.out[if<mode>] 出站流量
+	net.if.total[if<mode>] 总量
+	例：net.if.in[eth0,bytes]
+			if :接口
+			mode:bytes字节，packets包，erros错误，dropped
+	
+监控端口相关：
+	net.tcp.listen[prot] 端口
+	net.tcp.port[prot]	端口
+	net.tcp.server[server,<ip>,<port>] 服务器端口
+进程相关：
+	kernel.maxfiles		内核心打开的最大文件数。
+	kernel.maxprot		内核打开的最大进程数。
+cpu相关：
+	system.cpu.intr		cpu中断次数。
+	system.cpu.load[<cpu><mode>] cpu负载
+	system.cpu.num[<type>]
+测试KEY
+	zabbix_get -s 192.168.1.113 -p 10050 -k "os.free"
+##############################################################################
+zabbix执行远程命令于agent：
+	vim /etc/zabbix/zabbix_agent.conf EnableRemoteCommands=1开启远程命令执行
+	agent sudo授权_要用到启动服务等zabbix_agent的用户 ，
+	要给visudo 注释Defaults requiretty #所有命令要以tty终端运行。
+##############################################################################
+自动发现注测并进行模板：
+	Hostname=注测唯一
+	可以用于自动注测。
+###############################################################################
+
+报警执行流程:
+	取监控项的值-->触发器---达成触发条件-->动作(匹配规则)-->动作的操作-->用户-->报警媒介（微信）
+
+
+动作的操作：
+	时间： {EVENT.TIME} on {EVENT.DATE}
+    故障名称: {TRIGGER.NAME}
+    故障简述: {TRIGGER.SEVERITY}
+    故障值：{ITEM.VALUE}
+	

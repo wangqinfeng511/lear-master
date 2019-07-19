@@ -1,0 +1,26 @@
+##################################################################################
+			定义负载均横
+/etc/httpd/conf.d/mod_jk.conf
+	LoadModule  jk_module  modules/mod_jk.so #加载模块
+	JkWorkersFile  /etc/httpd/extra/workers.properties #MOD_JK的配置文件地址。
+	JkLogFile  logs/mod_jk.log				#日志
+	JkLogLevel  debug					#日志级别
+	JkMount  /*  lbcluster1					#所有请求代理至，lbcluster1组此组在MOD_JK配……
+	JkMount  /jkstatus/  stat1				#启用状态页面。
+********************************************************************************
+/etc/httpd/extra/workers.properties
+	worker.list = lbcluster1,stat1 #引用mod_jk.conf内定义的实例。
+	worker.TomcatA.type = ajp13	#使用ajp协义。
+	worker.TomcatA.host = 172.16.100.1 #定义TomcatA实例的IP地址。
+	worker.TomcatA.port = 8009	#定义TomcatA的ajp的端口号
+	worker.TomcatA.lbfactor = 5	#定义TomcatA的权重值。
+	worker.TomcatB.type = ajp13	
+	worker.TomcatB.host = 172.16.100.2
+	worker.TomcatB.port = 8009
+	worker.TomcatB.lbfactor = 5
+	worker.lbcluster1.type = lb	#启用负载均横。	
+	worker.lbcluster1.sticky_session = 1	#是否开启session粘性
+	worker.lbcluster1.balance_workers = TomcatA, TomcatB #此为定义组，在mod_jk.conf中调用。
+	worker.stat1.type = status		#启用状态页。
+###############################################################################################################
+		

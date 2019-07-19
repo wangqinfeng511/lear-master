@@ -1,0 +1,93 @@
+一、修改内核心参数："/etc/sysctl.conf"
+	net.ipv4.ip_forward = 1
+	net.ipv4.conf.default.rp_filter = 0
+	net.bridge.bridge-nf-call-ip6tables = 1
+	net.bridge.bridge-nf-call-iptables = 1
+	net.bridge.bridge-nf-call-arptables = 1
+#：sysctl -p
+安装：
+	yum install openstack-neutron 
+	yum install openstack-neutron-ml2
+	yum install openstack-neutron-openvswitch
+	
+配置：
+vim /etc/neutron/neutron.conf
+	verbose = True 
+	 connection = mysql://root:pass@127.0.0.1:3306/neutron
+	 auth_strategy = keystone
+	[keystone_authtoken]
+	identity_uri=http://controller:5000
+	auth_host=controller
+	auth_protocol=http
+	auth_port=35357
+	admin_user=neutron
+	admin_tenant_name=service
+	admin_password=neutron
+
+	rpc_backend=neutron.openstack.common.rpc.impl_qpid
+	qpid_hostname = controller
+	core_plugin = ml2
+	service_plugins = router
+vim /etc/neutron/l3_agent.ini
+	interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
+	verbose=True
+vim /etc/neutron/dhcp_agent.ini
+	verbose=True
+	interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
+	use_namespaces = True
+	dnsmasq_config_file =/etc/neutron/dnsmasq-neutron.conf
+	dhcp_driver = neutron.agent.linux.dhcp.Dnsmasq
+vim metadata_agent.ini
+	verbose=True
+	auth_url = http://controller:5000/v2.0
+	auth_region = RegionOne
+	admin_tenant_name = service
+	admin_user = neutron
+	admin_password = neutron
+	nova_metadata_ip = controller
+	metadata_proxy_shared_secret =METADATA_SECRET
+控制节点：
+vim nova.conf
+	service_neutron_metadata_proxy=True
+	neutron_metadata_proxy_shared_secret=METADATA_SECRET
+	重启nova
+网络节点
+vim /etc/neutron/plugins/ml2/ml2_conf.ini
+	type_drivers = gre
+	tenant_network_types = gre
+	mechanism_drivers =openvswitch
+	[ovs] 添加
+	local_ip=192.168.229.131 #用于vpn的网卡IP
+	tunnel_type=gre
+	enable_tunneling= True
+	[securitygroup]
+	enable_security_group = True
+	firewall_driver =
+	neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
+	#添加
+service openvswitch start
+chkconfig openvswitch on
+添加桥：
+	ovs-vsctl add-br br-in #内部桥
+	ovs-vsctl add-br br-ex #添加外部用的桥
+桥关联网卡：ovs-vsctl  add-port br-ex eth1
+指定id：ovs-vsctl br-set-external-id br-ex bridge-id br-ex
+管方建议关闭：ethtool -k eth1 gro off
+查看桥上的网卡：
+	ovs-vsctl list-ports br-ex
+为br-ex配置ip
+	ifconfig  br-ex 192.168.10.112
+	route add default gw 192.168.10.1
+ln -s /etc/neutron/plugins/ml2/ /etc/neutron/plugin.ini
+
+ vim /etc/init.d/neutron-openvswitch-agent 
+	查找替换：s/plugins\/openvswitch\/ovs_neutron_plugin/plugin/g
+	
+启动服务：
+	
+#!/bin/bash
+        for a in openvswitch l3 metadata; do
+                service neutron-$a-agent start
+                chkconfig neutron-$a-agent on
+        done
+

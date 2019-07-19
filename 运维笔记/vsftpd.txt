@@ -1,0 +1,109 @@
+1、安装vsftpd 
+	yum install vsftpd
+2、配置文件路径
+	/etc/pam.d/vsftpd 用户认证配置文件
+	/etc/rc.d/init.d/vsftpd 服务脚本路径
+	/etc/vsftpd	配置文件目
+		 vsftp.conf 主配置文件
+3、主配置文件
+	匿名用户：
+	anonymous_enable=yse 是否启用匿名用户
+	anon_upload_enable=yes	匿名用户是否支持上传文件
+	anon_mkdir_write_enable 匿名用户是否可创建目录
+	anon_other_write_enable 匿名用户是否可以删除用户
+	本地用户：
+	local_enable=no		是否启用系统用户
+	write_enable=yes	本地用户是否有写权限
+	local_umask=022		文件创建反向掩码
+	chroot_local_user=yes	锁定本地所有用户不可切出ftp目录
+	chroot_list_enable=yes	锁定用户不可切入功能表
+	chroot_list_file=/etc/vsftpd/chroot_list 写入此文件的用户不可切出
+	dirmessage_enable=./message 切换目录输出信息
+	日志部分：
+	xferlog_enable=yes 	是否打开传输日志
+	xferlog_std_format=yes	是否打开传输日志格式化
+	xferlog_file=/var/log/xferlog 日志路径
+	上传文件改为指定属主：
+	chown_uploads=yes	开启改变用户属主
+	chown_username=centos	上传的用户改为此用户
+	连接时间限制：
+	idle_session_timeout=600 空闲会话时间
+	data_connection_timeout=120 数据连接时长
+	欢迎信息：
+	ftpd_banner=欢迎信息
+	vsftpd使用pam完成用户认证其使用到的pam配置文件
+	 pam_service_name=vsftpd
+	 userlist_enable=yes	是否开启用户登录控制列表
+	 userlist_deny=yes|no	是否拒绝用户，yes黑名单，no为白名单
+	 连接限制：
+	 max_clients:		最大并发连接数
+	 max_per_ip		每个IP可同时发起的并发请求数
+	 传输速率：
+	 anon_max_rate 		匿名用户的最大传输速率：单位是字符/秒
+	 local_max_rate		本地用户的最大传输速率：单位是字符/秒
+##########################结合mysql账户##################################
+所有虚拟用户统一映射为一个指定的系统用户
+一、需要pam_mysql连接模块
+ 建立数据库：vsftpd
+二、数据库授权：grant select on vsftpd.*	 #vsftpd数据库下的所有表
+ 	 TO vsftpd@127.0.0.1 identified by 秘码
+三、flush privileges ;刷新授权表
+四、创建表和列
+	use vsftpd; 设定默认工作库
+	create table user(		#创建表
+		id int AUTO_INCREMENT NOT NULL UNIQUE KEY,
+		name char(20) binary  NOT NULL,
+		password char(48) binary NOT NULL,
+		primary key(id)
+		);
+五、插入数据：
+	insert into user (name,password)values("tom",password("fengzi"));
+	insert into user (name,password)values("jeny",password("fengzi"));
+#############################vsftpd虚拟用户##############################
+1、建立pam认证所需文件
+	vim /etc/pam.d/vsftpd.mysql (改为验证方式为mysql)
+	添加
+	
+	auth required /lib64/security/pam_mysql.so user=vsftpd passwd=fengzi host=localhost db=vsftpd  table=user usercolumn=name passwdcolumn=password  crypt=2
+
+	account required /lib64/security/pam_mysql.so user=vsftpd passwd=fengzi host=localhost db=vsftpd  table=user usercolumn=name passwdcolumn=password  crypt=2
+######注释：
+	auth required
+	/lib64/security/pam_mysql.so #模块路径 
+	user=vsftpd 	#数据库用户名
+	passwd=fengzi 	#数据库秘码
+	host=localhost  #mysql地址|非本机192.168.1.107:3306
+	db=vsftpd 	#数据库名
+	table=user	#表名
+	usercolum=name 	#表例名
+	passwdcolumn=password #表例名
+	crypt=2		#mysql加秘方式
+错误日志：/var/log/secure
+###########vsftp配置
+1、添加账号作为映射使用
+	useradd -s /sbin/nologin -d /var/ftpd vuser
+	改用户组目录权限 chmod go+rx 目录
+	vsftpd配置文件：
+		pam_service_name=vsftpd.mysql
+		anonymous_enable=yes#开启匿名访问
+		local_enable=yes	#是否开启系统用户
+		write_enable=yes	#本地用户是否有写权限
+		anon_upload_enable=No	#匿名上传权限
+		anon_mkdir_write_enable=NO #匿名创建目录
+		chroot_local_user=yes 	#锁定用户不可切出部内
+	添加：
+		guest_enable=yes	是否支持来宾用户访问
+		guest_username=vuser	来宾用户映射至vuser用户
+2、配置用户不同权限：此权限为屏蔽法
+	vim vsftp.conf
+		a、添加：
+		user_config_dir=/etc/vsftpd/vusers_config 用户各自配置文件
+		b、创建所需要目录，并为虚拟用户提供配置文件：
+		 mkdir /etc/vsfpd/vusers_config/
+		 touch tom jerry
+		 c、tom文件添加用户权限管理
+		 	anon_upload_enable=yes|no
+			anon_mkdir_write_enable=yes|no
+			anon_other_write_enable=yes|no
+客：
+ftp axel

@@ -1,0 +1,38 @@
+# /usr/local/apache/bin/httpd -D DUMP_MODULES | grep  proxy
+mod_proxy	#代理模块
+mod_proxy_http、#http代理模块
+mod_proxy_ajp	#ajp协议代理模块
+
+
+ajp负载均衡
+
+ProxyRequests Off
+<proxy balancer://lbcluster1>
+BalancerMember ajp://172.16.100.1:8009（ajp地址端口） loadfactor=10（权重） route=TomcatA
+BalancerMember ajp://172.16.100.2:8009 loadfactor=10 route=TomcatB
+</proxy>
+
+<VirtualHost *:80>
+ServerAdmin admin@magedu.com
+ServerName www.magedu.com
+ProxyPass / balancer://lbcluster1/ stickysession=jsessionid
+ProxyPassReverse / balancer://lbcluster1/
+</VirtualHost>
+
+
+http负载均衡
+
+<VirtualHost *:80>
+ServerAdmin admin@magedu.com
+ServerName www.magedu.com
+ProxyPass / balancer://lbcluster1/ stickysession=jsessionid
+ProxyPassReverse / balancer://lbcluster1/
+</VirtualHost>
+
+
+<Proxy balancer://hotcluster>
+BalancerMember  http://www1.magedu.com:8080 loadfactor=1
+BalancerMember  http://www2.magedu.com:8080 loadfactor=2
+ProxySet  lbmethod=bytraffic
+</Proxy>
+

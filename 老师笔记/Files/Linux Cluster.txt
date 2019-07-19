@@ -1,0 +1,1688 @@
+
+Linux Cluster
+
+	Cluster: 
+		Scale up：向上扩展，垂直扩展
+		Scale out: 向外扩展，横向扩展
+			director, dispatcher, load balancer
+
+	系统：
+		可扩展性、可用性、性能、容量
+
+		系统运维：可用 --> 标准化 --> 自动化
+
+		SPOF: Single Point Of Failure
+
+	Linux Cluster类型：
+		负载均衡集群：Load Balancing
+		高可用集群：High Availability
+			A = 平均无故障时间/(平均无故障时间+平均修复时间)
+				95%, 99%, 99.9%, 99.99%, 99.999%
+		高性能集群：High Performance
+			www.top500.org
+
+		分布式系统：
+			NoSQL: HBase, Redis
+			存储：MogileFS
+			文件系统：Ceph
+
+	构建高可扩展的系统，应该遵循的一个基本原则：在系统内部尽量避免串行化和交互；
+
+	GSLB: Global Service Load Balancing
+
+	思路：
+		分层：接入层 --> 应用层 --> 服务层 --> 数据层
+		分割：化整为零，切割大业务为多个小业务
+		分布式：
+			分布式应用
+			分布式静态资源
+			分布式数据和存储
+			分布式计算
+
+	“可扩展性”、“高可用性”、“性能”：
+		性能：响应时间；
+		容量：在一定时间内能完成的工作量；容量必须是可有效利用；
+		最大吞吐量：基准性能测试时得出的数据指标；系统容量的极限；
+		容量：在保证可接受性能的情况下能够达到的吞吐量；
+		可扩展性：表明了需要增加资源以完成更多的工作任务时能够获得的划算地等同提升；
+
+	Linux的集群类型：LB、HA、HP
+
+		LB集群调度器的实现：
+			工作在协议层来划分：
+				tcp：根据请求报文中的目标地址和端口进行调度；
+				应用层：根据请求的内容进行调度，而且此种调度为“代理”方式；
+
+			软件：
+				tcp: lvs (Linux Virtual Server), haproxy, nginx
+				http: haproxy, nginx, apache(proxy module, balancer module), ats(apache traffic server), squid, varnish
+				mysql: mysql-proxy
+			硬件：
+				F5：Big-IP
+				Citrix: NetScaler
+				A10: A10
+				Array: 
+				RedWare
+
+		lvs: Linux Virtual Server, 章文嵩
+
+			layer4 router
+			layer4 switch
+				根据目标地址和端口作出转发与否的决策，根据调度方法作出转发至哪一个后端的决策；
+
+			组成部分：ipvs, ipvsadm
+
+			netfilter: 
+				PREROUTING、INPUT、FORWARD、OUTPUT、POSTROUTING
+
+			ipvs工作于netfilter的INPUT链接；
+				ipvsadm用于在ipvs上定义集群服务：同时也得定义此集群服务对应于有哪个后端主机可用；
+				根据所指定的调度方法（算法）作出调度决策；
+
+			支持的协议：TCP, UDP, SCTP, AH, ESP, AH_ESP
+
+			lvs中的常用术语约定：
+				Host:
+					Director：调度器
+					Real Server: RS，后端提供服务的主机
+				IP：
+					Client: CIP
+					Director Virtual IP: VIP
+					Directory IP: DIP
+					Real IP: RIP
+
+			lvs的类型：
+				lvs-nat:
+					masquerade
+				lvs-dr:
+					direct routing
+				lvs-tun:
+					tunneling
+				lvs-fullnat:
+					fullnat
+
+			lvs-nat：类似于DNAT, 但支持多目标转发；
+				它通过修改请求报文的目标地址为根据调度算法所挑选出的某RS的RIP来进行转发；
+
+				架构特性：
+					(1) RS应该使用私有地址，即RIP应该为私有地址；各RS的网关必须指向DIP；
+					(2) 请求和响应报文都经由Director转发；高负载场景中，Director易于成为系统瓶颈；
+					(3) 支持端口映射；
+					(4) RS可以使用任意类型的OS; 
+					(5) RS的RIP必须与Director的DIP在同一网络；
+
+			lvs-dr：直接路由
+				Director在实现转发时不修改请求的IP首部，而是通过直接封装MAC首部完成转发；目标MAC是Director根据调度方法挑选出某RS的MAC地址；拓扑结构有别有NAT类型；
+
+				架构特性：
+					(1) 保证前端路由器将目标地址为VIP的请求报文通过ARP地址解析后送往Director
+						解决方案：
+							静态绑定：在前端路由直接将VIP对应的目标MAC静态配置为Director的MAC地址；
+							arptables：在各RS上，通过arptables规则拒绝其响应对VIP的ARP广播请求；
+							内核参数：在RS上修改内核参数，并结合地址的配置方式实现拒绝响应对VIP的ARP广播请求；
+					(2) RS的RIP可以使用私有地址；但也可以使用公网地址，此时可通过互联网上的主机直接对此RS发起管理操作；
+					(3) 请求报文必须经由Director调度，但响应报文必须不能经由Director; 
+					(4) 各RIP必须与DIP在同一个物理网络中；
+					(5) 不支持端口映射；
+					(6) RS可以使用大多数的OS；
+					(7) RS的网关一定不能指向Director；
+
+			
+回顾：
+	Linux Cluster、LVS
+		Linux Cluster: LB, HA, HP
+		LVS：layer4 router
+			根据IP和端口实现请求转发；
+		LVS Type:
+			lvs-nat, lvs-dr, lvs-tun, lvs-fullnat
+
+			lvs-nat: 多目标的DNAT；通过修改目标IP地址为某挑选的RS的IP地址来实现；
+			lvs-dr：通过修改重新封装首部，并将目标MAC定义了挑选出的某RS的MAC地址实现；
+
+LVS(2)
+	
+	lvs类型：
+		lvs-tun: 不修改请求报文IP首部，而是通过IP隧道机制在原有的IP报文之外再封装IP首部，经由互联网把请求报文交给选定的RS；
+			CIP;VIP DIP;RIP
+
+			架构特性：
+				(1) RIP, DIP, VIP都是公网地址；
+				(2) RS的网关不能，也不可能指向DIP; 
+				(3) 请求报文由Director分发，但响应报文直接由RS响应给Client；
+				(4) 不支持端口映射；
+				(5) RS的OS必须得支持IP隧道; 
+
+		lvs-fullnat：通过请求报文的源地址为DIP，目标为RIP来实现转发；对于响应报文而言，修改源地址为VIP，目标地址为CIP来实现转发；
+
+			架构特性：
+				(1) RIP,DIP可以使用私有地址；
+				(2) RIP和DIP可以不在同一个网络中，且RIP的网关未必需要指向DIP；
+				(3) 支持端口映射；
+				(4) RS的OS可以使用任意类型；
+				(5) 请求报文经由Director，响应报文经由Director；
+
+	lvs scheduler:
+
+		静态方法：仅根据算法本身实现调度；
+			RR: round-robin, 轮询；轮叫、轮调、轮流；
+			WRR：weighted round-robin, 加权轮询；
+			SH：Source ip Hashing，源地址哈希；把来自同一个地址请求，统统定向至此前选定的RS;
+			DH：Destination ip Hashing, 目标地址哈希；把访问同一个目标地址的请求，统统定向至此前选定的某RS；
+
+		动态方法：根据算法及后端RS当前的负载状况实现调度；
+			LC: least connection
+				Overhead=Active*256+Inactive
+			WLC: weighted least connection
+				Overhead=(Active*256+Inactive)/weight
+			SED：Shorted Expection Delay
+				Overhead=(Active+1)*256/weight
+			NQ：Never Queue
+			LBLC：Local-Based Least Connection，动态方式的DH算法；
+			LBLCR：Replicated LBLC
+
+	Session 保持
+		Session Sticky
+		Session Replication Cluster
+		Session Server
+
+
+	LVS基础概念：
+		lvs类型
+		lvs scheduler
+
+	ipvsadm命令的用法：
+		管理集群服务：创建、修改、删除
+		管理集群服务的RS：添加、修改、移除
+		查看：
+			统计数据
+			速率
+
+		管理集群服务：
+			创建或修改：
+				ipvsadm -A|E -t|u|f service-address [-s scheduler]
+
+					-A: 添加
+					-E：修改
+
+					-t: 承载的应用层协议为基于TCP协议提供服务的协议；其service-address的格式为“VIP:PORT”，如“172.16.100.6:80”；
+					-u: 承载的应用层协议为基于UDP协议提供服务的协议；其service-address的格式为“VIP:PORT”，如“172.16.100.6:53”；
+					-f:承载的应用层协议为基于TCP或UDP协议提供服务的协议，但此类报文会经由iptables/netfilter打标记，即为防火墙标记；其service-address的格式为“FWM”，例如“10”；
+
+					-s scheduler: 指明调度方法；默认为wlc；
+
+			删除：
+				ipvsadm -D -t|u|f service-address
+
+		管理集群服务上的RS：
+			添加或修改：
+				ipvsadm -a|e -t|u|f service-address -r server-address [-g|i|m] [-w weight]
+
+					-r server-address: 指明RS，server-address格式一般为“IP[:PORT]”；注意，只支持端口映射的lvs类型中才应该显式定义此处端口
+						例如：-r 192.168.10.7:80
+					[-g|i|m]: 指明lvs类型
+						-g: gateway, 意为dr类型；
+						-i: ipip, 意为tun类型；
+						-m: masquerade, 意为nat类型；
+					[-w weight]：当前RS的权重；
+						注意：仅对于支持加权调度的scheduler，权重才有意义；
+
+			删除：
+				ipvsadm -d -t|u|f service-address -r server-address
+
+		清空所有集群服务的定义：
+			ipvsadm -C
+
+		保存及恢复集群服务及RS的定义：
+			ipvsadm -S > /etc/sysconfig/ipvsadm
+			ipvsadm-save > /etc/sysconfig/ipvsadm
+			service ipvsadm save
+
+
+			ipvsadm -R < /etc/sysconfig/ipvsadm
+			ipvsadm-restore < /etc/sysconfig/ipvsadm
+			service ipvsadm restart
+
+		查看规则：
+			ipvsadm -L|l [options]
+				-c: 列出当前所有connection；
+				--stats: 列出统计数据
+				--rate: 列出速率
+				-n, --numeric: 数字格式显示IP及端口；
+				--exact: 精确值；
+
+		清空计数器：
+			ipvsadm -Z [-t|u|f service-address]
+
+	案例：lvs-nat类型的web服务器集群
+
+		tcpdump -i eth0 -nn host IP and tcp port 80 
+
+	博客作业：lvs-nat
+
+
+回顾：
+	lvs类型、lvs调度方法
+
+		lvs类型：
+			lvs-nat: 通过修改请求报文的目标IP地址进行调度；类似多目标的DNAT；
+			lvs-dr：通过重新封闭请求报文的帧首部(目标为RS的RIP对应MAC地址)进行调度；
+				(1) 在前端路由器上静态指定；
+				(2) arptables;
+				(3) 通过修改内核参数来限制arp通告和响应级别；
+			lvs-tun：通过为请求报文的原有IP首部之外再次封装外层IP首部完成调度；ipip；
+			lvs-fullnat：通过修改请求的报文的源IP以及目标IP地址进行调度；
+
+		lvs调度方法：
+			静态方法：rr, wrr, sh, dh
+			动态方法：lc(least connection), wlc, sed, nq, lblc, lblcr
+				lc: Overhead=Active*256+Inactive
+				sed: OVerhead=(Active+1)*256/weight
+
+		lvs: ipvs/ipvsadm
+			ipvs: netfilter, input
+
+			ipvsadm:
+				管理集群服务：
+					定义集群服务的方法：
+						-t service-address (IP:PORT)
+						-u service-address (IP:PORT)
+						-f service-address (FWM: firewall mark)
+
+					-A|-E|-D
+
+					-s scheduler
+				管理集群服务的RS:
+					为集群服务指定RS：
+						-r server-address (IP[:PORT])
+
+					lvs类型：-g|-i|-m
+					指定权重：-w #
+
+					-a|-e|-d
+
+				查看：
+					-L
+						-n, --stats, --rate, --exact
+				清空、保存及重载
+					清空：-C
+					保存：-S
+					重载：-R
+
+			session 保持：
+				session sticky：基于源ip绑定，基于cookie绑定；
+				session replication cluster：在各server之间以多播方式“复制”各session，从而每个server会持有所的session；(tomcat)
+				session server：引入第三方存储，专用于共享存储session信息；(redis, memcached)
+
+		lvs-nat：
+
+		lvs-dr：
+			(1) 各RS要直接响应Client，因此，各RS均得配置VIP；但仅能够让Director上的VIP能够与本地路由直接通信；
+			(2) Director不会拆除或修改请求报文的IP首部，而是通过封闭新的帧首部（源MAC为Director的MAC，目标MAC为挑选出的RS的MAC）完成调度；
+
+			2.4.26, 2.6.4 kernel引入了两个内核参数：
+				arp_announce：定义arp通知级别；
+				arp_ignore：定义arp忽略arp请求或arp通告的级别；
+
+				/proc/sys/net/ipv4/conf/INTERFACE
+
+			配置过程总结：
+				Director：
+					(1) VIP配置在物理接口的别名上
+						ifconfig INTERFACE:ALIAS $vip broadcast $vip netmask 255.255.255.255
+
+					(2) 配置路由信息
+						route add -host $vip dev INTEFACE:ALIAS
+
+				RS:
+					(1) 先修改内核参数
+						echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore
+						echo 1 > /proc/sys/net/ipv4/conf/lo/arp_ignore
+						echo 2 > /proc/sys/net/ipv4/conf/all/arp_announce
+						echo 2 > /proc/sys/net/ipv4/conf/lo/arp_announce
+
+					(2) VIP配置在lo的别名上
+						ifconfig lo:0 $vip broadcast $vip netmask 255.255.255.255 up
+
+					(3) 配置路径信息
+						route add -host $vip dev lo:0
+
+			示例脚本：	
+				DR类型director脚本示例：
+					#!/bin/bash
+					#
+					vip=172.16.100.7
+					rip=('172.16.100.8' '172.16.100.9')
+					weight=('1' '2')
+					port=80
+					scheduler=rr
+					ipvstype='-g'
+
+					case $1 in
+					start)
+					iptables -F -t filter
+					ipvsadm -C
+					
+					ifconfig eth0:0 $vip broadcast $vip netmask 255.255.255.255 up
+					route add -host $vip dev eth0:0
+					echo 1 > /proc/sys/net/ipv4/ip_forward
+
+					ipvsadm -A -t $vip:$port -s $scheduler
+					[ $? -eq 0 ] && echo "ipvs service $vip:$port added."  || exit 2
+					for i in `seq 0 $[${#rip[@]}-1]`; do
+						ipvsadm -a -t $vip:$port -r ${rip[$i]} $ipvstype -w ${weight[$i]}
+						[ $? -eq 0 ] && echo "RS ${rip[$i]} added."
+					done
+					touch /var/lock/subsys/ipvs
+					;;
+					stop)
+					echo 0 > /proc/sys/net/ipv4/ip_forward
+					ipvsadm -C
+					ifconfig eth0:0 down
+					rm -f /var/lock/subsys/ipvs
+					echo "ipvs stopped."
+					;;
+					status)
+					if [ -f /var/lock/subsys/ipvs ]; then
+						echo "ipvs is running."
+						ipvsadm -L -n
+					else
+						echo "ipvs is stopped."
+					fi
+					;;
+					*)
+					echo "Usage: `basename $0` {start|stop|status}"
+					exit 3
+					;;
+					esac
+
+
+				DR类型RS脚本示例：
+					#!/bin/bash
+					#
+					vip=172.16.100.7
+					interface="lo:0"
+
+					case $1 in
+					start)
+					echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore
+					echo 1 > /proc/sys/net/ipv4/conf/lo/arp_ignore
+					echo 2 > /proc/sys/net/ipv4/conf/all/arp_announce
+					echo 2 > /proc/sys/net/ipv4/conf/lo/arp_announce
+
+					ifconfig $interface $vip broadcast $vip netmask 255.255.255.255 up
+					route add -host $vip dev $interface
+					;;
+					stop)
+					echo 0 > /proc/sys/net/ipv4/conf/all/arp_ignore
+					echo 0 > /proc/sys/net/ipv4/conf/lo/arp_ignore
+					echo 0 > /proc/sys/net/ipv4/conf/all/arp_announce
+					echo 0 > /proc/sys/net/ipv4/conf/lo/arp_announce
+
+					ifconfig $interface down
+					;;
+					status)
+					if ifconfig lo:0 |grep $vip &> /dev/null; then
+						echo "ipvs is running."
+					else
+						echo "ipvs is stopped."
+					fi
+					;;
+					*)
+					echo "Usage: `basename $0` {start|stop|status}"
+					exit 1
+					esac
+
+		lvs定义集群服务，有三种方式：
+			-t service-address
+			-u service-address
+			-f service-address 
+				FWM
+
+			FWM: firewall mark
+				iptables/netfilter, 
+					filter, nat, mangle, raw
+
+					mangle: 防火墙标记
+
+				前提：在ipvs生效之前的netfilter的某hook function上定义iptables规则，实现给报文打上防火墙标记；
+
+			定义方法：
+				(1) 打标：在Director上mangle表的PREROUTING链上实现
+					# iptables -t mangle -A PREROUTING -d $vip -p $protocol --dport $port -j MARK --set-mark [1-99]
+
+				(2) 基于FWM定义集群服务
+					# ipvsadm -A -f FWM -s SCHEDULER
+					# ipvsadm -a -f FWM -r server-address -g|-i|-m -w #
+
+		lvs的persistence: lvs持久连接
+
+			无论使用哪一种调度方法，持久连接功能都能保证在指定时间范围之内，来自于同一个IP的请求将始终被定向至同一个RS；
+
+			persistence template：持久连接模板
+
+			PPC：每端口持久；持久连接生效范围仅为单个集群服务；如果有多个集群服务，每服务被单独持久调度；
+			PCC：每客户端持久；持久连接生效范围为所有服务；定义集群服务时，其TCP或UDP协议的目标端口要使用0；
+			PFWM：每FWM持久：持久连接生效范围为定义为同一个FWM下的所有服务；
+
+
+			ipvsadm -A -t|-u|-f service-address -s SCHEDULER [-p [#]]
+				无-p选项：不启用持久连接
+				-p #：指定持久时长，省略时长，默认为300seconds
+
+
+回顾：lvs-dr类型、lvs persistence
+	lvs-dr类型：
+		arp_ignore(1), apr_announce(2)
+		all, lo
+
+		ifconfig lo:0 $vip broadcast $vip netmask 255.255.255.255 up
+		route add -host $vip dev lo:0
+
+	lvs persistence:
+		ipvsadm -A -t|-u|-f service-address -s SCHEDULER -p [#]
+			默认时长：360s
+
+			PPC：持久单个服务；
+			PCC：持久客户端；
+			PFWM：持久防火墙标记；
+
+lvs集群：
+	
+	lvs本身不支持对RS的健康状态作检测；
+
+	健康：周期性检查机制
+		状态发生转变时，要作出相应处理
+			up --> down: 建议要至少确认三次；
+			down --> up: 建议一次以上（含一次）；
+
+		下线处理机制：
+			(1) 设置权重为0；
+			(2) 将相应的RS从ipvs的可用RS列表中移除；
+
+		上线处理机制：
+			(1) 设置为正常权重；
+			(2) 将相应的RS添加至ipvs的可用RS列表；
+
+		解决方案：
+			(1) 写程序完成相应功能；
+
+		如何做健康状态检查：
+			三种方案：
+				IP层：ping等主机在线状态探查工具；
+				传输层：端口扫描工具探查服务在线状态；
+				应用层：请求专用于健康状态检查的资源或者某正常资源；
+
+		备用服务器：
+			sorry server, backup server
+			可以在Director上直接实现：即配置director成为web服务，仅提供有限资源，在所有RS都故障时，方才启用此server；
+
+		作业：写脚本，完成RS健康状态检查；
+
+			#!/bin/bash
+			#
+			fwm=10
+			sorry_server='127.0.0.1'
+			lvstype='-m'
+			checkloop=3
+			logfile=/var/log/ipvs_health_check.log
+			rs=('192.168.10.11' '192.168.10.12')
+			rw=('1' '1')
+			rsstatus=(0 0)
+
+			addrs() {
+			    # $1: rs, $2: rs weight
+			    ipvsadm -a -f $fwm -r $1 $lvstype -w $2
+			    [ $? -eq 0 ] && return 0 || return 1
+			}
+
+			delrs() {
+			    # $1: rs
+			    ipvsadm -d -f $fwm -r $1
+			    [ $? -eq 0 ] && return 0 || return 1
+			}
+
+			chkrs() {
+			    # $1: rs
+			    local i=1
+			    while [ $i -le $checkloop ]; do
+				if curl --connect-timeout 1 -s http://$1/index.html | grep -i "real[[:space:]]* server" &> /dev/null; then
+				     return 0
+			        fi
+			        let i++
+				sleep 2
+			    done
+			    return 1
+			}
+			   
+			initstatus() {
+			    for host in `seq 0 $[${#rs[@]}-1]`; do
+				if chkrs ${rs[$host]}; then
+				    if [ ${rsstatus[$host]} -eq 0 ]; then
+					rsstatus[$host]=1
+			            fi
+			        else
+				    if [ ${rstatus[$host]} -eq 1 ]; then
+					rsstatus[$host]=0
+			 	    fi
+				fi
+			    done
+			}
+
+			initstatus
+
+			while :; do
+			    for host in `seq 0 $[${#rs[@]}-1]`; do
+				if chkrs ${rs[$host]}; then 
+				    if [ ${rsstatus[$host]} -eq 0 ]; then
+					addrs ${rs[$host]} ${rw[$host]}
+					[ $? -eq 0 ] && rsstatus[$host]=1
+				    fi
+				else
+				    if [ ${rsstatus[$host]} -eq 1 ]; then
+					delrs ${rs[$host]}
+					[ $? -eq 0 ] && rsstatus[$host]=0
+				    fi
+				fi
+			    done
+			    sleep 10
+			done
+
+			作业：改进此脚本
+				(1) 启用在rs上下线时记录日志；
+				(2) 在所有rs下线时启用sorry_server；
+
+	博客作业：lvs原理、lvs-nat的实现、lvs-dr的实现
+
+	
+回顾：lvs持久连接、FWM（port affinity）、health check
+	lvs持久连接：
+		持久连接模板；
+		-p #
+	FWM:
+		PFWM
+	health check：
+		IP层：icmp探测；
+		传输层：端口扫描nmap；
+		应用层：应用层协议的客户端工具去获取资源；
+
+Linux HA Cluster
+	
+	故障场景：
+		硬件故障：
+			设计缺陷
+			使用过久不可避免的损坏
+			人为故障
+			...
+		软件故障：
+			设计缺陷
+			bug
+			人为误操作
+			...
+
+	A=MTBF/(MTBF+MTTR)
+		A: Availability
+		MTBF：mean time between failure
+		MTTR: mean time to repair
+
+		0<A<1: 百分比， 90%, 95%, 99%, 99.9%, 99.99%, 99.999%
+
+	提供冗余系统：
+		HA Cluster：为提升系统调用性，组合多台主机构建成为的集群；
+
+		split brain, partitioned cluster
+
+	vote system：投票系统
+		HA中的各节点无法探测彼此的心跳信息时，必须无法协调工作；此种状态即为partitioned cluster；
+
+		少数服从多数的原则：quorum
+			with quorum > total/2 
+			without quorum <= total/2
+
+		仲裁设备：
+			quorum disk = qdisk
+			ping node
+
+		failover: 失效转移，故障转移
+		failback：失效转回，故障转回
+
+	资源类型：
+		HA-aware：资源自身可直接调用HA集群底层的HA功能；
+		非HA-aware：必须借助于CRM完成在HA集群上实现HA功能；
+
+	资源的约束关系：
+		location：位置约束，定义资源对节点的倾向性；用数值来表示，-oo, +oo；
+		colocation：排列约束，定义资源彼此间“在一起”倾向性；-oo, +oo
+			分组：亦能实现将多个资源绑定在一起；
+		order：顺序约束，定义资源在同一个节点上启动时的先后顺序；
+
+	资源类型：
+		primitive：主资源，只能运行于集群内的某单个节点；(也称作native)；
+		group：组资源，容器，包含一个或多个资源，这些资源可通过“组”这个资源统一进行调度；
+		clone：克隆资源，可以在同一个集群内的多个节点运行多份克隆；
+		master/slave：主从资源，在同一个集群内部于两个节点运行两份资源，其中一个主，一个为从；
+
+	资源隔离：
+		级别
+			节点：STONITH （Shooting The Other Node In The Head）
+				power switch
+			资源：fencing
+				FC SAN switch
+
+	解决方案：
+		Messaging Layer：
+			heartbeat
+				v1, v2, v3
+			corosync
+			cman (RedHat, RHCS)
+			keepalived (完全不同上述三种)
+
+		CRM：
+			heartbeat v1 haresources (配置接口：配置文件，文件名为haresources)
+			heartbeat v2 crm (在各节点运行一个crmd进程，配置接口：命令行客户端程序crmsh，GUI客户端：hb_gui)；
+			heartbeat v3, pacemaker (pacemaker可以以插件或独立方式运行；配置接口，CLI接口：crmsh, pcs; GUI: hawk(webgui), LCMC, pacemaker-mgmt)；
+			rgmanager (配置接口，CLI：clustat, cman_tool; GUI: Conga(luci+ricci))
+
+			组合方式：
+				heartbeat v1
+				heartbeat v2
+				heartbeat v3 + pacemaker
+				corosync + pacemaker
+				cman + rgmanager (RHCS)
+				cman + pacemaker
+
+		LRM: Local Resource Manager, 由CRM通过子程序提供；
+		RA: Resouce Agent
+			heartbeat legacy：heartbeat传统类型的RA，通常位于/etc/ha.d/haresources.d/目录下；
+			LSB：Linux Standard Base, /etc/rc.d/init.d目录下的脚本，至少接受4个参数：{start|stop|restart|status}；
+			OCF：Open Cluster Framework
+				子类别：provider
+			STONITH：专用于实现调用STONITH设备功能的资源；通常为clone类型；
+
+		Heartbeat：心跳信息传递机制
+			serail cable：作用范围有限，不建议使用；
+			ethernet cable：
+				UDP Unicast
+				UDP Multicast
+				UDP Broadcast
+
+			组播地址：用于标识一个IP组播域；IANA(Internet Assigned number authority)把D类地址空间分配给IP组播使用；其范围是：224.0.0.0-239.255.255.255; 
+				永久组播地址：224.0.0.0-224.0.0.255; 
+				临时组播地址：224.0.1.0-238.255.255.255; 
+				本地组播地址：239.0.0.0-239.255.255.255, 仅在特定本地范围内有效；
+
+		HA案例：ha web services
+			资源有三个：
+				ip, httpd, filesystem
+
+				fip: floating ip，172.16.100.17
+				daemon: httpd
+
+			约束关系：使用“组”资源，或通过排列约束让资源运行于同一节点；
+					  顺序约束：有次序地启动资源；
+
+			程序选型：
+				heartbeat v2 + haresources
+				heartbeat v2 + crm (hb_gui)
+
+		配置HA集群的前提：
+			(1) 节点间时间必须同步：使用ntp协议实现；
+			(2) 节点间需要通过主机名互相通信，必须解析主机至IP地址；
+				(a) 建议名称解析功能使用hosts文件来实现；
+				(b) 通信中使用的名字与节点名字必须保持一致：“uname -n”命令，或“hostname”展示出的名字保持一致；
+			(3) 考虑仲裁设备是否会用到；
+			(4) 建立各节点之间的root用户能够基于密钥认证；
+				# ssh-keygen -t rsa -P '' 
+				# ssh-copy-id -i /root/.ssh/id_rsa.pub root@HOSTNAME
+
+			注意：定义成为集群服务中的资源，一定不能开机自动启动；因为它们将由crm管理；
+
+		demo：
+
+			# yum install net-snmp-libs libnet PyXML
+			# rpm -ivh heartbeat-2.1.4-12.el6.x86_64.rpm heartbeat-pils-2.1.4-12.el6.x86_64.rpm heartbeat-stonith-2.1.4-12.el6.x86_64.rpm
+
+			配置文件：
+				/etc/ha.d目录下：
+					ha.cf: 主配置文件，定义各节点上的heartbeat HA集群的基本属性；
+					authkeys：集群内节点间彼此传递消息时使用加密算法及密钥；
+					haresources: 为heartbeat v1提供资源管理器配置接口；v1版本专用的配置接口；
+
+
+				# ip link set eth0 multicast on|off
+
+
+回顾：
+	HA Cluster: Heartbeat
+
+	A=MTBF/(MTBF+MTTR)
+		HA Cluster通过减小MTTR实现可用性提升；
+
+	HA Web Services：
+		fip, httpd(nginx), filesystem
+
+		通过资源转移，保证其可用性；
+
+	HA Cluster：
+		Messaging Layer: Infrastructure，实现心跳信息传递、集群事务消息传递；
+			heartbeat, corosync, cman, keepalived
+		CRM: Cluster Resources Manager，集群资源管理器；
+			haresources, crm, pacemaker, rgmanager
+		LRM: Local Resources Manager
+		RA: Resource Agent
+			heartbeat legacy, lsb, ocf(provider), stonith
+
+	partitioned cluster:
+		vote system:
+			with quorum
+			without quorum
+
+		fencing：
+			节点：stonith, 
+			资源：fencing,
+
+	资源的约束：
+		location: -oo, +oo
+		coloction
+		order
+
+	资源的类型：
+		primitive, group, clone, master/slave
+
+	HA Cluster:
+		heartbeat v2 (v1 crm)
+		heartbeat v2 (v2 crm)
+		corosync + pacemaker
+		cman + rgmanager
+
+HA Cluster(2)
+
+	HA Cluster的工作模型：
+		A/P：两节点集群，active, passive；工作于主备模型；
+			HA Service通常只有一个：HA resources可能会有多个；
+		A/A：两节点集群，active/active，工作于双方模型；
+		N-M: N个节点，M个服务；通常N>M；
+		N-N：N个节点，N个服务；
+
+
+	partitioned: 
+		with quorum
+		without quorum
+			stopped
+			ignore
+			freeze
+			suicide
+
+	资源运行的倾向性：
+		rgmanager:
+			failover domain, node priority
+		pacemaker：
+			资源黏性：运行于当前节点的倾向性；
+			资源约束：
+				位置约束：资源对运行于某节点的倾向性
+					inf: 正无穷
+					-inf: 负无穷
+					n: 
+					-n:
+				排列约束：资源运行于一处的倾向性
+					inf
+					-inf
+					n
+					-n
+				顺序约束：启动的先后顺序
+					A --> B --> C
+					C --> B --> A
+
+		DC: Designated Coordinator
+
+	heartbeat v2 (v1 crm: haresources)
+		配置文件：authkeys, ha.cf, haresources
+
+		ip, httpd, ha web service
+
+		配置过程：
+			前提：时间同步、基于主机名互相访问、仲裁设备、ssh互信通信
+			heartbeat v2: CentOS 6.6
+
+	heartbeat v2 (v2 crm)：
+		启用方法：
+			ha.cf配置文件，添加
+			crm on
+
+			注意：此时会禁用v1 haresources资源管理器；
+
+		ha web service:
+			ip, httpd
+
+		ha mysql service:
+			ip, mysqld, shared storage
+
+			172.16.100.21
+			mysqld
+			shared storage
+
+		作业：基于heartbeat v2 crm实现HA LAMP组合；要求，部署wordpress，用于编辑的文章中的任何数据在节点切换后都能正常访问；
+
+回顾：
+	heartbeat v2 crm, hb_gui
+
+	HA: 
+		Messaging Layer
+			heartbeat, corosync, cman, keepalived
+		CRM
+			haresources, crm, pacemaker, rgmanager
+		LRM
+		RA
+			heartbeat legacy, lsb, ocf, stonith
+
+	资源的类型：
+		primitive, group, clone, master/slave
+
+	约束：
+		location, order, colocation
+
+	heartbeat v2 crm
+		ha.cf 
+			crm on
+
+			mgmtd, 5560/tcp
+
+			crm_mon, hb_gui
+
+HA Cluster(3)
+	
+	CIB: Cluster Information Base
+		cib.xml
+
+		/var/lib/heartbeat/cib/
+
+	DC: Designated Coordinator
+
+	HA:
+		Messaging and Infrastructure Layer
+			Heartbeat Layer
+		Membership Layer
+			CCM
+		Resource Allocation Layer
+			CRM:
+				DC: LRM, PE, TE, CIB
+				other: LRM, CIB
+		Resource Layer
+			RA
+
+	partitioned cluster: split brain
+		vote system:
+			with quorum: >total/2
+			without quorum: <= total/2
+
+		without quorum:
+			stop
+			ignore
+			freeze
+			suicide
+
+	共享存储：
+		NAS：Network Attached Storage
+		SAN：Storage Area Network
+
+		集群文件系统：
+			GFS2, OCFS2
+
+	corosync:
+		AIS: Application Interface Standard,  
+
+		SA Forum: OpenAIS
+
+		OpenAIS: 提供了一种集群模式，包含集群框架、集群成员管理、通信方式、集群监测，但没有集群资源管理功能；
+
+			组件包括：AMF, CLM, CPKT, EVT等；分支不同，包含的组件略有区别；
+
+				分支：picacho, whitetank, wilson, 
+					corosync (集群管理引擎)
+						只是openais的一个子组件；
+
+			分裂成为两个项目：
+				corosync, wilson(ais的接口标准)
+
+		CentOS 5: 
+			cman + rgmanager
+		CentOS 6: 
+			cman + rgmanager
+			corosync + pacemaker
+
+				命令行管理工具：
+					crmsh: suse, CentOS 6.4-
+					pcs: RedHat, CentOS 6.5+
+
+		crm的常用子命令：
+			status
+			node
+			configure
+			ra
+			resource
+
+			configure常用的子命令：
+				primitive
+				group
+				clone
+				ms
+				location
+				colocation
+				order
+				show
+				property
+
+				primitive <rsc_id> class:provider:ra params param1=value1 param2=value2 op op1 param1=value op op2 parma1=value1
+
+		案例：ha web service
+			webip: 172.16.100.23
+
+			配置两点的corosync/pacemaker集群，设置两个全局属性：
+				stonith-enabled=false
+				no-quorum-policy=ignore
+
+		博客作业：corosync/pacemaker, 实现高可用的MariaDB; 
+
+回顾：
+	corosync + pacemaker, crmsh(CLI)配置ha, web service
+
+	corosync: Messaging Layer
+	pacemaker: 
+		corosync的插件；
+		独立的守护进程；
+
+	CentOS 6.4-: crmsh(suse)
+		1.x
+		2.x
+		依赖于pssh
+	CentOS 6.5+: pcs(RedHat)
+
+	crmsh命令：
+		status, node, configure, resource, ra
+
+		configure：
+			resource: primitive, group, clone, ms
+			constraint: location, order, colocation
+
+			operation:
+				monitor: interval, timeout
+				start
+				stop
+
+		resource:
+			start, stop, status, migrate, cleanup
+
+		ra:
+			classes
+			list
+			info
+
+drbd：
+	
+	存储的类型：
+		DAS：Direct Attached Storage
+		NAS: Network Attached Storage
+		SAN: Storage Area Network
+
+		DAS: 
+			ide, usb, sata, scsi, sas
+
+	drbd：跨主机的块设备镜像系统
+		基于网络实现数据镜像；
+		工作内核，软件；
+
+		工作于内核
+
+		用户空间管理工具：drbdadm, drbdsetup, drbdmeta
+
+		工作特性：实时、透明、同步或异步；
+
+		数据同步模型：三种协议
+			Protocal A, B, C
+				A: Async
+				B: Semi-Sync
+				C: sync
+
+		每组drbd设备都由"drbd resource"进行定义：
+			名字：只能由空白字符之外ASCII字符组成；
+			drbd设备：/dev/drbd#
+				主设备号：147, 
+				次设备号：从0开始编号
+			磁盘配置：各主机上用于组成此drbd设备的磁盘或分区；
+			网络配置：数据同步时的网络通信属性；
+
+		工作模型：
+			master/slave
+			dual master: 要求必须在HA集群使用集群文件系统；
+
+		案例：实现drbd存储；
+
+			配置前提：时间同步、基于主机名访问；
+
+
+			kmod-drbd84-8.4.5-504.1.el6.x86_64.rpm
+			drbd84-utils-8.9.1-1.el6.elrepo.x86_64.rpm
+
+			配置文件：
+				/etc/drbd.conf
+					/etc/drbd.d/global_common.conf: 提供全局配置，及多个drbd设备相同的配置；
+					/etc/drbd.d/*.res: 资源定义；
+
+					global: 全局属性，定义drbd自己的工作特性；
+					common: 通用属性，定义多组drbd设备通用特性；
+					*.res：资源特有的配置
+
+	在pacemaker中定义克隆资源的专用属性：
+		clone-max：最多克隆出的资源份数；
+		clone-node-max：在单个节点上最多运行几份克隆；
+		notify：当一份克隆资源启动或停止时，是否通知给其它的副本；
+		master-max：最多启动几份master资源；
+		master-node-max：同一个节点最多运行几份master类型资源；
+
+
+	案例：corosync/pacemaker + drbd 实现 HA Mariadb：
+		node node1.magedu.com \
+			attributes standby=off
+		node node2.magedu.com \
+			attributes standby=off
+		primitive mydata Filesystem \
+			params device="/dev/drbd0" directory="/mydata" fstype=ext4 \
+			op monitor interval=20s timeout=40s \
+			op start timeout=60s interval=0 \
+			op stop timeout=60s interval=0
+		primitive myip IPaddr \
+			params ip=172.16.100.27 \
+			op monitor interval=10s timeout=20s
+		primitive myserver lsb:mysqld \
+			op monitor interval=20s timeout=20s
+		primitive mystor ocf:linbit:drbd \
+			params drbd_resource=mystore \
+			op monitor role=Master interval=10s timeout=20s \
+			op monitor role=Slave interval=20s timeout=20s \
+			op start timeout=240s interval=0 \
+			op stop timeout=100s interval=0
+		ms ms_mystor mystor \
+			meta clone-max=2 clone-node-max=1 master-max=1 master-node-max=1 notify=true
+		colocation mydata_with_ms_mystor_master inf: mydata ms_mystor:Master
+		colocation myip_with_ms_mystor_master inf: myip ms_mystor:Master
+		colocation myserver_with_mydata inf: myserver mydata
+		order mydata_after_ms_mystor_master Mandatory: ms_mystor:promote mydata:start
+		order myserver_after_mydata Mandatory: mydata:start myserver:start
+		order myserver_after_myip Mandatory: myip:start myserver:start
+		property cib-bootstrap-options: \
+			dc-version=1.1.11-97629de \
+			cluster-infrastructure="classic openais (with plugin)" \
+			expected-quorum-votes=2 \
+			stonith-enabled=false \
+			no-quorum-policy=ignore \
+			default-resource-stickiness=50 \
+			last-lrm-refresh=1432892808
+
+	博客作业：上述内容；
+
+回顾：
+	drbd, pacemaker + drbd
+
+		drbd: 工作于Linux内核中；
+		drbdadm、drbdsetup、drbdmeta
+
+		协议：
+			A：异步
+			B：半同步
+			C：同步
+
+		模型：
+			primary/secondary
+				primary: 可挂载、可读写
+				secondary: 不要挂载
+			primary/primary
+				必要条件：HA环境
+				Cluster FS
+
+	pacemaker + drbd:
+		primary/secondary
+			将drbd定义成master/slave类型的资源；
+				能自动完成primary/secondary角色切换；
+				还能够通过在pacemaker中定义Filesystem，从而完成drbd设备自动挂载；
+		primary/primary
+			借助于dlm完成分布式锁管理；
+			将dlm定义clone类型资源；从而使得多个节点都能够使用此资源；
+			Cluster FS
+
+SCSI & iSCSI
+	
+	存储类型：
+		DAS：Direct Attached Storage
+			并行口：IDE(ATA)、SCSI
+			串行口：SATA、SAS、USB、eSATA
+		NAS：文件服务协议实现文件服务器，NFS、CIFS；
+			RESTful
+		SAN：Storage Area Network
+
+	SCSI：Small Computer System Interface
+		并行I/O接口规范：I/O通道，传输协议
+
+		协议分层：
+			应用层
+			传输层
+			物理层
+
+		注意：物理层可替换为其它的传输介质，而非必须使用SCSI线缆；
+			FC, Ethernet, IB
+
+	SAN: 利用现有的成熟网络技术承载存储协议SCSI的相关报文
+		fc --> fc
+		fc --> fcoe --> cee
+		fc --> fcip --> tcp --> ip --> Ethernet
+		iSCSI --> tcp --> ip --> Ethernet
+		SRP/iSER --> IB
+
+	iSCSI:
+		监听端口： 3260/tcp
+
+		SAN的类型：FC SAN, 
+			iSCSI: IP SAN
+
+		SCSI设备：
+			initiator：HBA
+			target: target id, tid
+				lun: logical unit, lun
+
+		iSCSI Storage：
+			target端：Linux主机：
+				iSCSI Target
+				iSCSI LUN
+
+			initiator：
+
+	案例：实践iSCSI
+		Target：
+			认证：
+				基于IP认证
+				CHAP：挑战握手认证协议
+			程序包：scsi-target-utils
+				管理工具：
+					tgtadm：全功能的命令行配置工具；其配置结果在OS重启后失效；
+					tgt-admin：通过读取配置文件/etc/tgt/targets.conf进行配置的工个；
+
+				启动服务后，模拟的是SCSI总线；
+					管理多个target
+					每个target上，可管理多个lun （32）
+
+		Initiator：
+			程序包：iscsi-initiator-utils
+				iscsi
+				iscsid
+
+		target和initiator都需要基于iqn来进行标识：
+			iqn: iscsi qualified name
+				格式：
+					iqn.YEAR-MONTH.tld.domain:string[.substring]
+
+					例如：iqn.2015-06.com.magedu:i1.c2
+
+		配置iscsi server：
+			1、准备磁盘设备；
+			2、安装程序包、启动服务；
+			3、创建target; 
+			4、创建lun；
+			5、授权；
+
+			tgtadm命令：
+				模式化的工具：
+					target: 管理target
+					logicalunit: 管理lun
+					account：管理用户账号
+
+				管理操作：
+					show: 查看
+					new: 新建
+					delete: 删除
+					update：修改
+					bind: 绑定，即实现授权，通过将IP或账号与target绑定进行；
+					unbind：解除授权
+
+			 	常用选项：
+			 		--lld, -L <driver>：指明驱动，此处均为issi；
+			 		--mode, -m <mode>
+			 		--op, -o <operation>
+			 		--tid, -t <TID>
+			 		--lun, -l <LUN>
+			 		--backing-store, -b <PATH>
+			 		--initiator-address, -i <IP or NET>
+			 		--targetname, -T <iqn.NAME>
+
+		配置iSCSI initiator：
+			1、安装程序包，配置initiator的名字，并启动服务；
+				(1) 配置initiator的iqn格式的名字：/etc/iscsi/initiatorname.iscsi
+				service iscsi start
+				service iscsid start
+			2、使用iscsiadm实现target的发现、注册等
+				(1) 发现模式：discovery
+					iscsiadm -m discovery -d # -t sendtargets -p IP[:PORT]
+						TYPE: sendtargets, 可简写为st;  
+				(2) 节点模式：node
+					iscsiadm -m node [ -d debug_level ]  [ [ -T targetname -p ip:port -I ifaceN ] [ -l | -u | -R | -s] ] [ [ -o  operation  ]
+
+
+
+	配置target的第二种方式：
+		编辑/etc/tgt/targets.conf
+		<target iqn.2015-06.com.magedu:s2.t1>
+    		backing-store /dev/sdb
+    		backing-store /dev/sdc
+    		initiator-address 172.16.0.0/16
+		</target>
+
+		重启tgtd服务；
+
+	开源存储管理工具：
+		Openfiler、FreeNAS、Nexenta
+
+
+
+keepalived：
+
+	HA的开源解决方案：
+		Heartbeat：haresources, crm
+		corosync: pacemaker
+
+		keepalived
+
+	vrrp: Virtual Redundent Routing Protocol
+		相关术语：
+			vrouter: 虚拟路由器；
+			VRID：虚拟路径器标识；0-255；
+			Master
+			Backup
+			vip
+			vmac: 00-00-5e-00-01-{vrid}
+			priority：
+			抢占方式
+			非抢占方式
+
+		认证方式：
+			简单字符认证
+			md5认证
+
+		工作模式：
+			master-backup模式
+			master-master模式
+				vrouter1: master-backup
+				vrouter2: backup-master
+
+
+	keepalived: 在Linux主机上，以daemon方式实现了vrrp协议；并提供了完成配置ipvs规则及实现相应real server状态检测能力；
+		调用外部脚本；
+
+		适用场景：ipvs, haproxy, nginx(reverse proxy)
+
+		CentOS 6.4+: 由系统安装树直接提供；
+
+		配置：
+			global_defs: 全局配置
+			vrrp_instance: 一个vrouter的配置
+			lvs: ipvs相关配置
+
+			virtual_ipaddress {
+               <IPADDR>/<MASK> brd <IPADDR> dev <STRING> scope <SCOPE> label <LABEL>
+               192.168.200.17/24 dev eth1
+               192.168.200.18/24 dev eth2 label eth2:1
+           }
+
+        如果有其它资源可用于做为主备节点角色判断的标准，可以通过如下配置实现：
+        	vrrp_script NAME {
+
+        	}
+
+        	vrrp_instance NAME{
+        		track_script {
+
+        		}
+        	}
+
+        	示例：
+				vrrp_script chk_mt_down {
+				    script "[[ -f /etc/keepalived/down ]] && exit 1 || exit 0"
+				    interval 1
+				    weight -5
+				}
+
+		健康状态检测方法：
+			 pick one healthchecker
+               # HTTP_GET|SSL_GET|TCP_CHECK|SMTP_CHECK|MISC_CHECK
+
+        ipvs配置示例(1)
+			! Configuration File for keepalived
+
+			global_defs {
+			   notification_email {
+				kaadmon@magedu.com
+			   }
+			   notification_email_from kaadmin@magedu.com
+			   smtp_server 127.0.0.1
+			   smtp_connect_timeout 30
+			   router_id LVS_DEVEL
+			}
+
+			vrrp_script chk_mt_down {
+			    script "[[ -f /etc/keepalived/down ]] && exit 1 || exit 0"
+			    interval 1
+			    weight -5 
+			}
+
+			vrrp_instance VI_1 {
+			    state MASTER
+			    interface eth0
+			    virtual_router_id 57
+			    priority 100
+			    advert_int 1
+			    authentication {
+			        auth_type PASS
+			        auth_pass VI1pass
+			    }
+			    virtual_ipaddress {
+				172.16.100.52/32 brd 172.16.100.52 dev eth0 label eth0:0
+			    }
+			    track_script {
+				chk_mt_down
+			    }
+			}
+
+			virtual_server 172.16.100.52 80 {
+			    delay_loop 6
+			    lb_algo rr
+			    lb_kind DR
+			    nat_mask 255.255.0.0
+			#    persistence_timeout 50
+			    protocol TCP
+
+			    real_server 172.16.100.8 80 {
+			        weight 1
+			        HTTP_GET {
+			            url {
+			              path /index.html
+			              status_code 200
+			            }
+			            connect_timeout 2
+			            nb_get_retry 3
+			            delay_before_retry 1
+			        }
+			    }
+			    real_server 172.16.100.9 80 {
+			        weight 1
+			        HTTP_GET {
+			            url {
+			              path /index.html
+			              status_code 200
+			            }
+			            connect_timeout 2
+			            nb_get_retry 3
+			            delay_before_retry 1
+			        }
+			    }
+			}
+
+		haproxy双主示例：
+			(1) 脚本
+				#!/bin/bash
+				# Author: MageEdu <linuxedu@foxmail.com>
+				# description: An example of notify script
+				# 
+
+				vip=172.16.100.52
+				contact='kaadmin@localhost'
+
+				notify() {
+				    mailsubject="`hostname` to be $1: $vip floating"
+				    mailbody="`date '+%F %H:%M:%S'`: vrrp transition, `hostname` changed to be $1"
+				    echo $mailbody | mail -s "$mailsubject" $contact
+				}
+
+				case "$1" in
+				    master)
+				        notify master
+					/etc/rc.d/init.d/haproxy start
+				        exit 0
+				    ;;
+				    backup)
+				        notify backup
+					/etc/rc.d/init.d/haproxy restart
+				        exit 0
+				    ;;
+				    fault)
+				        notify fault
+					/etc/rc.d/init.d/haproxy stop
+				        exit 0
+				    ;;
+				    *)
+				        echo 'Usage: `basename $0` {master|backup|fault}'
+				        exit 1
+				    ;;
+				esac
+
+			(2) 节点1配置
+				! Configuration File for keepalived
+
+				global_defs {
+				   notification_email {
+					kaadmon@magedu.com
+				   }
+				   notification_email_from kaadmin@magedu.com
+				   smtp_server 127.0.0.1
+				   smtp_connect_timeout 30
+				   router_id LVS_DEVEL
+				}
+
+				vrrp_script chk_mt_down {
+				    script "[[ -f /etc/keepalived/down ]] && exit 1 || exit 0"
+				    interval 1
+				    weight -5 
+				}
+
+				vrrp_script chk_haproxy {
+				    script "killall -0 haproxy &> /dev/null"
+				    interval 1
+				    weight -5
+				}
+
+				vrrp_instance VI_1 {
+				    state MASTER
+				    interface eth0
+				    virtual_router_id 57
+				    priority 100
+				    advert_int 1
+				    authentication {
+				        auth_type PASS
+				        auth_pass VI1pass
+				    }
+				    virtual_ipaddress {
+					172.16.100.52/32 brd 172.16.100.52 dev eth0 label eth0:0
+				    }
+				    track_script {
+					chk_mt_down
+				  	chk_haproxy
+				    }
+				    notify_master "/etc/keepalived/notify.sh master"
+				    notify_backup "/etc/keepalived/notify.sh backup"
+				    notify_fault "/etc/keepalived/notify.sh fault"
+				}
+				vrrp_instance VI_2 {
+				    state BACKUP
+				    interface eth0
+				    virtual_router_id 58
+				    priority 99
+				    advert_int 1
+				    authentication {
+				        auth_type PASS
+				        auth_pass VI2pass
+				    }
+				    virtual_ipaddress {
+					172.16.100.53/32 brd 172.16.100.53 dev eth0 label eth0:1
+				    }
+				    track_script {
+					chk_mt_down
+				  	chk_haproxy
+				    }
+				    notify_master "/etc/keepalived/notify.sh master"
+				    notify_backup "/etc/keepalived/notify.sh backup"
+				    notify_fault "/etc/keepalived/notify.sh fault"
+				}
+
+
+			(3) 节点2配置
+
+				! Configuration File for keepalived
+
+				global_defs {
+				   notification_email {
+					kaadmon@magedu.com
+				   }
+				   notification_email_from kaadmin@magedu.com
+				   smtp_server 127.0.0.1
+				   smtp_connect_timeout 30
+				   router_id LVS_DEVEL
+				}
+
+				vrrp_script chk_mt_down {
+				    script "[[ -f /etc/keepalived/down ]] && exit 1 || exit 0"
+				    interval 1
+				    weight -5 
+				}
+
+				vrrp_script chk_haproxy {
+				    script "killall -0 haproxy &> /dev/null"
+				    interval 1
+				    weight -5
+				}
+
+				vrrp_instance VI_1 {
+				    state BACKUP
+				    interface eth0
+				    virtual_router_id 57
+				    priority 99
+				    advert_int 1
+				    authentication {
+				        auth_type PASS
+				        auth_pass VI1pass
+				    }
+				    virtual_ipaddress {
+					172.16.100.52/32 brd 172.16.100.52 dev eth0 label eth0:0
+				    }
+				    track_script {
+					chk_mt_down
+					chk_haproxy
+				    }
+
+				    notify_master "/etc/keepalived/notify.sh master"
+				    notify_backup "/etc/keepalived/notify.sh backup"
+				    notify_fault "/etc/keepalived/notify.sh fault"
+				}
+
+				vrrp_instance VI_2 {
+				    state MASTER
+				    interface eth0
+				    virtual_router_id 58
+				    priority 100
+				    advert_int 1
+				    authentication {
+				        auth_type PASS
+				        auth_pass VI2pass
+				    }
+				    virtual_ipaddress {
+				        172.16.100.53/32 brd 172.16.100.53 dev eth0 label eth0:1
+				    }
+				    track_script {
+				        chk_mt_down
+				        chk_haproxy
+				    }
+				    notify_master "/etc/keepalived/notify.sh master"
+				    notify_backup "/etc/keepalived/notify.sh backup"
+				    notify_fault "/etc/keepalived/notify.sh fault"
+				}
+
+	博客作业：
+		keepalived + ipvs, health check
+		keepalived + nginx (reverse proxy), health check
+		keepalived + haproxy, health check
+
+
+			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

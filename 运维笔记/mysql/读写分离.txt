@@ -1,0 +1,15 @@
+mysql-proxy
+#Proxy Configuration
+proxy-address = 192.168.2.113:3307
+proxy-backend-addresses = 192.168.2.113:3306
+proxy-read-only-backend-addresses = 192.168.2.112:3306
+proxy-lua-script = /usr/share/doc/mysql-proxy-0.8.5/examples/rw-splitting.lua
+#proxy-skip-profiling = true
+#
+# Admin Configuration
+#admin-address = 0.0.0.0:4041
+admin-lua-script = /usr/lib64/mysql-proxy/lua/admin.lua
+admin-username = admin
+admin-password = admin
+
+	

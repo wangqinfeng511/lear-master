@@ -1,0 +1,30 @@
+
+打开地址转发规则：
+		echo 1 >/proc/sys/net/ipv4/ip_forward
+chkconfig --list NetworkManager 
+全off
+桥工作于混杂模式：不管什么包都接收
+#ip link set br0 promisc on
+主要因为虚拟机的mac地址外面是不知道的，所以统统收下
+一、安装yum install bridge-utils
+二、cp /etc/../ifcfg-eth0  ifcfg-br0
+三、vim ifcfg-br0
+	更改：
+	Device=br0
+	NM_CONTROLLED=no
+	TYPE=Bridge 工作于桥模式
+	删除MAC
+    vim ifcfg-eth0
+    	删除网关，IP 
+	添加：
+	BRIDGE=br0 桥接至网桥br0名。
+   service network restart
+四、查看桥设备：brctl show
+	stpe 是否支持生成树协议：启用
+	1、brctl stp br0 on
+	2、brctl addbr br0 #添加桥br0｜brctl delbr br0删除桥。
+	3、ifconfig eth0 0 移除地址eth0
+	4、brctl addif br0 eth0 添加接口至桥。
+	5、为桥卡添加地址：ifconfig br0 192.168.1.112/24 up
+	6、为桥卡添加网关：route add default gw 192.168.1.1
+###############################################################################

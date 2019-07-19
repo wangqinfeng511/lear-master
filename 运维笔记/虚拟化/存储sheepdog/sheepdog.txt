@@ -1,0 +1,75 @@
+yum remove corosync corosynclib corosynclib-devel -y
+yum install git
+yum install install autoconf automake libtool
+yum install yasm
+yum install -y userspace-rcu-devel
+环境安装
+yum install -y make automake autoconf gcc nss-devel wget git glib2 libqb-devel
+yum install -y libtool yasm userspace-rcu-devel
+
+yum install corosynclib-devel
+ 
+#######################################################################
+二、
+git clone git://github.com/collie/sheepdog.git
+cd sheepdog/
+	./autogen.sh
+	./configure
+	make&&makeinstall
+一、corosync	
+git clone git://github.com/corosync/corosync.git
+cd corosync
+git checkout -b flatiron origin/flatiron 
+./autogen.sh
+./configure --enable-nss
+make install
+
+
+使用sheepdog——通过qeum
+
+    安装qeum编译依赖包
+
+    yum install zlib-devel glib2-devel -y
+    编译安装qeum
+
+    wget http://wiki.qemu-project.org/download/qemu-1.5.2.tar.bz2
+
+    tar jxvf qemu-1.5.2.tar.bz2
+
+    cd qemu-1.5.2
+
+    ./configure
+
+    make;make install
+   
+###############################################################################
+启动服务：
+ service corosync start
+各节点创建sheepdog存储目录：
+	mkdir /home/a
+启动sheepdog:
+	sheep /home/a
+查看已发现的节点：
+	collie node list
+指定存储节点数：
+	collie cluster format  --copies=3  
+			此时会删除所有img
+创建磁盘
+	qemu-img create -f qcow2 sheepdog:fengzi 2G
+    qemu-img create -f qcow2 sheepdog:127.0.0.1:7000:disktest 500G
+查看镜像：	
+    collie vdi list
+启动虚拟机
+    qemu-system-x86_64 --enable-kvm -m 4096 -smp 4 -drive file=sheepdog:disktest,cache=writeback -vnc :8901 -cdrom CentOS-6.3-x86_64-minimal.iso
+导入已有镱像
+	qemu-img convert -t writethrough ~/amd64.raw sheepdog:Bob
+停止sheepdog集群：
+	collie cluster shutdown
+
+################################################################################libvirt
+xml文件调用sheepdog:影像
+	<driver name="qemu" type="raw" io="threads" ioeventfd="on" event_idx="off"/>  
+<source protocol="sheepdog" name="image_name">  
+<host name="hostname" port="7000"/> 
+
+

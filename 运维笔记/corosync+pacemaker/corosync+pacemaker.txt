@@ -1,0 +1,55 @@
+安装：
+	corosync:主要功能：传递心跳信息1.0版无投票权！
+	yum install corosync
+一、cp /etc/corosync/corosync.conf.example ./corosync.conf
+corosync.conf配置文件:
+	compatibility: whitetank	#是否兼容whitetank
+	totem{ #定义底层通信层
+		version 2	#版本
+		secauth :on|off	#是否打开多播安全认证。
+		threads:0	#线程数。0表示不启用线程。
+		interface										{
+			ringnumber:0	类似于tll值
+			bindnetaddr: 192.168.1.0#多播地址绑定与哪个网络。
+			mcastaddr:	#多播地址。
+			mcastport:5405: #多播地址监听的端口。
+			ttl:1		#不可出路由，每过一个路由－1，0死亡。
+			}
+	}
+	logging{	#日志功能定义。
+		to_stderr:no	#是否把错误结果送至屏幕。
+		to_logfile:yes	#是否打开日志功能。
+		logfile:	#日志路径。
+		to_syslog:no	#是否把日志功能同时定入系统日志。
+		bebug	:no	#bug日志
+		timestamp:on	#时间戳时否打开，每次会调用系统调用。
+		logger_subsys{	#下列子系统日志
+			subsys:AMF	AMF组件	
+			debug:off	关闭bebug日志。
+			}
+********************************************************************
+是pacemaker以插件方式运行
+	service{
+		ver:0	#版号
+		name:	pacemaker
+		use_mgmtd:yes
+	}
+	aisexec{
+		user:root
+		group:root
+	}
+		
+		}
+################################################################################
+二、检查多播功能是否打开。
+	生成随机加密串。
+	corosync-keygen 
+	生成于：/etc/corosync/anthkey	权限400
+三、启动：
+	service corosync start
+#############################################################################
+四、安装crmsh,与corosync专用sh
+	安装crmsh-1.2.6-4.el6.x86_64.rpm
+	yum localinstall crmsh-1.2.6-4.el6.x86_64 自动解决依赖关系。
+	与heartbeat冲突。先删除，yum remove heartbeat
+########

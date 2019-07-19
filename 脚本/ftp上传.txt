@@ -1,0 +1,23 @@
+#!/usr/bin/expect
+set mysql [lindex $argv 0]
+set dt [lindex $argv 1]
+set timeout 50
+spawn ftp 192.168.1.142
+expect "(192.168.1.142:root):"
+send "mysqlbackup\r"
+exec sleep 1
+expect "*Password*"
+send "jzmysql_20130815\n"
+expect "ftp>"
+send "passive\n"
+exec sleep 1
+expect "ftp>"
+send "lcd /home/jzadmin/backup/data_dump/\n"
+expect "ftp>"
+send "mkdir $dt\n"
+expect "ftp>"
+send "cd $dt\n"
+expect "ftp>"
+send "put $mysql\n"
+expect "ftp>"
+send "bye\n"

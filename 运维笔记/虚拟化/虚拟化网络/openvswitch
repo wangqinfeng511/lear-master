@@ -1,0 +1,133 @@
+编译安装
+
+1、安装依赖包：yum -y install openssl-devel wget kernel-devel
+
+2、安装开发工具：yum groupinstall "Development Tools"
+
+3、添加用户：adduser ovswitch，切换用户并跳转至用户文件夹：su - ovswitch
+
+4、下载源码：wget http://openvswitch.org/releases/openvswitch-2.3.0.tar.gz
+
+5、解压：tar xfz openvswitch-2.3.0.tar.gz
+
+6、创建编译目录：mkdir -p ~/rpmbuild/SOURCES
+
+7、从spec文件中删除openvswitch-kmod的依赖包，并创建一个新的spec文件：
+
+sed 's/openvswitch-kmod, //g' openvswitch-2.3.0/rhel/openvswitch.spec > openvswitch-2.3.0/rhel/openvswitch_no_kmod.spec
+
+8、开始编译：rpmbuild -bb --without check ~/openvswitch-2.3.0/rhel/openvswitch_no_kmod.spec
+
+可能出现以下错误：
+
+error: File /home/ovswitch/rpmbuild/SOURCES/openvswitch-2.3.0.tar.gz: No such file or directory
+
+解决办法：cp openvswitch-2.3.0.tar.gz rpmbuild/SOURCES
+
+9、退出当前用户使用root： exit
+
+10、安装编译生成的rpm文件：
+
+yum localinstall /home/ovswitch/rpmbuild/RPMS/x86_64/openvswitch-2.3.0-1.x86_64.rpm
+
+11、启动服务：systemctl start openvswitch.service
+
+12、查看服务状态：systemctl -l status openvswitch.service
+
+###################################################################################################
+ovs-vsctl 命令工具
+		add-br 添加桥 例：#ovs-vsctl add-br br-in名字
+		show	显示配置
+		add-port 将port添加指定桥： 例如：#ovs-vsctl add-port br-in eth0
+		list-ports 列出所有list-port  #ovs-vsctl list-ports br0
+		list-br	显示所有已定义的桥。
+		del-br	删除桥
+		del-port	删除端口，例如：#ovs-vsctl del-port br-in eth0
+		list-ifaces 显示桥上的接口：#ovs-vsctl list-ifaces br-in
+datebase部分：
+		list interface	显示interface表
+		list port		显示端口表
+		find interface name='eth0' 条件查找
+		
+###################################################################################################
+vlan部分：
+	ovs-vsctl list port 
+		tab:标签vlan号，静态vlan
+	设在vlan号：
+	ovs-vsctl set port eth0 tag=10 设置vlan号为10
+	ovs-vsctl remove port eth0 tap 10 移除vlan号
+###################################################################################################
+基于vpn+vxlan+dnssmasq搭建虚拟化云
+一、添加交换机（桥卡）#ovs-vsctl add-br br0
+	写qemu-kvm的网络启动脚本和关闭脚本： /etc/qemu-ifup
+	#!/bin/bash
+	bridge=br0
+	if [ -n "$1" ];then
+		ip link set $1 up 
+		sleep 1
+		#brctl addif $bridge $1
+		ovs-vsctl add-port $bridge $1
+		[ $? -eq 0 ] && exit 0 ||exit 1
+	else
+		echo "Error :no interface"
+	fi
+此脚本：用于qemu-kvm启动虚拟机时，自动把添加的网卡的后半段添加至br0虚拟交换机
+	#!/bin/bash
+        bridge=br0
+        if [ -n "$1" ];then
+        ovs-vsctl del-port $bridge $1
+        ip link set $1 down
+                exit 0
+                else
+        echo "Error: no interface specified."
+                exit 1
+                fi
+此脚本：用于qemu-kvm关闭虚拟机时，自动把r0交换机的网卡移除，不然下次启动虚拟机时会报错误
+
+#!/bin/bash
+qemu-kvm -m 128 -name "web1" -drive file=./cirros2.img,if=virtio,media=disk,cache=writeback,format=qcow2 -smp sockets=1,cores=2,threads=2 -vnc :1 -daemonize -net nic,model=virtio -net tap,ifname=dom1,script=/etc/qemu-ifup,downscript=/etc/qemu-ifdown
+qemu-kvm虚拟机的启动脚本 
+
+启动虚拟机2台
+安装dns+dhcp嵌入式dnsmasq
+   yum install dnsmasq
+	yum install tigervnc #隧道
+一、ovs-vsctl add-br br0
+二、添加r0网络别名添加dhcp服务
+	
+	添加网卡提供dhcp服务：
+	ip link add dhcp-in type veth peer name dhcp-out
+	把此网卡的一端我这链接后半端链接至br0交换机
+	ovs-vsctl add-br br0	
+	ovs-vsctl  add-port br0 dhcp-out
+	ifconfig dhcp-out up
+	把此网卡的另一段链接至网络命名空间
+		添加网络命名空间：# ip netns add r0
+		添加另至命名空间r0：# ip link set dhcp-in netns r0
+		为其添加地址		#ip netns exec r0 ifconfig dhcp-in 192.168.15.254 up
+	为r0命名空间添加dhcp服务：
+		ip netns exec r0 dnsmasq -F 192.168.15.100,192.168.15.200,86400 -i dhcp-in
+	
+
+	工作流程：
+		虚拟机的下半段插入到交换机br0 /etc/qemu-ifup内完成
+		添加双段网卡，一半在br0交换机上，一半在r0命名空间中
+		为r0命名空间中的一半开启dhcp服务
+		此时就可以获取地址了
+三、vpn隧道添加,跨路由局域网搭建
+	ovs-vsctl set interface gre0(自动创建接口名) type=gre options:remote_ip=192.168.1.112
+	ovs-vsctl set interface gre0(自动创建接口名) type=gre options:remote_ip=192.168.1.113
+	
+四、xvlan划分并自动隧道
+	列出br0交换机的接口	# ovs-vsctl  list-ifaces br0
+	#ovs-vsctl set interface dom1 type=vxlan options:remote_ip=192.168.1.139
+	为dom1 添加工作类型为vxlan  
+	options:remote=对端的IP地址
+	
+	工作模型：
+	
+	
+
+
+                 
+

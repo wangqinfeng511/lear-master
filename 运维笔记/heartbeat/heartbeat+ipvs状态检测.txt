@@ -1,0 +1,84 @@
+安装heartbeat-ldirectord
+自动解装依赖：
+yum localinstall heartbeat-ldirectord-2.1.4-12.el6.x86_64.rpm
+
+
+程程路径：
+/etc/ha.d/resource.d/ldirectord
+/etc/init.d/ldirectord
+/etc/logrotate.d/ldirectord
+/usr/sbin/ldirectord
+/usr/share/doc/heartbeat-ldirectord-2.1.4
+/usr/share/doc/heartbeat-ldirectord-2.1.4/COPYING
+/usr/share/doc/heartbeat-ldirectord-2.1.4/README
+/usr/share/doc/heartbeat-ldirectord-2.1.4/ldirectord.cf
+/usr/share/man/man8/ldirectord.8.gz
+
+二、复制
+	cp /usr/share/doc/heartbeat-ldirectord-2.1.4/ldirectord.cf /etc/ha.d/
+三、配置文件ldirectord.cf
+    全局：
+	checktimeout=3 #检查时间超过三秒超时
+	checkinterval=1	#检后端RS的时间间隔
+	autoreload=yes	#配置文件自动读取
+	logfile		#日志
+	quiescent=yes	#工作于静默默式
+   http:局部：
+	virtual＝IP｜防火墙标记｜IP+端口	#以什么方式作检查
+	reql=IP:端口 gate（dr模型）	#RS服务器地址
+	fallback=IP:端口 gate   #备用服务器加工作模型。
+	request＝“index.html” #检查请求的页面
+	receive="Test page"	#检查请求页面包含的字符
+	virtualhost= some.domain.com.au #多虑拟机时，要检查的虑拟机地址
+	scheduler=rr		#轮询的方式。
+	protocol=tcp		#检查端口的协议。
+	checktype=connect|ping|negotiate	#检查的方式。
+				connect:向端口发连接请求（基与传输层检查）
+				ping 	: 甘于网络层作检查
+				negotiate:协商方式检查：（应用层）
+	checkport=80		#检查时访问的端口请求(http)
+
+*********************************************
+	negotiate：#方式检查时以当录方式检查。
+	login="名"
+	passwd="ldirectord@localhost"
+###############################################################################
+配置：
+	rs:
+	RIP:192.168.1.107
+	VIP:192.168.1.122
+	lvs
+	VIP:192.168.1.122
+	DIP:192.168.1.112|113
+一、vim /etc/ha.d/ldirectord.cf
+	checktimeout=3
+	checkinterval=1
+	autoreload=yes
+	quiescent=yes
+
+# Sample for an http virtual service
+virtual=192.168.1.122:80 #VIP地址
+        real=192.168.1.107:80 gate #RIP地址和端口号 模型
+        service=http			#http服务	
+        request=".index.html"		#用于检测的页面，里面有OK字符
+        receive="ok"
+        scheduler=rr			#轮询方式
+        protocol=tcp			#http是在TCP协议
+        checktype=negotiate		#协商模式
+        checkport=80			#服务的端口
+	
+二、
+	crm-gui下配置：
+		先安装过GUI
+	输入hb_gui &
+	a.添加组资源：位置约束+顺序约束
+	b.组内添加资源：ipadd2 地址为VIP地址192.168.1.122
+	c.添加ldirectord资源	添加参数 configfile 值为/etc/ha.d/ldirectord.cf，ldirectord配置文件。
+三、
+RS配置、
+	lo_arp的响应方式:
+		arp_ignore 为1
+		arp_announce 为2
+	添加lo:0别名(vip),并设置192.168.1.122的包只能在122出去，出不去才会由别的口出去，只为了把源IP为vip
+		ifconfig lo:0 192.168.1.122 netmask 255.255.255.255 broadcast 192.168.1.122 up
+	

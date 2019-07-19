@@ -1,0 +1,80 @@
+配置Sheepdog集群
+
+集群管理主要通过dog命令（早期的是Sheepdog是collie命令，目前也可以使用）， dog 命令常用参数如下：
+
+
+vdi check 检查修复镜像。
+vdi create 创建镜像。
+vdi snapshot 创建镜像快照。
+vdi clone 镜像克隆。
+vdi delete 删除镜像。
+vdi rollback 回滚镜像到指定快照。
+vdi list 列出所以镜像。
+vdi resize 修改镜像大小。
+vdi alter-copy 设置镜像冗余级别。
+vdi lock 锁定或者解锁镜像。
+node kill 删除节点。
+node list 列出所以节点。
+node info 显示节点信息。
+cluster info 显示集群信息。
+cluster format 创建镜像。
+cluster shutdown 停止镜像。
+cluster snapshot 创建快照、回滚集群快照。
+cluster check 检查修复集群。
+cluster alter-copy 修改集群冗余级别。
+Sheepdog集群管理
+创建一个Sheepdog集群，默认冗余策略是3份：
+dog cluster format --copies=3
+copies是镜像冗余数，也可以后台创建：
+collie cluster format -b farm --copies=3
+查看集群节点状态：
+dog node list
+Id Host:Port V-Nodes Zone
+0 10.0.0.183:7000 128 3076920330
+1 10.0.0.184:7000 128 3093697546
+2 10.0.0.185:7000 128 3110474762
+查看集群信息：
+dog cluster info
+Cluster status: running, auto-recovery enabled
+Cluster created at Wed Jan 14 19:52:21 2015
+Epoch Time Version
+2015-01-14 19:52:21 1 [10.0.0.183:7000, 10.0.0.184:7000, 10.0.0.185:7000]
+停止集群
+collie cluster shutdown
+添加节点，节点添加很简单，在新加的节点上启动sheep服务就可以，Sheepdog会自动通过又启动了三个节点的sheep服务，可以看到节点达到了6个：
+dog node list
+Id Host:Port V-Nodes Zone
+0 10.0.0.183:7000 128 3076920330
+1 10.0.0.184:7000 128 3093697546
+2 10.0.0.185:7000 128 3110474762
+3 10.0.0.186:7000 128 3127251978
+4 10.0.0.187:7000 128 3144029194
+5 10.0.0.188:7000 128 3160806410
+查看集群信息，可以看到集群是通过版本来标记节点变化的
+[root@host188 ~]# dog cluster info
+Cluster status: running, auto-recovery enabled
+Cluster created at Wed Jan 14 19:52:21 2015
+Epoch Time Version
+2015-01-14 21:46:09 14 [10.0.0.183:7000, 10.0.0.184:7000, 10.0.0.185:7000, 10.0.0.186:7000, 10.0.0.187:7000, 10.0.0.188:7000]
+...
+2015-01-14 21:32:02 3 [10.0.0.183:7000]
+2015-01-14 20:41:53 2 [10.0.0.183:7000, 10.0.0.184:7000]
+2015-01-14 19:52:21 1 [10.0.0.183:7000, 10.0.0.184:7000, 10.0.0.185:7000]
+通过dog node info命令可以查看每个节点空间使用情况：
+dog node info
+Id Size Used Avail Use%
+0 45 GB 11 GB 33 GB 25%
+1 44 GB 12 GB 33 GB 25%
+2 45 GB 11 GB 34 GB 25%
+3 45 GB 9.1 GB 36 GB 20%
+4 45 GB 11 GB 34 GB 23%
+5 46 GB 6.4 GB 39 GB 14%
+Total 269 GB 60 GB 209 GB 22%
+Total virtual image size 63 GB
+通过dog node stat命令可以查看集群读写速度：
+dog node stat
+Request Active Total Write Read Remove Flush All WR All RD
+Client 0 6 6 0 0 0 0.0 MB 0.0 MB
+Peer 0 0 0 0 0 0 0.0 MB 0.0 MB
+通过dog node kill可以删除节点：
+dog node kill 5

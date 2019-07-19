@@ -1,0 +1,84 @@
+主机名格式:web.RS2.com
+agent/master:
+agent 每隔30分钟向master请求一次。
+资源：依赖关系，通知关系：
+类：命名代码块，被继承：接受参数：
+	class class_name{
+		}
+	class class_name::subclass_name inherits base{
+		....
+	}
+	声明方式：
+		include class_name,....
+		class{'class_name':
+			argu1 =>value1,
+			....
+		}
+资源定义中可能会依赖，静态文件，模板文件
+模块：/etc/pupput/module/
+	modules_name/
+		manifestes/清单文件
+			init.pp:至少包含一个与模块名同名的类
+		files/: puppet:///modules/module_name/file_name
+		templates/ templates('module_name/tem..reb')
+		lib/
+		tests/
+		spec/
+ install module_name
+模板文件：ERB
+<%= @variable_name%>
+<%= @variable_name%.to_i -1%>
+##############################################################################
+puppet 的agent master模型：工作于ca加密认证，并且agent端30分钟向master端进行一次变动确定。所以要作到时间同步。
+        master工作于tcp的8140端口
+##############################################################################
+master安装：
+	puppet-server
+	puppet
+	facter     
+master端配置：
+	vim /etc/puppet/puppet.conf
+	 rundir = /var/run/puppet
+	pidfile =/var/run/master.pid 
+第一次启动：要生成CA等：
+puppet master --genconfig > /etc/puppet/puppet.conf 生成完全配置文件。
+puppet master --verbose --no-daemonize 生成ca并签ca,给本机发认证
+service puppetmaster start
+###############################################################################
+agent端：
+ntpdate RS1 同步时间，互信通信
+vim /etc/puppet/puppet.conf
+	添加master主机名
+	server = RS1
+ puppet agent --no-daemonize --verbose --test --noop 向master端请求ca认证
+##############################################################################
+master签署请求
+# puppet cert list --all 查看ca请签请求。
+# puppet cert --sign -all 签署所有请求
+# puppet cert -revoke puppet-test 让证书过期
+# puppet cert --clean puppet-test 删除证书
+###############################################################################
+agent端：启动服务：service puppet start
+###############################################################################
+master端站点清单
+	/etc/puppet/manifests/site.pp此名为固定格式
+	node "RS2" {
+		include nginx
+	}
+	站点清单的格式
+站点正则表达示：
+	node /^web[0-9]+\.mgedu\.com {
+	}
+节点继承：
+	node basende {
+		include nginx
+	}
+	node 'RS2' inherits basende {
+		include haporoxy  
+		$httpd_port=80 变量引用
+	}
+主机命名格式：
+	haproxy_unicom_bj_192.168.2.112.mgedu.com
+
+同步方法：
+ puppet agent -t

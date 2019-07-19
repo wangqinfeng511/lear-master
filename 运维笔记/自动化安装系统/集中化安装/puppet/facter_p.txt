@@ -1,0 +1,87 @@
+architecture => x86_64
+augeasversion => 1.0.0
+bios_release_date => 07/31/2013
+bios_vendor => Phoenix Technologies LTD
+bios_version => 6.00
+blockdevice_sda_model => VMware Virtual S
+blockdevice_sda_size => 10737418240
+blockdevice_sda_vendor => VMware,
+blockdevice_sr0_model => VMware IDE CDR10
+blockdevice_sr0_size => 1073741312
+blockdevice_sr0_vendor => NECVMWar
+blockdevices => sda,sr0
+boardmanufacturer => Intel Corporation
+boardproductname => 440BX Desktop Reference Platform
+boardserialnumber => None
+domain => localdomain
+facterversion => 2.4.5
+filesystems => ext4,iso9660
+fqdn => RS1.localdomain
+gid => root
+hardwareisa => x86_64
+hardwaremodel => x86_64
+hostname => RS1
+id => root
+interfaces => eth0,lo
+ipaddress => 192.168.2.112
+ipaddress_eth0 => 192.168.2.112
+ipaddress_lo => 127.0.0.1
+is_virtual => true
+kernel => Linux
+kernelmajversion => 2.6
+kernelrelease => 2.6.32-431.el6.x86_64
+kernelversion => 2.6.32
+macaddress => 00:0C:29:3B:46:58
+macaddress_eth0 => 00:0C:29:3B:46:58
+manufacturer => VMware, Inc.
+memoryfree => 55.07 MB
+memoryfree_mb => 55.07
+memorysize => 230.65 MB
+memorysize_mb => 230.65
+mtu_eth0 => 1500
+mtu_lo => 16436
+netmask => 255.255.255.0
+netmask_eth0 => 255.255.255.0
+netmask_lo => 255.0.0.0
+network_eth0 => 192.168.2.0
+network_lo => 127.0.0.0
+operatingsystem => CentOS
+operatingsystemmajrelease => 6
+operatingsystemrelease => 6.5
+os => {"release"=>{"full"=>"6.5", "minor"=>"5", "major"=>"6"}, "name"=>"CentOS", "family"=>"RedHat"}
+osfamily => RedHat
+partitions => {"sda1"=>{"size"=>"409600", "mount"=>"/boot", "filesystem"=>"ext4", "uuid"=>"b96176db-d3f9-41cb-8462-14336d47a1f0"}, "sda2"=>{"size"=>"20559872", "filesystem"=>"LVM2_member"}}
+path => /usr/lib64/qt-3.3/bin:/usr/local/mysql/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+physicalprocessorcount => 1
+processor0 => Intel(R) Core(TM)2 Duo CPU     P8600  @ 2.40GHz
+processorcount => 1
+processors => {"physicalcount"=>1, "count"=>1, "models"=>["Intel(R) Core(TM)2 Duo CPU     P8600  @ 2.40GHz"]}
+productname => VMware Virtual Platform
+ps => ps -ef
+puppetversion => 3.8.5
+rubyplatform => x86_64-linux
+rubysitedir => /usr/lib/ruby/site_ruby/1.8
+rubyversion => 1.8.7
+selinux => false
+serialnumber => VMware-56 4d 11 b2 f4 4f 7d 72-2a bc d9 c5 07 3b 46 58
+sshdsakey => AAAAB3NzaC1kc3MAAACBAJBDkhpkG0FWPibiav+ha8BUe2QFQk5j085RnZdIQFZ8t5nvGGdYD4uu070iCgbPlXWG/9/Gh3sP4FgO4pX2ubkAU7oIP5dQxjm1WlRNrJgQ+HCNiS+D0T4gm7ycry2qm6+NUpbjnqm0pgGPcd1MWTIbJlVEjIut06pmJNcaQF4jAAAAFQD6pu633vY/EOiA204dhB/7Ye1+2QAAAIAqtjR80cVixxXnpG+cZ9Y+HNRHag1FnueufzH2jYEcBEXXBKo4qsiNscORJXBKmLuxTxdcKJYvjvVKw+4j2x/lwEozJ4PgolsctC7Rh9HNzBmQj2+J/mnzNqFeZlU8RkZ+/6PjpbKzKaIywrGJEBRl7v/o2eRKc1koQjqNX2UH9AAAAIBv1/xi/ev1SBzIGvnuhnvk4zigRvRaQ05ooO9WaJ0W4urciikS34iN1YMm8p/TD8kxj7hx/fM8w8ldbRDtHJD6TxO+CB7qYSGlpwBp4rP4r0GRY2D3Z+ZTJDm8MZ+r/lgYprVoP8krfpckGXYxOqv0mbpm53W8iJT9Qhu3JEZRHA==
+sshfp_dsa => SSHFP 2 1 861662481493dc6debfad9eeed002fd53c82e9c4
+SSHFP 2 2 888b434afb727319c654b118d484e9b40c191bdc1a2208e40565004bc1378a2b
+sshfp_rsa => SSHFP 1 1 a8242b68db70f411adb6d40c6ffde0046908ce8c
+SSHFP 1 2 8a964fede1655f287cee4d43fd363996bd3301363351b35859947641467f16a2
+sshrsakey => AAAAB3NzaC1yc2EAAAABIwAAAQEA99d+bW+DMVZiqdw047sgYgjhMEDfPkobGkO2zy+CLSIA0twfmyFy4dOpyeyqxbMnP2bgwWfHiVHJs34ipUJACjxjqY22XLnTRgUt+Vf1+6fVPAqAEnBPJob7OSX5gGBF/MslE7F+HX1bfkREZob2C6OS9u6bAD3NRywLDVKV5aCHwNk3gfiikTXYXkCxPrqqSPs4zsQl+bDhcFMzrY1wUCZGCmSgyQqeIStHYeTSY1pmEXlTzKabPPL/6QIXHamerqSFDieC58okG6zp159dQd27KHzP2/5M/nVFNf+IMRoIc3ZafPD0nDBSvvyn7n0Vj8ywmgvzZQgXecSsEJS0VQ==
+swapfree => 1008.96 MB
+swapfree_mb => 1008.96
+swapsize => 1023.99 MB
+swapsize_mb => 1023.99
+system_uptime => {"days"=>0, "seconds"=>14484, "hours"=>4, "uptime"=>"4:01 hours"}
+timezone => CST
+type => Other
+uniqueid => a8c07002
+uptime => 4:01 hours
+uptime_days => 0
+uptime_hours => 4
+uptime_seconds => 14484
+uuid => 564D11B2-F44F-7D72-2ABC-D9C5073B4658
+virtual => vmware
+

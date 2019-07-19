@@ -1,0 +1,125 @@
+global:全局定义段。
+defaults:为所有配置段提供默认参数。
+frontend：定义一系列监听的套接字，这此套接字用于接受客户端的请求。
+backend：定义一系列后端服务器。
+listen:	定义关联“前端”与“后端”的完整代理。通常只能TCP流量有用。
+######################################################################
+全局定义：
+	chroot /var/lib/haproxy #使haproxy工作于此虑拟根目录下。
+	maxconn:	最大并发连接数。
+	usr		运行的用户
+	group 		运行的用户组。
+	daemon		运行于守护进程。
+#########################################################################
+调度算法：
+	静态：
+	动态：可在运行中调整。
+	balance :#指明调度算法。
+		roundrobin：加强轮询。 后端连接不可过4128.动态。
+		static_rr : 轮询后端不受连接限制。			静态。	
+		leastconn :最少连接。长连接推建。因为查看连接也要用时间的。动态
+		source:		原地址哈希，第一次受权重限制。
+			hash-type:设置哈布算法。
+				map_based ：取模哈希。静态
+				consistent: 一至性哈希。
+		uri:对uri地址进行哈希调度。也受hash-type影响。
+		uri_param:基于url参数作调度。例可已url中的id＝360065954进行调度。
+		hdr(<name>):基于首部内信息作调度。可以配合后端服务器cookie进行调度。	
+		rdp_cookie():根据windos运程桌面协议作调度。
+	defauit_backend<backend>:用于frontend中，用于为请求提供服务的backend.
+	use_backend<backend>[{if|unless} <condition>] :条件式后端调度
+	server:后端服务器
+		server <name> <address> [:[port][param*]]
+			name:名称自定义。
+			addres:IP
+			port:端口
+			param*:参数：
+	————————｜
+			｜
+	参数：
+		check:作健康状态检查。进行tcp四层检查
+			inter:多长时间检查一次。inter 2 两秒
+			rise:检查多少次正常可上线。rise 1 
+			fall:检查多少次失败后下线。fall 3
+		cookie:分配给后端server的cookie信息。以用来作用户cookie绑定使用。
+		disabled:下线。
+		maxconn: 此后端服务器最大并发连接数。
+		maxqueue:后端服务器的最大等待列队数。0为无上线。
+		minconn:最少并发连接数。
+		slowstart:刚启动是慢连接数。
+		weight:权重。
+————————————————————————————
+	bind:绑定：指明监听地址端口，可多端口。
+		<address>:<连续的端口号1－100> [离散的端口] [绑定网卡]
+	mode:工作的代理模式：tcp|http|health(只工作于健康状态检查)
+	log：日志定义。
+		log 192.168.1.113 local3
+		capture request header Host len20 #补获首部Host的前20个字符记录于日志。
+				
+			开启：vim /etc/rsyslog.conf
+				添加 local3 /var/log/haporxy.log
+					$modload imudp
+					$UDPserverRUN 514 启用网络日志服务功能。
+				service rsylog restart重启日志服务功能。
+	后端服务器检查方式定义：
+		option httpchk <metnod> <uri> <version> #不可用于fratend段。
+		例：
+			backend http_relay
+				mode tcp 不作于TCP模式下。
+				option httpchk OPTION * HTTP/1.1 \r\n HOST:\www.fengzi.com 
+				server apche 1 192.168.1.1:443 check port 80
+############################################################################
+开启状态页：
+	stats enable
+		stats uri /host....?stats 状态页面的地址。
+		stats auth 用户名：秘码	#开启认证功能。
+		stats realm "相对应的描述空格要转义。"
+		stats admin if TRUE # 开启管理功能。
+############################################################################
+cookie #启用cookie的后端服务器粘性。
+	例：cookie SERVRID insert indirect nocache
+		  SERVRID:名称
+		  insert: 插入
+		  nocache:不缓存。
+	后端服务器组：
+	server web1 192.168.1.112:80 chech(康检) inter 2 rise 1 fall 3 cookie web1 
+	此时cookie中会添加SERVER=web1
+########################################################################
+option forwardfor #能用于定义让后端服务器记录日志，真正客户端IP。
+	后端服务器组添加。
+	一、option forwardfor except 127.0.0.1 header caillIP（名）。
+	  自定义了客户端源IP变量caiiIP.但排除记录127.0.0.1
+	二、更改后端web服务器的日志记录格式。
+		httpd|nginx
+			%{callIP}i.
+
+###################################################################
+timeout http_request<timeout>	#定义客户端的连接超长时间，防止长连接不上传｜下载。
+timeout	queue<timeout>		#定义客户端等待多长时间后请求超时。
+timeout connect<timeout>	#定义haporxy与后端服务器的请求超长时间。
+timeout	client<timeout>		#定义客户端请求超长时间。
+timeout server<timeout>
+http_keep-alive<timeout>	#保持持久连接的超长时间。
+timeout check<timeout>		#健康状态检查的超长时间。
+超时参数：
+#########################################################################
+ACL:规则匹配定义：
+	例：
+	前端定义：
+		acl url_static(定义规则的名子) path_beg -i /static /imges /javascrip 
+		acl url_static(与上同名，只要满足两规则中一个就行) path_end -i .jpg .gif .png .css .js
+
+	use_backend static(此为后端服务器组名) if url_static(表示满足此acl规则，则调至此服务器组……
+	default_bachend	appsrve(此为后端另一组服务器名)  	(未被匹配到的则调至此服务器组。)
+	##############################################################################################
+	匹配条件：
+		hdr_beg<string>	#首部字符串匹配。
+		had_edn<string>	#尾部字符串匹配。
+		dst_port	#目标端口匹配。
+		src_port	#源端口匹配。
+		src		#源地址匹配。
+		dst		#目标地址匹配。
+		url_beg		#url首部匹配。
+		url_end		#url尾部匹配
+#######################################################################
+option http-server-close #对于某些server端不支持http长连接的情况，利用这个参数可以使用客户端到haproxy是长连接，而haproxy到server端是短连接。	

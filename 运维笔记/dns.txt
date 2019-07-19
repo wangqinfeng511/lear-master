@@ -1,0 +1,77 @@
+域名解析服务器dns
+一、正向解析服务器
+	www.fengzi.com --->IP地址
+二、解析过程：
+	递归查询：由本地dns去逐层查询
+    	迭代查询：由机去本地DNS（缓存内没有返回根服务器地址）->.(返回本机com服务器地址)->com(返回给本机fengzi.com的地址)->fengzi.com(返回给本机www.fengzi.com)
+三、主机域名解析流程：
+	先在hosts内查看有无定义
+	无定义则访问/etc/resolv.conf内定义的dns服务器地址
+四、主从dns服务器概念：
+	从服务器会根据版本信息来更新本机zone
+五、资源类型
+	SOA 起始授权记录，-个zone文件只可有一个
+	NS DNS服务器域名名称
+	A：域名解析至IPV4,IP地址
+	MX 邮件服务器域名，有优先级
+	CNAME: 别名
+六、标准SOA配置
+	语法：
+	name [TTL] IN type value mailevalue
+	@配置中的名
+	邮箱@改为.
+	例：
+	@ 60 IN SOA fengzi.com wangqinfeng511.163.com (
+	
+		2015093101
+		1H	刷新时间：从服务器与主服务器核对版本号
+		5m	重试时间从服务器连不上主服务器的重试时间间隔
+		7D	失效时间：从服务器提供多长时间的服务
+		1D	否定时间
+			);
+七、NS配置语法：
+	指定地址解析为哪个IP/域名
+	例：
+  1、	fengzi.com IN NS dns.fengzi.com
+	区域地址名		dns服务器名
+	
+  2、A记录
+  	dns.fengzi.com IN A 192.168.111
+	dns服务器名		IP地址
+
+DNS服务器bind配置
+一、正向解析服务器
+	named.conf配置/etc/named.conf
+		options{
+			listen_on port 53 {192.168.1.111;}监听地址端口53
+			directory " /var/fengzi" //主目录绝对路径此目录
+			allow-query {;} //哪些IP允许解析，默认全部
+			recursion yes //是否递归（递归开启缓存），否是迭代
+		zone "区域名（邮供应商提供）" IN {
+			type master;	主服务器
+			file "./file相对目录"
+		};
+	master:表示主域名服务器
+	slave:表示从域名服务器
+	hiht:表示互联网根域名服务器
+二、zone文件配置
+	@ IN 86400 SOA "fengzi.com" wangqinfeng511.163.com (
+			2015093101
+			1h
+			5m
+			5d
+			1d
+		);
+	      IN NS dns
+	  dns IN A 192.168.1.111
+	  www IN A 192.168.1.111
+	  mail IN MX 10 192.168.1.111
+	  web  IN CNAME www
+
+检测工具：
+-、netstat -tuln |grep named
+	查看tcp udp 监听端口|筛选出名为named
+二、dig -tns fengzi.com @ 192.168.1.111
+	检查区域服务器信息
+    dig -t A www.fengzi.com @192.168.111
+    	返回www.fengzi.com 解析地址

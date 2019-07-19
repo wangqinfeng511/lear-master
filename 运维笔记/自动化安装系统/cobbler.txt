@@ -1,0 +1,16 @@
+前提 tftp httpd dhcp
+vim /etc/cobbler/settings 
+yum install cobbler-web
+yum install cobbler
+yum install pykickstart
+cobbler sync
+ cobbler check #检查配置文件
+1、cobbler get-loaders
+
+openssl  passwd -1 -salt 'openssl rand hex 4' #生成加秘码
+
+cobbler import --path=/mnt/ --name=centos6.5_x86.64
+http://192.168.2.113/cobbler_web
+htdigest /etc/cobbler/users.digest "centos" cobber#为cobber添加秘码
+yum -y install python-ctypes
+

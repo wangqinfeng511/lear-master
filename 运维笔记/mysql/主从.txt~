@@ -1,0 +1,47 @@
+线上布
+先备份主节点。并记录二进制日志事件号。
+备节点还原，事件号设为主节点备份时的事件号。
+http://369369.blog.51cto.com/319630/790921/
+###############################################################################
+主节点：
+用户权限：
+	grant replication client ,replication slave on *.* to 'fengzi'@'192.168.2.0' identified by 'fengzi';
+	flush privileges; 刷新权限表
+从服务器：
+server-id       = 20
+relay-log = relay-bii
+read-only = on从服务器只读
+查看现在维互的日志名称：show master status
+查看维护中的日志内的事务记录： show binlog events in 'mysql.000081'\G
+注释掉二进制日志。
+mysql>show global variables like '%only%';
+     > help change master to
+ 	MASTER_BIND = 'interface_name'# 
+  	| MASTER_HOST = 'host_name' #主节点地址
+	  | MASTER_USER = 'user_name' #有复制权限的用户名
+ 	 | MASTER_PASSWORD = 'password'#有复制权限的秘码
+ 	 | MASTER_PORT = port_num     #有复制权限的端口
+	  | MASTER_CONNECT_RETRY = interval #每隔多长时间重试连接 
+  	| MASTER_HEARTBEAT_PERIOD = interval #每隔多长时间测试主节点的心跳信息
+ 	 | MASTER_LOG_FILE = 'master_log_name' #从哪个二进制日志开始复制。
+ 	 | MASTER_LOG_POS = master_log_pos	#从哪个二进制事务开始复制
+  	| RELAY_LOG_FILE = 'relay_log_name'   # 中继日志的名子
+  	| RELAY_LOG_POS = relay_log_pos		#中继日志的事务开始号。
+  	| MASTER_SSL = {0|1}
+  | MASTER_SSL_CA = 'ca_file_name'
+  | MASTER_SSL_CAPATH = 'ca_directory_name'
+  | MASTER_SSL_CERT = 'cert_file_name'
+  | MASTER_SSL_KEY = 'key_file_name'
+  | MASTER_SSL_CIPHER = 'cipher_list'
+  | MASTER_SSL_VERIFY_SERVER_CERT = {0|1}
+  | IGNORE_SERVER_IDS = (server_id_list)
+****************************************
+mysql>
+change master to master_host='192.168.2.113', master_user = 'fengzi',master_password = 'fengzi', master_port=3306 , master_log_file='mysql-bin.000001', master_log_pos=1, master_connect_retry=10 ,master_heartbeat_period=2;
+查看从节点状态：
+SHOW SLAVE STATUS\G;
+启动io线程（从节点）Slave_IO_Running: Yes
+start slave	
+
+1236错误：
+mysql>  change master to master_log_file=‘561103306-bin.000008‘ ,master_log_pos=0;	

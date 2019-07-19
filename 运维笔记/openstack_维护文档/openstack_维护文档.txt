@@ -1,0 +1,82 @@
+公司采用opnestack ocata版
+各组件服务：
+ntp时间节点服务器：
+	时间是集群中的重要概念，用来保证各节点的时间统一性。
+	在此架构中主要保证cinder存储的时间一致。因为各文件是有时间戳的。
+	服务启动：systemctl start chronyd
+	测试方法：在计算节点上执行 chronyc sourcess -v 
+keystone节点（认证节点）
+	IP：172.18.0.35/16 hostname controller
+	mysql数据库：
+		[mysqld]
+		bind-address = 172.18.0.35	设为本机的IP地址。
+		default-storage-engine = innodb 设置数据引擎为innodb
+		innodb_file_per_table = on	设置innodb的表文件存储
+		max_connections = 4096		最大连接数
+		collation-server = utf8_general_ci 设置服务端语言编码格式
+		character-set-server = utf8 
+		启动服务：
+			systemctl start mariadb
+	rabbitmq消息队列：
+		主要用来缓冲服务冲击：比如同时创建100个主机。应先压入rabbitmq各计算节点再按指定参数设置来分匹创建。
+		用户名：openstack 秘码：rabbit
+		启动服务：
+			systemctl start rabbitmq-server
+	memcached内存数库：
+		no-sql数据库主要用进行会话保持，比如验证登录后会生成一个token后面的所有操作要带上此token，进行验证。为了快速验证采用了memcached
+		来存储此token（token有时间限定）
+		服务启动:
+			systemctl start memcached
+		工作端口：11211
+
+	httpd web服务：
+		主要提供keystone的http协议的api应用。
+		认证工作于：
+			admin-url http://controller:35357/v3/
+			internal-url http://controller:5000/v3/
+			public-url http://controller:5000/v3/
+computes 控制计算节点：
+	api接口：http://controller:8774/v2.1
+	服务：
+		systemctl start openstack-nova-api #api服务
+		systemctl start openstack-consoleauth #命令接口认证服务。
+		systemctl start openstack-nova-scheduler #计算节点调度服务
+		systemctl start openstack-conductor
+		systemctl start  openstack-nova-spicehtml5proxy	#vnc代理服务
+glance 镜像管理服务节点：
+	api接口：http://controller:9292
+	服务：
+		systemctl start openstack-glance-api 
+		systemctl start openstack-glance-registry 提供元数据数据库操作
+neutron 控制节点网络服务端：
+	api接口:http://controller:9696
+	服务：
+		systemctl start neutron-server #neutron服务端。
+		systemctl start neutron-dhcp-agent dhcp服务
+		systemctl start neutron-metadata-agent 元数据服务。
+######################################################################
+compute节点：
+		systemctl start libvirtd #真正去创建操作虚拟机的服务：
+		systemctl start openstack-nova-compute #计算节点服务。
+		systemctl start openstack-neutron
+		systemctl start openstack-neutron-linuxbridge 
+		systemctl start openstack-cinder-volume.service 
+######################################################################
+dashboard web访问：
+	systemctl start httpd
+######################################################################
+cinder 存储：
+	api: http://controller:8776/v2/%
+	服务：
+		systemctl start openstack-cinder-api.service 
+		systemctl start openstack-cinder-scheduler.service
+
+#########################################################################
+各数据库账号秘码：
+	cinder: cinder 
+	glance: glance
+	keystone:keystone
+	neutron:neutron
+	nova: nova
+
+			

@@ -1,0 +1,119 @@
+grep -i "svn|vmx" ?proc/cupinfo 查看是否支持cpu虑拟化
+cat /proc/cpuinfo |grep -i "vmx" --color
+yum install openstack-nova-compute
+
+vim /etc/nova.conf
+	qpid_hostname=qpid服务器地址此处为管理	IP
+	rpc_backend=qpid
+	auth_strategy=keystone
+connection=mysql://nova:nova@controller/nova
+[keystone_authtoken]
+auth_uri=http://controller:5000
+auth_host=controller
+auth_port=35357
+admin_auth_url=http://controller:35357/v2.0
+identity_url=http://controller:5000
+auth_protocol=http
+admin_user=nova
+admin_password=nova
+admin_tenant_name=service
+
+my_ip=本机ip
+vncserver_listen=0.0.0.0 监听在全部网卡
+vncserver_proxyclient_address=本机IP
+novncproxy_base_url=http://controller:6080/vnc_auto.html
+vif_plugging_timeout=10 响应超时时间。
+vif_plugging_is_fatal=false 虚拟网络不成功不启动虚拟机
+virt_type=kvm	虚拟化类型
+
+启动服务：service libvirtd start
+	service messagebus start
+	service openstack-nova-compute start
+在控制节点验证方法：
+	nova hypervisor-list
+
+###########################################################################
+网络部分配置：
+	yum install openstack-neutron-ml2  -y
+	yum install openstack-neutron-openvswitch  -y
+配置：
+	vim /etc/neutron/neutron.conf
+verbose = True
+[keystone_authtoken]
+identity_uri=http://controller:5000
+auth_host = controller
+auth_port = 35357
+auth_protocol = http
+admin_tenant_name =service
+admin_user =neutron
+admin_password =neutron
+
+qpid部分：
+rpc_backend=neutron.openstack.common.rpc.impl_qpid
+qpid_hostname = controller
+qpid_port = 5672
+auth_strategy = keystone
+core_plugin =ml2
+service_plugins = router
+connection = mysql://neutron:neutron@controller:3306/neutron
+
+二、vim /etc/neutron/plugins/ml2/ml2_conf.ini
+[ml2]
+type_drivers = gre
+tenant_network_types = gre
+mechanism_drivers =openvswitch
+[ml2_type_flat]
+[ml2_type_vlan]
+[ml2_type_gre]
+tunnel_id_ranges =1:1000
+[ml2_type_vxlan]
+[securitygroup]
+enable_security_group = True
+firewall_driver = neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
+[ovs]
+local_ip=192.168.229.131
+tunnel_type=gre
+enable_tunneling= True
+bash#:ln -vs /etc/neutron/plugins/ml2/ml2_conf.ini /etc/neutron/plugin.ini
+
+
+三、service openvswitch restart
+	chkconfig openvswitch on
+
+四、创建 桥：
+	ovs-vsctl add-br br-in
+	ovs-vsctl list-br 
+###############################################################################
+此时网络节点，控制节点都已完成！
+控制节点：admin角色:创建基层网络 
+admin.sh
+neutron net-create ext-net --shared --router:external=True |二层网络
+net-create:创建网络
+--shared：公开给所有租户
+--router:external 可以创建路由
+二、创建逻辑网络：主要实现各租户路由使用的IP地址！三层网络
+neutron subnet-create ext-net --name ext-subnet --allocation-pool start=192.168.10.2,end=192.168.10.250 --disable-dhcp --gateway 192.168.10.1 192.168.10.0/24
+
+subnet-create:创建子逻辑网络
+name-subnet	:逻辑网络的名称
+allocation-pool :起始地址池至结束地址池
+disable-dhcp	:关闭dhcp功能
+gateway		:网关
+192.168.10.0/24	:可以使用的网断。24位子网掩码。
+三、切换为dome的用户环境变量：
+	neutron net-list 可以看到刚创建的逻辑网络。
+ （一、以dome租户创建路由名为dem-route
+	neutron router-create demo-route
+  (二、路由关联至逻辑网络（此时要切回admin角色）
+	neutron router-gateway-set demo-route ext-net
+  （三、查看路由已添加的接口
+	neutron router-port-list demo-route
+	（四、为租户路由创建网络（此时为dome租户环境变量）
+	net-create demo-net
+	（五、为dome租户的demo-net网络创建子网
+neutron subnet-create demo-net --name demo-subnet --gateway 192.168.30.254 192.168.30.0/24
+	（六、把子demo-route网关联至子网demo-subnet
+		neutron router-interface-add demo-route demo-subnet
+		
+	
+	

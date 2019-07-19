@@ -1,0 +1,51 @@
+httpd2.4
+依赖：
+apr apr-util apr-icon
+apr:可移植运行时环境
+二、
+	编译环境：
+	yum groupinstall "DeveoPment Tools" Server PlatForm evlopment" -y
+	yum install pcre-devel zlib-devel
+	yum install pcre-devel
+三、
+	apr编译安装：./configure --prefix=/usr/local/apr    make&&make install
+	apr-util安装:./configure --prefix=/usr/local/apr-util --with-apr=/usr/local/apr(指定apr路径)
+四、编译httpd2.4
+./configure 
+--prefix=/usr/local/apche #httpd路径
+ --sysconfdir=/etc/httpd/	#httpd配置文件路径
+ --enable-so			#支持模块动态加载
+ --enable-ssl 			#支持SSL功能
+--enable-cgi			#支持cgi
+ --with-zlib			#加载网络压缩库
+ --with-pcre 			#加载pcre
+--with-apr=/usr/local/apr	#加载apr因为是手动编译故指定路径
+ --with-apr-util=/usr/local/apr-util	#加载apr-util因为是手动编译安装，所以也要指定路径
+ --enable-modules=most		#默认启动模块
+ --enable-mpms-shared=all 	#mpm模块全部编译
+--with-mpm=prefork		#默认以哪个模块起动
+	make&&make install 
+五、
+	(1、)启动：httpd
+		/usr/local/apche/bin/apachectl
+	(2、)修改'Main'server的DocumentRoot"/usr/local/apche/htdocs" 指定网站路径
+		<Directory> "/usr/local/apche/htdocs"
+			指定网站访问参数
+			Require all granted#授权访问 
+			Require all deny  #拒绝所有主机访问
+			 Require ip IPADDR #访问的主机IP 
+			Require not ip IPADDR #	不可访问的主机IP
+		</Directory>
+	(4)虚拟主机
+		注释中心主机#DocumentRoot "绝对地址"
+		启用： #Include /etc/httpd/extra/httpd-vhosts.conf  虚拟主机配置文件
+			vim 
+			ServerAdmin www.fengzi.com #服务器主机名称
+			DocumentRoot "网站绝对地址"
+			ServerName  www.fengzi.com #网站url地址
+			ServerAlias fengzi.com     #网站url地址别名
+			ErrorLog "logs/www.fengzi.com-error_log" 本站错误日志名称
+			CustomLog "logs/www.fengzi.com-error_log" common 错误日志格式
+	(5)重读自己配置文件：
+			killall -SIGHUP httpd
+	(6) 每个主机要授权

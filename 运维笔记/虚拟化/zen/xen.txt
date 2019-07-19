@@ -1,0 +1,151 @@
+安装xen
+pv 半虚拟化：与dom0共用一个内核，缺点是得自行
+	网卡半虚拟化：netdev-frontend dom0中前半段，netdev-backend，domu中后半段
+	硬盘也是如此
+yum源指向：
+[xen4centos]
+name=Xen4 for CentOS 6.5
+baseurl=http://mirrors.aliyun.com/centos/6/xen4/x86_64/
+gpgcheck=0
+
+
+yum install xen
+一、修改groub.cnf /etc/grub.cnf
+	dom0_mem=1024m #dom0分配的内存空间。
+	cpufreq=xen	#cpu的工作频率由xen来控制。
+	dom0_max_vcpus=2 #分给dom0两个cpu
+	dom0_vcpus_pin	#dom0cpu固定。不切换
+		(1) title CentOS (3.18.12-11.el6.x86_64)
+		        root (hd0,0)
+		        kernel /xen.gz dom0_mem=1024M cpufreq=xen dom0_max_vcpus=2 dom0_vcpus_pin
+		        module /vmlinuz-3.18.12-11.el6.x86_64 ro root=/dev/mapper/vg0-root rd_NO_LUKS rd_NO_DM LANG=en_US.UTF-8 rd_LVM_LV=vg0/swap rd_NO_MD SYSFONT=latarcyrheb-sun16 crashkernel=auto rd_LVM_LV=vg0/root  KEYBOARDTYPE=pc KEYTABLE=us rhgb crashkernel=auto quiet rhgb quiet
+		        module /initramfs-3.18.12-11.el6.x86_64.img
+
+		(2) title CentOS (3.4.46-8.el6.centos.alt.x86_64)
+		        root (hd0,0)
+		        kernel /xen.gz dom0_mem=1024M,max:1024M loglvl=all guest_loglvl=all
+		        module /vmlinuz-3.4.46-8.el6.centos.alt.x86_64 ro root=/dev/mapper/vg_xen01-lv_root rd_LVM_LV=vg_xen01/lv_swap rd_NO_LUKS  KEYBOARDTYPE=pc KEYTABLE=uk rd_NO_MD LANG=en_GB rd_LVM_LV=vg_xen01/lv_root SYSFONT=latarcyrheb-sun16 crashkernel=auto rd_NO_DM rhgb quiet
+		        module /initramfs-3.4.46-8.el6.centos.alt.x86_64.img
+
+	
+		(3) title CentOS (3.7.10-1.el6xen.x86_64)
+				root (hd0,0)
+				kernel /xen.gz dom0_mem=1024M,max:1024M dom0_max_vcpus=2 dom0_vcpus_pin cpufreq=xen
+				module /vmlinuz-3.7.10-1.el6xen.x86_64 ro root=/dev/mapper/vg0-root rd_NO_LUKS rd_NO_DM LANG=en_US.UTF-8 rd_LVM_LV=vg0/swap rd_NO_MD SYSFONT=latarcyrheb-sun16 crashkernel=auto rd_LVM_LV=vg0/root  KEYBOARDTYPE=pc KEYTABLE=us rhgb crashkernel=auto quiet rhgb quiet
+				module /initramfs-3.7.10-1.el6xen.x86_64.img
+##############################################################################
+xl list 列出运行中的domain
+	state:
+		r 运行中
+		b 阻寞
+		p 暂停
+		s 停止
+		c 崩溃
+		d 关闭过程中
+xl shutdown 关机
+xl reboot	重启
+xl pci-list 列出pci设备
+xl pci-attach 热添加pci设备
+xl pci-detach 热移除pci设备
+xl pause	暂停主机
+xl unpause  继续
+xl console 链接主机
+xl save 	挂起 列：xl save domu /tmp/domu.img
+xl restore  继续    xl restore /etc/xen/domu(配置文件)， /tmp/domu.img
+xl vcpu-list 显示使用的cpu
+xl vcpu-set 设置虚拟cpu个数
+xl vcpu-pin 泵定cpu 列：xl vcp-pin 0（物理cpu的ID号） 1(domu的ID号)
+xl info	查看xen hyperv信息
+xl dmege    查看domu的启动信息
+xl top	查看各虚拟机的状态
+xl network-list 显示domu的网络接口
+xl network-attach 添加网卡列 xl network-attach domu1 bridge=br0
+xl network detach 移除网卡，ID号
+xl block-attach 添加磁盘镜像 列：xl block-attach domu1  '/home/disk2.img,qcw2,xvdb'
+xl block-detach 移除磁盘 xl block-detach domu1 1
+xl uptime	查看domu的运行时间
+##############################################################################
+xl半虚拟化-pv
+磁盘映像文件的创建：
+	yum install qemu-img 安装工具
+qemu-img create -f raw -o size=2G /home/busybox.img
+创建映像文件，-f指定映像文件为raw
+mke2fs  -t ext2 /home/busybox.img
+格式化映像文件。
+mount -o loop /home/busybox.img /mnt
+挂载映像文件。
+##############################################################################
+安装busybox
+ yum -y groupinstall "DeveloPment Tools"
+ yum groupinstall "server Platform Development"
+安装编译环境
+yum install glibc-static 因为要移植，所以要把库编译成独立。
+环境完成：
+tar -xf busybox-1.22.1.tar.bz2解压
+cp /boot/config-3.18.21-16.el6.x86_64 ./.config #复制本机的内核配置文件到此处
+#make menuconfig
+	busybox sttings-->
+		build options-->
+		 Build BusyBox as a static binary (no shared libs) (NEW)-->
+#make
+#make install
+
+#cp -af _install/* /mnt/ #保持原权限。
+#cd /mnt/ 
+#mkdir proc sys dev etc var boot home
+###############################################################################
+测试：
+#chroot /mnt/ /bin/sh
+为启动内核创建链接：只是为了少打点字符
+#ln -sv /boot/vmlinuz-2.6.32-431.el6.x86_64  vmlinuxz
+#ln -sv ./initramfs-2.6.32-431.el6.x86_64.img ./initramfs.img 
+###############################################################################
+cd /etc/xen/
+cp xlexample.pvlinux busybox
+	vim busybox
+name="虚拟机名全域唯一"
+kernel="/boot/vmlinuxz"#此名为刚才的软链接。
+ramdisk="/boot/initramfs.img" #此名为刚才的软链接
+extra="selinux=0 init=/bin/sh" #启动内核时加载的参数。此处为关闭selinux.
+memory=256	modu的内存大小。
+vcpus=1		modu使用的cpu颗数。
+disk= ['/home/busybox.img,raw,xvda,rw']
+root="/dev/xvda ro"  #只读方式启动。xvda为disk参数定义的。
+###############################################################################
+xl -v create busybox[上步修改的配置文件名] －n 以测试方式运行。……
+xl -v create busybox 创建pv虚拟机
+启动虚拟机：此时的name为mydomu_001
+xl console mydomu_001 连接此pv虚拟机。
+ctrl + ] 退出此虚拟机的shell
+xl destroy mydomu_001 关闭此虚拟机
+
+##############################################################################
+磁盘配置：
+	disk= ['/home/busybox.img,raw,xvda,rw']
+		img/设备名
+		磁盘映射格式：raw qcow qcow2
+		xvda此设备在domu被识别为硬件设备类型：
+					支持：hd[]
+						xvd[]
+						sdb[]
+		访问权限默认为读写：
+				ro|r
+				rw|w 读写
+##############################################################################
+添加网卡：
+vif=[<ifspec>,<vifspec>...]
+常用key
+mac= 指定mac，要以"00：16：3e"开头
+bridge=<bridge> 指定关联桥设备名
+model=<模拟的网卡型号> e1000
+vifname= dom0中接口名称
+script=: 创建接口时，在dom0中执行的脚本
+ip=	为domu指定ip地址
+rate= 限速：
+	rate= 10mb/s 限制为10M
+	rate = ‘1m/s@ms’ 限制毫秒
+列：vif=['bridge=br0']
+	复制dom0的驱动至domu
+	查看模块依赖：
+cp /modules/内核/kernel/doivers/net/xen-netfront.ko  /domu
+ 装载模块： insmod xen-netfront.ko

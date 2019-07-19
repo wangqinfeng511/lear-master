@@ -1,0 +1,43 @@
+客户端：
+	用来访问win共享
+	samba4-client
+探测指定主机共享文件：smbclient -L //192.168.1.107/tools -U 用户名
+挂载：
+	mount -t cifs //192.168.1.107  /tmp -o username=用户名
+服务端配置：
+一、	本地用户指定为samba用户：
+		useradd smbuser1
+		smbpasswd -a smbuser1 
+			-d：禁用指定用户
+			-e:启用用户
+			-x:删除用户
+二、/etc/samba/smb.conf
+	workgroup= WORKGROUP win用户组
+	server string= samba server version %V 
+	netbios=win网上阾看到的名
+	inter faces= lo etho 临听网卡地址
+	hosts allow=白名单
+	log file=/var/log/samba/log.%m日志%m=客户端ip地址
+	max log size =50 50K后开始流动
+	security=user 必须提供用户名
+	passwd backend=tabsam 秘码格式()
+  [home] #共享家目录
+  	comment=Home注释信息
+	browseable=no 是否可在网上显示
+	writable=yes是否可写
+	valid users= %s有效用户（本地samba用户）
+   [tools] #自定义目录
+   	path=/home/centos/#目录
+	guest ok =yes |puest ok=yes #是否支持来宾用户|公开用户
+	writable=yes|read only=yes  #开启写权限|开启除读以外
+	browseable=yes	#是否网上可被浏览
+	prin table=yes #是否支持打印
+	writable list=+ ftaff 写权限列表
+三、检测配置
+	testparm
+四、启动：
+	service nmb start
+	service smb start
+五、samba图型化
+	yum list all samba-swat
+

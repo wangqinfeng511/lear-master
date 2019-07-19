@@ -1,0 +1,93 @@
+安装epel_release -y源
+yum install net-snmp-libs
+	    libnet
+	    PyXML
+rpm -ivh  heartbeat-pils-2.14-12.e16.x86_64.rpm
+rpm -ivh  heartbeat-stonith-2.1.4-12.e16.x86_64.rpm
+rpm -ivh  heartbeat-2.1.4-12.e16.x86_64
+
+HA资源有三个：
+	IP、httpd、filesystem
+配置前提：
+	1、节点时间必须同步，使用ntp协议。
+	2、节点间通过主机名互相通信，必须解析主机至IP地址
+		a.建议名称解析功能使用host文件实现。
+		b.通信中使用的名字与节点名字必须保持一直。“uname -n ”或hostname保持一直。
+	3、考虑是否要用到仲裁设备》双数节点要用到
+	4、建立各节点间root用户能以密钥认证
+	5、物理网卡地址不转移，eth0:0做转移，心跳在eth0！
+	注意：定义成集群服务的节点中的资源，一定不能开机自动启动，因为它们将由CRM管理。ip地址资源转移后会配置IP别名
+###############################################################################
+资源脚本默认在，etc/rc.d/init/支持start,stop,restart
+			nfs脚本：/etc/ha.d/resource.d/Filesystem
+				用法：Filesystem::192.168.1.102:/web/htdocs::/var/www/html::nfs
+						nfs地址			    挂载地址	    格式
+/usr/lib64/heartbeat/脚本
+		hb_standby	:使主节点变为备用节点。
+		hb_takeover	:使备用节点变为主节点
+		ha_propagte 	:复制本节点ha.cf authkeys 到其他节点。并列出支持的资源
+################################################################################
+配置文件：
+	ha.cf ：主配置文件定义各节点上的heartbeat
+	authkeys：集群内节点间彼此传递信息时使用加密算法及密钥。
+	haresources: 为heartbeat v1 提供资源管理器配置接口
+##############################################################################################
+cd /etc/ha.d/
+autkeys:
+	auth 2:启用下列哪个加密
+			#生成密钥随机字符：openssl rand -base64 16
+	#1 crc  :crc加密
+	#2 shal :shal加密算法
+	#3 md5  :加密算法
+##############################################################################################
+ha.cf
+debugfile /path  #dubug功能日志
+logfile  /path	 #日志路径
+logiacility  local0  由rsyslog记录日志
+			vim /etc/rsyslog
+				添加: local0.*   /var/log/hearbeat.log
+			service rsyslog restart #重启rsyslog服务
+#keeplive 2 	#多长时间发一次心跳#默认2秒
+#deadtime 30	#死亡时间；多长时间宣布一个节点死亡 默认30秒
+#warntime 10	#延时多长时间，警告对方的心跳时间延时了，写入日志 默认10秒
+#initdead 120	#刚启动节点时，多长时间不判定心跳（因为多节点起动时免引起误判）默认120秒
+#udpport	 694	#hearbeat监听的端口。默认694
+#serial		#串行线缆设备 
+#baud		#串行线缆的工作速率
+#bcast	eth0	#广播eth0
+#mcast 	eth0 	225.0.0.1 694 1 0
+		225.0.0.1	#多播地址和网口
+		694		#端口
+		1		#[ttl]值每过一个路由减1，所以出不了路由
+		0		#[loop]关闭徇环
+					
+
+				查看网卡多播功能是否打开：
+						ip link show 查看。multicast为打开
+					启用多播：ip link set eth0 multicast on
+#ucast eth0	#可指定多播给指定主机
+#auto_failback on	#是否支持自动故障恢复后转回。
+node:		#定义节点
+			例：node node1.magedu.com为节点的主机名
+ping 192.168.1.107	#仲裁设备ping
+#ping_group	ping组
+compression	#；启用压缩格式
+compresson_threshold 2 #大于多少K数据包进行压缩
+###########################################################################
+haesources
+	此时会在eth0:0上定义别名上地址192.168.1.102
+R1  192.168.1.102 nginx
+主节点 地址       资源
+R1  192.168.1.102/24/eth0/192.168.1.255/ nginx
+***************************************************************************
+nfs+httpd配置
+nfs:配置：
+	vim /etc/exports
+		/home/samba/ 192.168.1.113(rw) 
+	service nfs restart
+	showmount -e 192.168.1.112
+	mount -t nfs 192.168.1.112:/home/samba/ /var/www/
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+用到脚本：/etc/ha.d/resource.d/Filesystem
+	R1 192.168.1.112/24/eth0/192.168.1.255/ Filesystem::192.168.1.112:/home/samba/::/var/www/::nfs  httpd
+启有三个资源 ip nfs的源地址，nfs的挂载地址

@@ -1,0 +1,14 @@
+基于防火墙标记作负载均衡：打标记
+
+iptables -t mangle -A PREROUTING -d 192.168.1.107 -p tcp --dport 80 -j MARK --set-mark 10
+iptables -t mangle -L -n
+ipvsadm -A -f 10 -s rr
+ipvsadm -a -f 10 -r 192.168.1.102 -g -w 1
+ipvsadm -a -f 10 -r 192.168.1.103 -g -w 3
+主要用于80 443 可分配于同一服务器
+lvs的持久连接：保证会话保持。
+persistence template:持久连接模块
+	PPC:持久连接生效范围只为单个集群服务，
+	PCC：每客户端持久：持久连接的生效范围为所有服务。
+	PFWM：每FWM持久，持久连接的生效范围定义为同一个FWM下的所有范围。
+

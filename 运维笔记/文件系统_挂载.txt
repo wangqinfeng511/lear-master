@@ -1,0 +1,86 @@
+文件系统
+fdisk	#分区工具
+	p:显示
+	n:创建
+	d:删除
+	t:修改分区ID
+	l:列出所有支持ID类型
+	w:保存退出
+	q:放弃修改并退出
+	m:获取帮肋
+	创建完成后，查看内核是否已经识别新的分区
+	cat /proc/partitions
+		内核重读磁盘分区表：
+		partx DEVICE
+		partx -a DEVICE
+		partx -a -n M:N DEVICE
+		kpartx	
+文件系统：
+	linux: ext2, ext3, ext4, reiserfs, xfs, btrfs, swap
+	创建文件系统：
+	1、mkfs -t type DEVICE
+		ext2
+		ext3
+		ext4
+	 blkid命令
+		blkid DEVICE
+	2、mke2fs [OPTION]...DEVICE
+			-t	{ext2|ext3|ext4}
+			-b	{1024|2048|4096}
+			-L	'LABEL'
+			-j	mke2fs -t ext3
+			-i	#
+			-N 	#
+			-m	#预留磁盘空间占据多大百分比的空间为后期管理使用
+交换分区：
+	mkswap:创建交换分区
+		mkswap [option] DEVICE
+			-L 'LABEL'
+	swapon:启用交换分区
+		swapon [opton] [DEVICE]
+			-a: 激活所有交换分区
+			-p: PRIORITY：设定其优先级
+	swapoff:禁用交换分区
+		swapoff [option] [DEVICE]
+文件系统等空间点用信息的查看：
+	df:
+	du:
+文件系统相关挂载配置文件：/etc/fstab
+	每行定义一个文件系统
+
+挂载文件系统：
+	1、mount [options] [-o options] DEVICE MOUNT_POINT
+		 命令选项	挂载选项
+		DEVICE：要挂载的设置
+			（1）设备文件：/dev/sda5
+			(2) 卷标 -L ‘LABEL’
+			(3) UUID: -U 'UUID'
+			(4) 伪文件系统名称
+		MOUNT_POINT：挂载点
+		常用参数：
+			-t type 文件系统类型
+			-r 以“只读”方试挂载此文件系统
+			-w 以“读写”方式挂载此文件系统
+			-a 自动挂载所有支持自动挂载的设备
+			-B 绑定目录至另一个目录上
+		-o挂载选项：
+			async:异步模式
+			sync:同步模式
+			atime/noatime:是否更新访问时间戳
+			diratime/nodiratime 是否更新目录的访问时间戳
+			auto/noauto:是否允许此设备被自动挂载
+			exec/noexec:是否允许执行此文件系统上应用程序
+			dev/nodev 是否支持在此设备上使用设备文件
+			suid/nosuid
+			remount 重新挂载
+			ro
+			rw
+			user/nouser:是否允许普通挂载此设备
+			acl:是否支持此设备上使用facl
+			defaults:rw,suid, dev, exec, auto, nouser, and async
+		2、umount:卸载命令
+			umount DEVICE
+		3、查看正在访问指定挂载点的进程
+			fuser -v MOUNT_POINT
+		  终止所有正在访问指定的挂载点进程
+		  	fuser -km MOUNT_POINT

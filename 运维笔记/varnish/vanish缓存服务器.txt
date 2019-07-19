@@ -1,0 +1,209 @@
+缓存服务器：
+www.varnish-cache.org
+##############################################################################
+varnish处理缓存流程：
+A：未命中流程：
+	请求--vcl_recv--vcl_bash--cached?--vcl_miss--vcl_fetch--vcl_delive--响应发至后端。
+B：命中流程：
+	请求--vcl_recv--vcl_bash--cached?--vcl_hit--vcl_deliver--响应。
+C：不理解报文：
+	请求--vclrecv--vcl_pipe--response发至后端。
+lookup:表示在缓存中查找请求的对象。并根据查找的结果将请求控制权交给vcl_hit或vcl_miss函数
+##############################################################################
+varnish线程模型：
+	cache_worker	#缓存线程。
+	cache_main	#主线程，启动caceh
+	ban luker	#实现缓存清理
+	acceptor	#连接管理
+	epoll		#线程池管理器
+	expire		#清理过期缓存。
+###############################################################################
+一、vim /etc/sysconfig/varnish
+	NFILES=131073	#能打开的最大连接数，自动调整。
+	MEMLOCK=82000	#锁定的时间
+	NPROCS="unlimited"	#单个用户能运行的最大线程数
+	RELOAD_VCL=1	#脚本启动时是否使用vcl配置文件。
+	VARNISH_VCL_CONF=/etc/varnish/default.vcl #默认定义VCL的配置文件路径。
+	VARNISH_LISTEN_PORT=80	#监听的端口。
+	VARNISH_ADMIN_LISTEN_ADDRESS=127.0.0.1#CLI配置地址。
+	VARNISH_LISTEN_PORT=6082	#CLI配置地址端口。
+	VARNISH_SECRET_FILE=/etc/varnish/secret	#密钥文件路径。CLI配置需要。
+	VARNISH_MIN_THREADS=50		#最少线程启动时。
+	VARNISH_MAX_THREADS=3000	#最大线程数。
+	VARNISH_THREAD_TIMEOUT=120	#线程超时时间。
+	VARNISH_STORAGE_FILE=/var/lib/varnish/varnish_storage.bin #缓存文件路径。
+	VARNISH_STORAGE_SIZE=1G #缓存文件大小。
+	********************************************
+	使有内存缓存。
+	VARNISH_STORAGE_SHM=64M	#设置变量值。
+	VARNISH_STOREAGE="malloc,${VARNISH_STORAGE_SHM}" #malloc使用内存。
+二、ACL变量。
+	vim /etc/varnish/default.vcl 
+  全局变量：
+	.now 获取当前时间.
+	.host 后端主机IP地址。
+	.port 后端主机的端口。
+  处理请求时可用。
+  	client.ip 客户端IP地址。
+	server.hostname	#varnish服务器主机名。
+	server.IP	#varnish主机IP。
+	server.port	#varnish主机端口。
+	req.request	#报文请求方法。GET/PUT/HADR..
+	req.url		#客户端请求的url。
+	req.proto	#HTTP协议版本。
+	req.backend	#后端主机
+	req.backend.healthy	#后端主机健康与否。
+	req.http.HADER	#引用请求报文中的首部信息。HADER为定义的。
+			例：req.http.x-forwarded-for
+	req.can_gzip	#客户端是否能够接受gzip压缩格式的响应内容。
+	req.restarts	#此请求被重启的次数。
+ 后端主机发请求前可用变量：
+ 	bereq.request	#报文请求方法。GET/PUT/HADR...
+	bereq.url	#后端请求的url
+	bereq.proto	#后端HTTP协议版本。
+	bereq.http.HEADER	#后端请求报文中的首部信息。
+	bereq.connect_timeout	#等待后端建立连接的超时时长。
+ 后端主机的响应报文到varnish，将放置缓存前的变量。
+ 	beresp.do_stream	#是否流式响应。
+	beresp.do_gzip		#是否对接收到的内容压缩再存入缓存。
+	beresp.do_gunzip	#是否解压再写入缓存。
+	beresp.http.HEADER	#请应报文中的首部信息。
+	beresp.proto	#响应HTTP协议版本。
+	beresp.status	#响应状态码。
+	beresp.response	#响应时的原因短语。
+	beresp.ttl	#响应对象的剩余生存时长，单位是秒。
+	beresp.backend.name	#响应报文后端主机的名程。
+	beresp.bachend.ip	#此响应报文后端主机的IP
+	beresp.bachend.port	#此响应报文后端主机的端口。
+	beresp.storage
+ 缓存对象存入缓存后可用的变量。只读。
+ 	obj.proto	#响应时的协议。
+	obj.status	#响应时原因短语。
+	obj.response	#响应状态码。
+	obj.ttl		#缓存的生存时长。
+	obj.hits	#此缓存命中的次数。
+	obj.http.HEADR	#
+ 在决定对请求的建作哈希计算时可用的变量。
+ 	req.hash	#把内存作为键
+ 在为客户准备响应报文时可用的变量。
+ 	resp.proto	#响应报文的HTTP协议版本。
+	resp.status	#响应的状态码。
+	resp.response	#响应报文的原因短语。
+	resp.http.HADER	#响应报文的描术……
+ 状态引擎：
+ 	vcl_init	#在装载vcl，用其处理请求之前。
+	vcl_recv	#请求被接入，但在其被分析处理完成之前。
+
+###########################################################################
+后端服务器定义检测方法：
+	backend NAME{
+		.host=
+		.port=
+	}
+	.window	#设定判定后端主机分健康状态时探测多少次。默认8次。
+	.initial #varnish启动时对后端主机多少次是成功。，
+	.threshold #在window指定次数中至少多少次成功，才判定后端主机为正常。
+	.expected_response #期望后端主机响应码状态，默认为200.
+	.timeout	#每次探测请求超长时间，默认为2秒。
+	.intervar	#发送周期为5秒。
+	.url		#探测后端主机健康状态时请求的url，默认为/根。
+	.request		#探测后端主机健康状态时所请求内容的详细格式，它会替换url的探测方式比如：
+		.request=
+			"GET /.fengzi.html HTTP/1.1"
+			"Host:www.baidu.com"
+			"connection:close";
+定义健康状态检测机制：
+	probe chk {
+		.url="fengzi.html"
+		.window=5;
+		.threshold=3;
+		.interval=3s;
+		.timeout=1s;
+		.expected_response=200;
+	}
+在backend中调用 .prode=chk;
+查看后端状态命令：backend list
+############################################################################
+后端服务器组定义：
+director myserver round-robin {#定义后端服务器组
+        .retries =5; #请求连接次数 
+        {#后端服务组一
+        .backend = {
+                .host = "192.168.1.112";
+                .port = "80";
+                }
+        .weight=7;#权重值
+        }#服务器一定义结束
+        {
+        .backend = {
+                .host = "192.168.1.114";
+                .port = "80";
+                }
+        .weight = 3;
+        }	#定义服务器二
+}
+	例：
+#  注释：
+#	round-robin  
+#	random 	#轮询调度。
+备用服务器定义：
+	director beiyong3 fallback{
+		.backend ...	#定义备用节点。
+	}
+此定义的后端服务器组必须引用于后面的函数。例：
+if(req.url ~"html$")
+          {
+                  set req.backend=exq;
+          }
+     }
+
+###############################################################################
+param.show -L #显示varnish可用配置参数；
+	thread_pools	#线程池个数，默认为2；
+	thread_pool_max #单池最大并发线程数
+	thread_pool_min	#启动是要启动的线程数。
+	thread_pool_purge_delay	#清理空闲线程默认为1000毫秒，最大为1秒。
+	thread_pool_stack #线程債空间.
+	thread_pool_timeout #空闲线程超过120秒，会被清理。
+	thread_pool_workspace #线程池的内存工作空间，默认为6536字节，不建议改。
+修改参数：
+	param.set thread_pool_max 2000
+查看：
+	param.show thread_pool_max
+###############################################################################
+查看日志（内存）
+	varnishtop 查看日志工具。
+		参数：-I 可筛选user_agent起始后的内容。－X取反。
+		      -i 可筛选RXHeader信息称为tag	-x取反。
+		      -C:勿略大小写。
+		      -d:显示已有日志
+		      －#：显示一屏。
+##############################################################################
+varnishstat	#缓存统计数据：
+	-f	#指明字段
+		例：-f cache_hit_cache 
+	-l:	查看哪些字段可查看。
+	-x:	以xml格式输出。
+	-j:	json格式输出。
+###############################################################################
+varnishadm 连接配置vcl
+	varnishadm -S /etc/varnish/secret  -T 127.0.0.1:6082 
+	vcl.list	#查看使用哪个vcl
+	vcl.load	#保存新的vcl
+		例：vcl.load <vlcname> "配置文件路径。
+		    vcl.load  myvcl /etc/varnish/default.vcl
+	vcl.discard<vclname>
+	vcl.use <vclname>	#使用vcl
+	vcl.show<vclname>	#显示vcl配置信息。
+############################################################################
+修剪缓存：
+	acl purges{
+		"127.0.0.1";
+		"192.168.1.0"/24;
+	}
+	sub vcl_hit{
+		if (req.request =="PURGE")
+			{puge; error 200 "purged"}	
+	}
+执行缓存：curl -I -X PURGE http://......缓存的请求地址。
+#############################################################################

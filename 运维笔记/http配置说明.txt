@@ -1,0 +1,452 @@
+一、MPM：Multipath Processing Modules
+				prefork：多进程模型，每个进程响应一个请求；
+					一个主进程：负责生成n个子进程，子进程也称为工作进程，每个子进程处理一个用户请求；即便没有用户请求，也会预先生成多个空闲进程，随时等待请求到达；最大不会超过1024个；
+				worker：多线程模型，每个线程响应一个请求；
+					一个主进程：生成多个子进程，每个子进程负责生个多个线程，每个线程响应一个请求；
+						m进程，n线程：m*n					
+				event：事件驱动模型，每个线程响应n个请求；
+					一个主进程：生成m个子进程，每个进程直接n个请求；
+						m*n
+二、程序环境
+		配置文件：
+			主配置文件：/etc/httpd/conf/httpd.conf
+			分段配置文件：/etc/httpd/conf.d/*.conf
+		服务脚本：
+			/etc/rc.d/init.d/httpd
+			脚本的配置文件：/etc/sysconfig/httpd
+		模块文件目录：
+			/etc/httpd/modules --> /usr/lib64/httpd/modules
+		主程序文件：
+			/usr/sbin/httpd (prefork)
+			/usr/sbin/httpd.worker (worker)
+			/usr/sbin/httpd.event (event)
+		日志文件目录：
+			/var/log/httpd
+				access_log: 访问日志文件
+				error_log: 错误日志
+		站点文档目录：
+			/var/www/html
+
+
+
+		1、指定监听地址和端口
+			Listen [IP:]80
+
+			(1) IP省略时表示监听本机上所有可用的IP地址；
+			(2) Listen指令可以出现多次，用于指明多个不同的监听端口或套接字：
+				Listen 172.16.100.11:80
+				Listen 172.16.100.11:8080
+
+		2、持久连接相关
+
+			持久连接：连接建立后，每个资源获取结束不会断开连接，而继续等待其它资源请求并完成传输；
+				如何断开？
+					数量限制：如100个
+					时间限制：如60秒
+				劣势：对并发访问量较大的服务器，开持久连接会有些请求得不到服务；
+				改进：减短，httpd-2.4支持毫秒级
+			非持久连接：每个资源都是单独通过专用的连接进行获取
+
+			KeepAlive Off|On 开启持久连接
+			MaxKeepAliveRequests 100 资源数量限制
+			KeepAliveTimeout 15 持久连接时间限制
+
+			测试：
+			# telnet Server 80
+			GET /URL HTTP/1.1
+			Host: Server
+
+		3、MPM 多路处理模块：并发请求响应的不同实现
+			(选择启动模块配置路径)/etc/sysconfig/httpd
+				prefork, worker, event
+
+ 			查看启动模型：# ps aux | grep httpd
+
+			默认为/usr/sbin/httpd，其为prefork; 
+				查看模块列表：
+					httpd -l: 查看静态编译的模块
+					httpd -M: 查看所有模块，包括静态编译和DSO模块
+						httpd -t -D DUMP_MODULES
+
+			更换支持不同的MPM的主程序：
+				编辑/etc/sysconfig/httpd
+					启用变量：HTTPD
+
+				<IfModule prefork.c>
+				StartServers       8 启动8个启动进程备着
+				MinSpareServers    5 最少空闲进程数
+				MaxSpareServers   20 最大空闲数
+				ServerLimit      256 最多进程响应客户端数
+				MaxClients       256 最大客户端数
+				MaxRequestsPerChild  4000 每个进程最多多少次服务
+				</IfModule>
+
+				<IfModule worker.c>
+				StartServers         4 子进程数
+				MaxClients         300 最大并发连接数
+				MinSpareThreads     25 最少空闲线程数
+				MaxSpareThreads     75 最大空闲线程数
+				ThreadsPerChild     25 子进程最多线程数
+				MaxRequestsPerChild  0 子进程响应次数无限制
+				</IfModule>
+
+		4、DSO
+			配置指令模块加载：
+				LoadModule <module_name> <module_path>
+
+				模块路径：可使用相对路径
+					相对于ServerRoot指令指向的位置而言；
+
+				注意：建议使用service httpd reload重新装载配置文件
+
+		5、定义'Main' server的文档页面路径
+			DocumentRoot指令定义网站路径
+				/var/www/html/
+
+		6、站点路径访问控制
+			访问控制机制：
+				基于来源地址
+				基于账号
+
+			定义的方式有两种：
+				文件系统路径：
+					<Directory "/PATH/TO/SOMEDIR">
+						...
+					</Directory>
+				URL路径：
+					<Location "/URL">
+						...
+					</Location>
+
+		7、Directory中的路径访问控制定义
+			(1) Options
+				Indexes: 当访问的路径下无默认主页面文件存在，且没有指定具体要访问的资源时，会将此路径下的所有资源以列表呈现给用户；非常危险，不建议使用；
+				FollowSymLinks：如果某页面文件是为指向DocumentRoot之外路径上的其它文件时，将直接显示目标文件的内容；
+				None: none
+				All: 所有的都启用；
+
+			(2) 基于来源地址访问控制
+				Order: 检查次序
+					Order Allow Deny：只有明确Allow的来源地址，才允许访问，其它的均为Deny
+					Order Deny Allow: 
+				Allow from：允许访问的来源地址
+				Deny from：拒绝访问的来源地址
+
+				Order Allow Deny
+				Deny from 172.16.100.2
+				Allow from 172.16.0.0/16
+
+					from后可跟上的地址格式：
+						IP地址；
+						网络地址：
+							172.16
+							172.16.0.0
+							172.16.0.0/16
+							172.16.0.0/255.255.0.0
+
+
+		8、定义默认的主页面
+			DirectoryIndex index.php index.jsp index.html
+			自左而右，找到首次匹配到的文件；就将其做为默认主页面返回。
+
+		9、配置日志
+
+			错误日志：
+				ErrorLog logs/error_log错误日志
+				LogLevel warn 错误日志记录级别
+
+			访问日志：要定义日志格式
+				LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined定义访问日志格式
+				CustomLog logs/access_log combined
+
+				%h: Remote host，客户端主机
+				%l: Remote logname (from identd, if supplied). 客户用户通过identd登录时使用名称；一般为-；
+				%u: Remote user (from auth; may be bogus if return status (%s) is 401)，用户认证登录的名字；无登录机制一般-；
+				%t: Time the request was received (standard english format)，收到客户端请求时的时间；
+				\": 显示引号本身，而不作为引用符号；
+				%r：First line of request，请求报文的首行
+					<method> <url> <version>
+				%>s：响应状态状态码
+				%b: Size of response in bytes, excluding HTTP headers，响应报文的大小，单位为字节；不包含首部信息；
+				%{Referer}i：记录Http首部Referer对应的值；即访问入口，从哪个页面跳转至此页面；
+				%{User-Agent}i：记录http首部User-Agent对应的值；即浏览器类型；
+
+				详情： http://httpd.apache.org/docs/2.2/mod/mod_log_config.html#formats
+
+		10、路径别名
+
+			DocumentRoot "/var/www/html" 网站路径实际地址（绝对路径）
+				 
+				网站路径别名定义：
+					Alias /URL/ "/path/to/some_directory"   路径别名定义
+
+				例如：Alias /bbs/ "/web/bbs/htdocs/"
+					URL: http://www.magedu.com/bbs/index.html --> /web/bbs/htdocs/index.html
+
+					Alias /images/ "/web/pics/"
+						URL: http://www.magedu.com/images/a.jgp --> /web/pics/a.jpg
+
+		11、设定默认字符集
+			AddDefaultCharset UTF-8
+
+				常用字符集：GBK, GB2312, GB18030
+
+		12、基于用户的访问控制
+			质询：
+				WWW-Authenticate: 服务器用401状态拒绝客户端请求，说明需要用户提供用户名和密码；弹出对话框；
+			认证：
+				Authorization：客户端用户填入账号密码后再次发请求至服务器；认证通过，则请求授权；
+
+			DocumentRoot "/var/www/html"
+				images
+				bbs
+				employee/
+
+				安全域：需要用户认证后方能访问的路径
+					应该有其名称，用于向用户通知此认证的原因等；
+
+			http协议支持的认证方式：
+				basic：基本
+					BASE64
+				digest：摘要
+
+			basic认证机制的实现
+				(1) 定义安全域
+					<Directory "/data/web/html/employee">
+					    Options None
+					    AllowOverride None
+					    AuthType Basic 启用认证
+					    AuthName "Employee Infomation, only for employee" 输出信息
+					    AuthUserFile /etc/httpd/users/.htpasswd  用户证号密码存放路径
+					    Require user tom jerry 指定用户
+						#Require		
+					    valid-user 所有合法证号
+					</Directory>	
+					
+					Require valid-user: 所有位于AuthUserFile文件中定义的用户都允许登录；
+					Require user user1 user2 ...: 仅允许user1，user2等出现AuthUserFile文件中定义的特定几个用户登录；		
+
+					虚拟用户：即非系统用户；
+
+				(2) 提供用户的账号文件(管理用户缉译秘码)
+					htpasswd命令用于维护此文件
+
+					 htpasswd [ -c ] [ -m ] [ -D ] passwdfile username
+					 	-c: 添加第一用户时创建此文件；以后不用
+					 	-m: 以md5格式加密用户密码存放；
+					 	-s: 以sha格式加密用户密码存放；
+					 	-D：删除指定用户
+
+				(3) 组认证
+
+					<Directory "/data/web/html/employee">
+					    Options None
+					    AllowOverride None
+					    AuthType Basic
+					    AuthName "Employee Infomation, only for employee"
+					    AuthUserFile /etc/httpd/users/.htpasswd
+					    AuthGroupFile /etc/httpd/users/.htgroup
+					    Require group GRP1 GRP2 ...
+					</Directory>
+
+					组文件：
+						每行定义一个组，格式
+						Grp_Name: User1 User2 ...
+
+		13、虚拟主机
+
+			一个物理器可以服务于多个站点，每个站点可通过一个或多个虚拟主机来实现；
+
+			httpd三种类型的虚拟主机：
+				基于IP
+				基于Port
+				基于FQDN
+
+			注意：得首先关闭'Main' server
+				方法：注释DocumentRoot指令即可；
+
+			定义虚拟主机的方法：
+				<VirtualHost "IP:PORT">
+					ServerName 
+					ServerAlias
+					DocumentRoot
+				</VirtualHost>
+
+				注意：大多数可用于全局或'main' server中的指令，都可以定义有VirtualHost中；
+
+			示例1：基于IP
+				<VirtualHost 172.16.100.11:80>
+				    ServerName www.a.com
+				    DocumentRoot /vhost/a.com/htdocs/
+				</VirtualHost>
+
+				<VirtualHost 172.16.100.21:80>
+				    ServerName www.b.org
+				    DocumentRoot /vhost/b.org/htdocs/
+				</VirtualHost>
+
+				<VirtualHost 172.16.100.31:80>
+				    ServerName www.c.net
+				    DocumentRoot /vhost/c.net/htdocs/
+				</VirtualHost>	
+
+				注意：本机要配置上所有IP地址并能够用于通信；
+
+			示例2：基于Port
+				<VirtualHost 172.16.100.11:80>
+				    ServerName www.a.com
+				    DocumentRoot /vhost/a.com/htdocs/
+				</VirtualHost>
+
+				<VirtualHost 172.16.100.11:808>
+				    ServerName www.b.org
+				    DocumentRoot /vhost/b.org/htdocs/
+				</VirtualHost>
+
+				<VirtualHost 172.16.100.11:8080>
+				    ServerName www.c.net
+				    DocumentRoot /vhost/c.net/htdocs/
+				</VirtualHost>	
+
+				注意：httpd要监听这里指明的所有端口
+					Listen
+
+			示例3：混用IP和Port
+				<VirtualHost 172.16.100.11:80>
+				    ServerName www.a.com
+				    DocumentRoot /vhost/a.com/htdocs/
+				</VirtualHost>
+
+				<VirtualHost 172.16.100.21:80>
+				    ServerName www.b.org
+				    DocumentRoot /vhost/b.org/htdocs/
+				</VirtualHost>
+
+				<VirtualHost 172.16.100.11:8080>
+				    ServerName www.c.net
+				    DocumentRoot /vhost/c.net/htdocs/
+				</VirtualHost>	
+
+			示例4：基于FQDN
+
+				NameVirtualHost 172.16.100.11:80
+
+				<VirtualHost 172.16.100.11:80>
+				    ServerName www.a.com
+				    DocumentRoot /vhost/a.com/htdocs/
+				</VirtualHost>
+
+				<VirtualHost 172.16.100.11:80>
+				    ServerName www.b.org
+				    DocumentRoot /vhost/b.org/htdocs/
+				</VirtualHost>
+
+				<VirtualHost 172.16.100.11:80>
+				    ServerName www.c.net
+				    DocumentRoot /vhost/c.net/htdocs/
+				</VirtualHost>	
+
+			注意：额外经常用于每个虚拟主机的配置有
+				ErrorLog
+				CustomLog
+				<Directory>
+				<Location>
+				ServerAlias
+
+		14、内置的status页面
+			服务器状态访问
+
+			<Location /server-status>
+			    SetHandler server-status
+			    Order deny,allow
+			    Deny from all
+			    Allow from 172.16.0.0/16
+			</Location>
+		 15、网站测试工具 
+		 	curl
+		 		-A:模拟浏览器“chome 40”
+				-basic		:使用HTTP基本认证配合-u使用
+				--tcp-nodelay	:使用TCP_NODELAY选项
+				-e/--referer	:<url>来源地址模拟
+				--cacert	:<file>CA证书
+				--compressed	:要求返回压缩的格式
+				-H/--header	:<line>自定义信息传递给服务器
+				-I/--head	:只显示响应报文首部信息
+				--limit-rate	:<rate>设置传输速度
+				-u/--user	：<user[:passwd]>设置服务器的用户和密码
+				-D/--http1.0	:使用HTTP1.0
+			elinks 命令行格式浏览器
+				-dump:不进入交换模式
+		16、使用压缩模块————节约带宽，cpu负载加大
+			SetOutputFilter  DEFLATE
+			#mod_deflate configuration
+			#Restrict compression to these MIME types
+			 AddOutFilterByType DEFLATE	text/plain
+			 AddOutFilterByType DEFLATE	text/html
+			 AddOutFilterByType DEFLATE	application/xhtml+xml
+			 AddOutFilterByType DEFLATE	text/xml
+			 AddOutFilterByType DEFLATE	application/xml
+			 AddOutFilterByType DEFLATE	application/X-javascript
+			 AddOutFilterByType DEFLATE	text/javascript
+			 AddOutFilterByType DEFLATE	text/css
+			 ++++++++++++++++++++++++以上指哪些文件压缩++++++++++++
+			 DeflateCompressionLevel	9 压缩比
+			 BrowserMatch ^Mozilla/4 gzip-only-text/html
+			 BrowserMatch ^Mozilla/4\.0[678] no-gzip
+			 BrowserMatch \bmsi[E] !no-gzip !gzip-only-text/html
+			 +++++++++++++++++++++指定哪些浏览器是否使用压缩++++++++
+		17、https 协议主要提供ssl认证
+			 默认端口号为443
+			 ssl会话过程
+			 	1、TCP三次握手，第三次客户端会把自身支持的加密方式，传给服务端，并向服务端请求证书！
+				2、服务器端发送证书以及选定的加密方式给客户端
+				3、客户端证书验证：
+					如果信任给自己发证书的机构：
+					a.验正证书来源的合法性：用CA的公钥解密证书上的数字签名
+					b.验正证书的内容的合法性：完整性认证
+					c.检查证书的有效期限
+					d.检查证书是否被吊销
+
+				4、客户端生成临时会话密钥（对称密钥），并使用服务器端的公钥加密此数据发送给服务端，完成密钥交换！
+				5、服务器有此密钥加密资源，传给客户端
+		*****私有证书的生成****
+		一>、创建私有CA认证机构
+			a、cd /etc/pki/CA
+			b、(umask 077; openssl genrsa -out private/cakey.pem 2048)
+			c、生成自签证书
+				openssl req -new -x509 -key private/cakey.pem
+				-out cacert.pem -days 1000
+				[]:			CN国家代码
+				name[]:			省名
+				defautt city:		城市
+				default company ltd:	MageEdu
+				eg,section[]:		部门名字
+				hostname[]:		服务器名(一般指httpd网站虚拟主机名)
+			d、证书索引列表：
+				touch index.txt
+			e、生成序列号
+				echo 01>serial
+		二>、创建私钥：
+			a、（umask 077; openssl genrsa -out httpd.key 1024）
+			b、证书签属请求：
+				openssl req -new -key http.key -out httpd.csr
+			c、传私钥给ca认证服务器
+				scp http.csr root@172.16.100.37:/tmp/pki
+		三>、CA认证服务器签证
+			openssl ca -in /tmp/...csr -out httpd.crt -days 3655
+		**删除指纹信息**
+			vim  ~/.ssh/known-hosts
+	18、安装https模块：
+		a、yum info mod_ssL
+			yum -y install mod_ssL
+			rpm -ql mod_ssl
+		b、cp /httpd/conf.d/ssl.conf{,.bak}
+		配置
+		 vim ssl.conf
+			<VirtualHost *:443>
+			DocumentRoot "/var/www/html"网站根目录
+			serverName	www.a.com:443
+			sslEngine	on #ssl功能是否开启
+			sslprotocol	all -ssl v2 只启用v3
+			sslcertificateFile  /etc/httpd/ssl/http.crt ##证书路径
+			sslcertificate keyFile /etc/httpd/ssl/httpd.key##私钥路径

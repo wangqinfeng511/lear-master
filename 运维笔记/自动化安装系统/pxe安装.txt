@@ -1,0 +1,46 @@
+# yum install dhcp
+# cp /usr/share/doc/dhcp-4.1.1/dhcpd.conf.sample /etc/dhcp/dhcpd.conf
+# vim /etc/dhcp/dhcpd.conf
+	option domain-name "example.org";#搜索域的域名
+	option domain-name-servers	#dns服务器
+	default-lease-time 600;		#全局租约
+	max-lease-time 7200;		#全局最大租约
+	log-facility local7;		#日志文件
+	
+subnet 192.168.3.0 netmask 255.255.255.224 { #定义一个地址网络：分配
+  range 192.168.3.2 192.168.3.251;   #地址池
+  option domain-name-servers ns1.internal.example.org; #DNS服务器
+  option domain-name "internal.example.org";    #此网段的搜索域名
+  option routers 192.168.3.1;			#网关地址
+  default-lease-time 600;			#此网段租约地址
+  max-lease-time 7200;				#此网段最大租约地址
+  next-server 192.168.3.113;			#tftp的地址
+  filename "pxelinux.0"	;			#网络启动引导文件
+}
+host passacaglia {				#mac地址绑定
+  hardware ethernet 0:0:c0:5d:bd:95;		#机子的MAC地址
+	fixed-address IP地址;
+}
+##############################################################################
+route del -net 192.168.122.0 netmask 255.255.255.0 删除路由地址
+route add -net 192.168.62.0 netmask 255.255.255.0 gw 192.168.1.1
+##############################################################################
+tftp安装：udp协议，所以只用于小文件。
+yum install tftp-server
+chkconfig  tftp on
+service xinetd start
+安装syslinux
+yum install syslinux
+	cp /usr/share/syslinux/pxelinux.0 /var/lib/tftpboot/
+	dhcp中指定文件。
+##############################################################################
+yum 源树 引导部份
+	mount -r /dev/cdrom /media/	
+	cp /media/images/pxeboot/{vmlinuz,initrd.img} /var/lib/tftpboot/
+	mkdir /var/lib/tftpboot/pxelinux.cfg
+	cp ./isolinux/{isolinux.cfg,boot.msg} /var/lib/tftpboot/pxelinux.cfg/
+	cp ./isolinux/{isolinux.cfg , vesamenu.c32 ,splash.jpg } /var/lib/tftpboot/
+	mv isolinux.cfg ./default
+#####################################################################################	
+ rpm软件部分 用到httpd
+安装使用url安装，输入httpd的光盘url地址就行了

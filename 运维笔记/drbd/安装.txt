@@ -1,0 +1,26 @@
+安装：
+2.633内核以前的版本未收录brdb.
+安装brdb内核模块
+	kmod-drbd84-8.45-504.1.e16.X86_64.rpm
+确保504于内核版本一至。
+	并安装drdbadm
+源码安装：
+yum install gcc
+yum install kernel-headers
+yum install kernel-devel
+drbd-8.4.6.tar.gz 
+drbd-utils-8.9.0.tar
+	 make KDIR=/usr/src/kernels/2.6.32-573.8.1.el6.x86_64/
+make install
+	depmod /lib/modules/2.6.32-573.8.1.el6.x86_64/updates/drbd.ko #如果加载不了模块
+	加载模块：modprobe
+	此模块依赖：libcrc32c
+检查模块：lsmod |grep drbd
+	/lib/modules/2.6.32-573.8.1.el6.x86_64/updates/drbd.ko
+查看模块信息：modinfo drbd
+
+drbd-utils-8.9.0.tar
+make
+make install
+
+/usr/local/et

@@ -1,0 +1,49 @@
+要求：
+1、先把iscis配置完成。
+2、在各节点中执行发现操作。
+3、在个节点上执行登录操作。
+	此时在/dev/sd*中会出现设备。
+4、并且ricci|
+#########################################################
+安装
+	yum install gfs2-utils #主要解决文件不可能事编辑问题。提供了分布式文件系统锁。
+会生成模块文件：
+	加载模块：modprobe gfs2
+格式化为集群文件系统：
+	mkfs.gfs2
+		参数：
+			-j	#添加几个日志文件系统。有几个文件日志系统，就只能被几个节点挂载。
+			-J	#指定日志文件大小默认为128M，一个节点占用128M日志块。
+			-p	#指定锁协议的名称：
+						lock_dlm	#分布式文件锁
+								#不使用锁
+			－t	#指明锁表名称，格式为：
+							集群名：锁名 例：cluster:fsname
+		例：
+			mkfs.gfs2 -j 2 -p lock_dlm -t tcluster:sdb1 /dev/sdb1
+	操作：
+		gfs2-jadd 	#添加日志数量！例：gfs2-jadd -j 1 /dev/sdb
+		tunegfs2 -l  /dev/sdb1 #列出集群系统相关信息。
+		gfs2-tool	#gfs2的工具箱
+			gfs2_tool journals /dev/sdb1 	#显示挂载的分布式文件系统信息。
+			gfs2_tool freeze  /mnt		#冻结挂载设备，此是可读不可写，备份数据时先冻
+			gfs2_tool unfreeze /mnt		#解冻
+挂载分布式文件系统：
+	mount -t gfs2 /dev/sdb1/ /mnt
+######################################################################################################
+
+安装
+	yum install lvm2-cluster #此包解决在分布式文件系统中使用lvm卷的。
+1、开启分布lvm逻辑卷功能：
+	lvmconf --enable-cluster 
+2、启动服务守护：
+	service clvmd start
+3、pvcreate /dev/sdb2
+4、vgcreat cvg /dev/sdb2
+5、lvcreate -L 10G -n clv cvg
+6、mkfs.gfs2 -j 3 -t tcluster:clv -p lock_dlm  /dev/cvg/clv
+7、挂载
+*********************************************************************
+扩容
+lvextend -L +5G /dev/cvg/clv
+gfs2_grow /dev/cvg/clv

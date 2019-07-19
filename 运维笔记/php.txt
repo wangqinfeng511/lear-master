@@ -1,0 +1,79 @@
+##################################libxml2###############################
+yum list libxml2
+yum list libxml2-devel
+yum list bzip2
+yum list bzip2-devel
+yum list mhash
+yum install epel-release libmcrypt libmcrypt-devel
+yum install  mysql-devel.x86_64
+########################################
+php5.5.45
+http://cn2.php.net/distributions/php-5.4.45.tar.bz2
+./configure 
+--prefix=/usr/local/php 			#php默认安装路径
+ --with-mysql==/usr/local/mysql 		#mysql路径
+--with-mysqli=/usr/local/mysql/bin/mysql_config #mysqli是mysql另外一个访问入口
+--with-apxs2=/usr/local/apache/bin/apxs|--enable-fpm	#指定apxs2(apche apxs2的路径)|不以模块方式编译
+--enable-mbstring				#让php支持多字节文本
+--with-freetype-dir				#指定字体未指明路径说明自动搜索freetype包
+--with-jpeg-dir					#支持PHP jpeg图片的直接生成
+--with-png-dir					#支持PHP png图片的直接生成
+--with-zlib					#支持通信时压缩
+--with-libxml-dir=/usr --enable-xml		#支持xml运行
+--enable-sockets 				#启用cocketsz功能
+--with-mcrypt 
+--with-bz2 					#支持bz2压缩
+--with-config-file-path=/etc/php/php.ini 	#主配置路径
+--with-config-file-scan-dir=/etc/php.d/		#扫描指定路径下所有以ini结尾的文件
+###################
+make&&make install
+##############
+1、apache(httpd)支持php
+		匹配以php phps结尾交php
+	vim /httpd/httpd.conf
+		添加：AddType application/x-httpd-php  .php
+		      Addtype application/x-httpd-php-source  .phps
+2、把index.php加到主页面支持
+##################配置文件支持###########
+3、mkdir /etc/php
+4、cp php.ini-production /etc/php.ini
+	指定时区：
+		date.timezone= Asia/Shanghai(东八区时间)
+#######################PHP不作为httpd模块运行(fpm)##################################
+1、cp sapi/fpm/init.d.php-fpm /etc/rc.d/init.d/php-fpm
+chmod +x php-fpm
+chkconfig --add php-fpm
+chkconfig php-fpm on
+2、cp /usr/local/php/etc/php-fpm.conf.default /usr/local/php/etc/php-fpm.conf
+	vim /usr/local/php/etc/php-fpm.conf
+		listten=IP:端口
+		pm.max_children=50	#最大进程并发数
+		pm.start_servers=5	#启动备用进程
+		pm.min_spare_servers=2	#最少空闲进程
+		pm.max_spare_servers=8	#最大进程数
+		error_log=log/php-fpm.log #错误日志
+		pid=/usr/local/php/var/run/php-fpm.pid #pid文件路径
+3、http支持：
+ a、代理模块：LoadModule proxy_module modules/mod_proxy.so启用
+ b、fcgi模块开启：LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so
+4、httpd启用反向代理：
+	ProxyRequests Off #关闭正向代理
+	ProxyPssMatch ^/(.*\.php)$ fcgi://127.0.0.1:9000/PATH/TO/DOCUMENT_ROOT/$1 启用反向代理
+			php结尾  发送至发送至127.0.0.1:9000/usr/local/apache/htdocs/$1(代表发送来的url)
+
+5、ln -sv /usr/local/apache/include /usr/include/httpd #头文件连接
+################################################################################
+##########动态内容性能加速#####################
+先安装autoconf
+xcache-3.2.0
+cd进目录
+1、因为是php模块没config！
+2、/usr/local/php/bin/phpize 生成.configure
+3、.configure 
+	--enable-xcache		#启用xcache
+	--with-php-config=/usr/local/php/bin/php-config #指明php config的入口生成程序入口；
+4、make&&make install
+5、cp xcache.ini /etc/php.d ###PHP编译时指定的模块配置文件路径
+6、vim etc/php.d/xcache.ini
+		extension= 模块的绝对路径
+		

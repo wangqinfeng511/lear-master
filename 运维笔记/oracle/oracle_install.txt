@@ -1,0 +1,197 @@
+一、vim /etc/sysctl
+	fs.file-max = 6815744
+	kernel.sem = 250 32000 100 128
+	kernel.shmmni = 4096
+	kernel.shmall = 1073741824
+	kernel.shmmax = 4398046511104
+	kernel.panic_on_oops = 1
+	net.core.rmem_default = 262144
+	net.core.rmem_max = 4194304
+	net.core.wmem_default = 262144
+	net.core.wmem_max = 1048576
+	net.ipv4.conf.all.rp_filter = 2
+	net.ipv4.conf.default.rp_filter = 2
+	fs.aio-max-nr = 1048576
+	net.ipv4.ip_local_port_range = 9000 65500
+二、/etc/security/limits.conf
+	oracle soft nproc 2047
+	oracle hard nproc 16384
+	oracle soft nofile 1024
+	oracle hard nofile 65536
+	oracle soft stack 10240
+	oracle hard stack 10240	
+配置文件：
+	oracle.install.responseFileVersion=/oracle/install/rspfmt_dbinstall_response_schema_v11_2_0
+oracle.install.option=INSTALL_DB_SWONLY
+ORACLE_HOSTNAME=oracle
+UNIX_GROUP_NAME=oinstall
+INVENTORY_LOCATION=/opt/oralnventory
+SELECTED_LANGUAGES=en,zh_CN
+ORACLE_HOME=/opt/his/oracle/product/11.2.0
+ORACLE_BASE=/opt/his
+oracle.install.db.InstallEdition=EE
+oracle.install.db.isCustomInstall=false
+oracle.install.db.customComponents=oracle.server:11.2.0.1.0,oracle.sysman.ccr:10.2.7.0.0,oracle.xdk:11.2.0.1.0,oracle.rdbms.oci:11.2.0.1.0,oracle.network:11.2.0.1.0,oracle.network.listener:11.2.0.1.0,oracle.rdbms:11.2.0.1.0,oracle.options:11.2.0.1.0,oracle.rdbms.partitioning:11.2.0.1.0,oracle.oraolap:11.2.0.1.0,oracle.rdbms.dm:11.2.0.1.0,oracle.rdbms.dv:11.2.0.1.0,orcle.rdbms.lbac:11.2.0.1.0,oracle.rdbms.rat:11.2.0.1.0
+oracle.install.db.DBA_GROUP=dba
+oracle.install.db.OPER_GROUP=dba
+oracle.install.db.CLUSTER_NODES=
+oracle.install.db.config.starterdb.type=GENERAL_PURPOSE
+oracle.install.db.config.starterdb.globalDBName=orcl
+oracle.install.db.config.starterdb.SID=orcl
+oracle.install.db.config.starterdb.characterSet=AL32UTF8
+oracle.install.db.config.starterdb.memoryOption=true
+oracle.install.db.config.starterdb.memoryLimit=1024
+oracle.install.db.config.starterdb.installExampleSchemas=false
+oracle.install.db.config.starterdb.enableSecuritySettings=true
+oracle.install.db.config.starterdb.password.ALL=Dell.123
+oracle.install.db.config.starterdb.password.SYS=
+oracle.install.db.config.starterdb.password.SYSTEM=
+oracle.install.db.config.starterdb.password.SYSMAN=
+oracle.install.db.config.starterdb.password.DBSNMP=
+oracle.install.db.config.starterdb.control=DB_CONTROL
+oracle.install.db.config.starterdb.gridcontrol.gridControlServiceURL=
+oracle.install.db.config.starterdb.dbcontrol.enableEmailNotification=false
+oracle.install.db.config.starterdb.dbcontrol.emailAddress=
+oracle.install.db.config.starterdb.dbcontrol.SMTPServer=
+oracle.install.db.config.starterdb.automatedBackup.enable=false
+oracle.install.db.config.starterdb.automatedBackup.osuid=
+oracle.install.db.config.starterdb.automatedBackup.ospwd=
+oracle.install.db.config.starterdb.storageType=FILE_SYSTEM_STORAGE
+oracle.install.db.config.starterdb.fileSystemStorage.dataLocation=/opt/his/data
+oracle.install.db.config.starterdb.fileSystemStorage.recoveryLocation=/opt/his/fc
+oracle.install.db.config.asm.diskGroup=
+oracle.install.db.config.asm.ASMSNMPPassword=
+MYORACLESUPPORT_USERNAME=
+MYORACLESUPPORT_PASSWORD=
+SECURITY_UPDATES_VIA_MYORACLESUPPORT=
+DECLINE_SECURITY_UPDATES=true
+PROXY_HOST=
+PROXY_PORT=
+PROXY_USER=
+PROXY_PWD=
+
+三、
+./runInstaller -silent -force  -debug   -ignorePrereq -responseFile /opt/oracle_install/database/response/db_install.rsp
+四、
+	/opt/his/oracle/product/11.2.0/root.sh
+五、创建监听：
+	 netca  -silent -responseFile /opt/oracle_install/database/response/netca.rsp
+六、启动监听：
+	lsnrctl start LISTENER
+	sql> show parameter service 查看服务
+	强制监听服务：
+		SQL>alter system register
+	监听不成功时：修改文件：
+		SID_LIST_LISTENER =
+  			(SID_LIST =
+    				(SID_DESC =
+      					(GLOBAL_DBNAME = ORCL)
+      					(ORACLE_HOME = /opt/his/oracle/product/11.2.0)
+      					(SID_NAME = ORCL)
+    				)
+ 			)
+
+		LISTENER =
+  			(DESCRIPTION =
+    				(ADDRESS = (PROTOCOL = TCP)(HOST = 172.18.0.60)(PORT = 1521))
+  			)
+
+		ADR_BASE_LISTENER = /opt/his/oracle
+		
+七、编辑dbca.rsp
+	vim /opt/database/response/dbca.rsp
+	 	GDBNAME = "ora11g.dg01"78 行 全局数据库的名字=SID+主机域名
+		SID="orcl" //149行 SID
+		DB_UNIQUE_NAME = "orcl"
+	 	CHARACTERSET="AL32UTF8" //415行 编码
+		NATIONALCHARACTERSET="UTF8" //425行 编码
+八、权限修改：
+	chown oracle:oinstall -R /opt/his/database/*
+	#ORA-00845: MEMORY_TARGET not supported on this system,shm要大于内存
+	mount -t tmpfs shmfs -o size=8g /dev/shm
+五、创建数据库
+	dbca  -silent -responseFile /opt/oracle_install/database/response/dbca.rsp  -sysPassword Dell.123 -systemPassword Dell.123
+	cp /opt/his/oracle/admin/orcl11g/pfile/init.ora.029201816626
+/opt/his/oracle/product/11.2.0/dbs/initorcl11g.ora
+#####################################################################
+rman恢复：
+修改为mount
+CONNECT TARGET/
+rman> list backup;
+一、NOMOUNT 下恢复控制文件。
+	RMAN> restore controlfile from '/opt/rman/rman_back/CF_ORCL_1472362722_20180117_965628019_5257_1';
+二、导入备份目录：
+	rman>catalog start with '/path'
+二、完全恢复：
+	rman>run{
+		restore database;
+		recover database;
+	}
+	选择备份集恢复：
+	rman>run{
+		set until scn =19876;
+		restore database from tag='TAG20llllllll';#指定备份集的tag值，list backup of database中可以查到
+	}
+    按时间节点恢复：
+	rman>run{
+		shutdown immediate;
+		startup mount;
+		set until time " to_date('2017-05-27 05:00:00','yyyy-mm-dd
+		hh24:mi:ss')"
+		restore database;
+		recover database;
+		alter database open resetlogs
+	}
+   按scn恢复：
+   	rman>run{
+		shutdown immediate;
+		startup mount;
+		set until scn 2400; #scn号
+		restore database;
+		recover database;
+		alter database open resetlogs;
+	}
+##############################################################################
+备份：
+查看归档日志是否打开：
+	archive log list;
+设置归档日志：
+	alter database archivelog;
+查看当前归档状态：
+	show parameter arch
+当前日志归档：
+	alter system archive log current;
+全库备份：
+	RMAN> backup database format 'path';
+列出备份：
+	RMAN>list backup of database;
+删除备份：
+	RMAN>delete backupset 1;
+备份表空间：
+	RMAN> backup tablespace users;
+	RMAN>list backup of tablespace users;
+
+备份数据文件：
+	RMAN>backup datafile 1;
+	RMAN>list backup of datafile 1;
+
+备份控制文件：
+	RMAN>backup current controlfile;
+	RMAN> list backup of controlfile;
+备份归档日志：
+	RMAN> backup archivelog all:
+	RMAN> list backup of archivelog all;
+	RMAN> list archivelog all;
+备份spfile：
+	RMAN>backup spfile;
+报告冗余的备份：
+	RMAN>report obsolete;
+删除过期冗余备份：
+	RMAN>delete obsolete;
+检查备份：
+	RMAN> crosscheck backup;
+列出无效备份：
+	RMAN> list expired backup;
+删除无效备份：
+	RMAN> delete expired backup;
+

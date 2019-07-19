@@ -1,0 +1,13 @@
+ https://gmplib.org/#DOWNLOAD
+tar -xvjpf gmp-6.0.0a.tar.bz2
+./configure
+make
+make install 
+
+yum -y install python-devel
+pip install --ignore-installed PyCrypto
+yum -y groupinstall "Development tools"
+yum -y install gcc libgcc glibc libffi-devel libxml2-devel libxslt-devel openssl-devel zlib-devel bzip2-devel ncurses-devel
+
+ #dashboard依赖
+pip install Django==1.4

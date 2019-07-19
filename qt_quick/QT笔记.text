@@ -1,0 +1,145 @@
+QDataStream //二进制流操作
+    QDataStream  bin_data(&send_bytearray,QIODevice::ReadWrite);
+    int data_length=data.size();
+    bin_data<<(int)data_length; //从seek(0)开始写入数据长度。
+    send_bytearray.append(data); //添加数据。
+    int data_length;
+    data_length<<bin_data;//读出数据长度位;
+    bin_data.device->seek(sizeof(int));//移动seek到数据位
+QTcpsocket
+	tcpsocket类用于实现tcpsocket连接
+ 	connect.connectToHost('127.0.0.1',3308,QIODevice::ReadWrite) //连接端口
+ 	connect.write(qBytearry) //"写入数据"
+ 信号：
+   	readyRead() //有数据时发出
+ 注意：因为数据包超过交换机的1440所有要取出第一个数据包因为第一个包应该包含数据包长度。
+QTcpserver //tcpserver
+	incomingConnection(qintptr socketnumber) //有新连接时调用
+	qtcpsocek.setSocketDescriptor(socketnumber); //设置连接是新的连接;
+QSerialPort //com口连接
+	QSerialPort com_port;
+	com_port.setPortName("com1") //设置COM口，要求权限可以度写
+	com_port->setBaudRate(QSerialPort::Baud9600); //设置波特屡
+    	com_port->setDataBits(QSerialPort::Data8); //设置数据位数
+    	com_port->setStopBits(QSerialPort::OneStop); //设置停止位
+    	com_port->setParity(QSerialPort::NoParity); //设置校验位
+    	com_port->setFlowControl(QSerialPort::NoFlowControl); //设置控制位
+     	com_port->open(QSerialPort::ReadWrite); //打开读写
+	com_port.isopen()//
+	com_port.waitForReadyRead(1000) //阻塞住等待数据
+	//readall()时会出现读出数据不全，建议使用sleep(0.5)后在执行。
+extern QJsonArray last_temperatuer;//全局变量
+//结构体
+struct Student{ //结构体
+	int a;
+	QString name;
+	}
+Student ab;
+ab.a=12,ab.name="test"
+/////
+QMutex 互斥锁
+	QMutex t;
+	t.lock();......//锁住以下变量（全局变量）
+	t.unlock();
+QReadWriteLock 读写锁
+QSemaphore	信号量
+QWaitCondition 条件变量
+///http请求
+void request::post(QString url,QJsonObject data){
+    QNetworkRequest post_request;
+    post_request.setUrl(url);
+    post_request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
+    QNetworkAccessManager* manager = new QNetworkAccessManager;
+    QNetworkReply *rsp;
+    QSslConfiguration config;
+    config.setPeerVerifyMode(QSslSocket::VerifyNone);
+    config.setProtocol(QSsl::TlsV1_0);
+    post_request.setSslConfiguration(config);
+    rsp= manager->post(post_request,QJsonDocument(data).toJson());
+    connect(manager,SIGNAL(finished(QNetworkReply *)),this,SLOT(login_response(QNetworkReply *)));
+}
+void request::login_response(QNetworkReply *rsp){
+    qDebug()<<rsp->readAll();
+}
+//全局事件捕获//重写QGuiApplication
+class base_guiapplication : public QGuiApplication
+{
+    Q_OBJECT
+public:
+    explicit base_guiapplication(int &argc, char **argv); //接收系统参数
+    bool notify(QObject *obj,QEvent *e);
+signals:
+
+public slots:
+};
+ ///cpp
+base_guiapplication::base_guiapplication(int &argc, char **argv):QGuiApplication (argc, argv)//传入系统原参数
+{
+}
+bool base_guiapplication::notify(QObject *obj,QEvent *e){ //notify有事件发生时执行
+//    qDebug()<<e->type();
+    return  QGuiApplication::notify(obj,e);//返回事件
+}
+//定时截屏并给qml使用
+#include<QQuickImageProvider>
+
+class Desktop_capture : public QQuickImageProvider
+{
+public:
+     Desktop_capture();
+     ~Desktop_capture();
+     QPixmap requestPixmap(const QString &id, QSize *size, const QSize &requestedSize); //返回qpixmap
+     QPixmap img;
+signals:
+public slots:
+};
+//定时更新类，主要给qml提供更新信号
+class timer_capture : public QObject
+{
+    Q_OBJECT
+public:
+    explicit timer_capture(QObject *parent = nullptr);
+    Desktop_capture *desktop_pixmap;
+signals:
+    void update();
+public slots:
+    void capture();
+};
+ //cpp
+	Desktop_capture::Desktop_capture():QQuickImageProvider(QQuickImageProvider::Pixmap)
+{
+}
+QPixmap Desktop_capture::requestPixmap(const QString &id, QSize *size, const QSize &requestedSize)
+{
+    return  img;
+}
+Desktop_capture::~Desktop_capture(){
+
+}
+
+timer_capture::timer_capture(QObject *parent) : QObject(parent)
+{
+    desktop_pixmap=new Desktop_capture();
+    QTimer *stak=new QTimer();
+    connect(stak,SIGNAL(timeout()),this,SLOT(capture()));
+    stak->start(500);
+}
+void timer_capture::capture(){
+    QScreen *screen=QGuiApplication::primaryScreen(); //获取屏幕
+    qDebug()<<screen->size();
+     desktop_pixmap->img=screen->grabWindow(0); //获取屏幕图像并传给desktop_pixmap 类的img变量
+     qDebug()<<desktop_pixmap->img.size();
+//    desktop_pixmap->img=img.scaled(1024,1024);
+    update(); //触发信号给qml
+}
+// main.cpp
+	engine.addImageProvider(QLatinString("tmp_image"),api.desktop_pixmap);
+//qml
+	image_look.source="image://tmp_image/aa"
+#########################################
+qt build ubuntu Touch
+安装源：sudo add-apt-repository ppa:bhdouglass/clickable
+更新源缓存：sudo apt-get update
+安装软件：apt-get install clickable
+#clickable create 创建环境
+		

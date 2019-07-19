@@ -1,0 +1,61 @@
+
+
+<Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster"
+                 channelSendOptions="8">
+
+          <Manager className="org.apache.catalina.ha.session.DeltaManager"
+                   expireSessionsOnShutdown="false"
+                   notifyListenersOnReplication="true"/>
+
+          <Channel className="org.apache.catalina.tribes.group.GroupChannel">
+            <Membership className="org.apache.catalina.tribes.membership.McastService"
+                        address="228.0.0.4"
+                        port="45564"
+                        frequency="500"
+                        dropTime="3000"/>
+            <Receiver className="org.apache.catalina.tribes.transport.nio.NioReceiver"
+                      address="auto"
+                      port="4000"
+                      autoBind="100"
+                      selectorTimeout="5000"
+                      maxThreads="6"/>
+
+            <Sender className="org.apache.catalina.tribes.transport.ReplicationTransmitter">
+              <Transport className="org.apache.catalina.tribes.transport.nio.PooledParallelSender"/>
+            </Sender>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.TcpFailureDetector"/>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.MessageDispatch15Interceptor"/>
+          </Channel>
+
+          <Valve className="org.apache.catalina.ha.tcp.ReplicationValve"
+                 filter=""/>
+          <Valve className="org.apache.catalina.ha.session.JvmRouteBinderValve"/>
+
+          <Deployer className="org.apache.catalina.ha.deploy.FarmWarDeployer"
+                    tempDir="/tmp/war-temp/"
+                    deployDir="/tmp/war-deploy/"
+                    watchDir="/tmp/war-listen/"
+                    watchEnabled="false"/>
+
+          <ClusterListener className="org.apache.catalina.ha.session.JvmRouteSessionIDBinderListener"/>
+          <ClusterListener className="org.apache.catalina.ha.session.ClusterSessionListener"/>
+        </Cluster>
+##########################################################################
+<member ship>发送
+	address="228.0.0.4" #多播地址
+	port="45564"	    #多播端口
+	frequency="500"	    #多少秒发送一次心跳
+	dropTime="3000"	    #多少秒收不到心跳认为对方挂了。
+〈Receiver〉接收
+	address="auto"		#监听的接收地址
+	port="4000"		#监听的地址端口
+	auto Bind="100"
+	selectorTimeout="5000"	#作为成员接收对方的请求，超时时长。
+	maxThreads="6"		#线程
+##############################################################################
+1、在各节点的server.xml的engine或host容器添加如上内容；注意修改MemberShip组件中的多播地址address="228.0.0.4"，建议修改Receiver中的address为本机能够传递心跳信息的地址；
+  2、在各节点为使用组播地址添加组播路由，格式：
+    route add -net $MCAST_ADDRESS netmask 255.255.255.255 dev eth0
+  3、在相应应用程序的web.xml中添加<distributable\>; 
+
+

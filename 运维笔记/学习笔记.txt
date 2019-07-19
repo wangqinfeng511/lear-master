@@ -1,0 +1,836 @@
+学习笔记整理
+help CMMAND
+	#内部命令帮助手册
+man CMMAND
+	#外部命令帮助文档
+		man1:用户命令
+		man2:系统调用
+		man3:C库调用
+		man4:设备文件及特殊文件
+		man5:配置文件格式
+		man6:游戏
+		man7:杂项
+		man8:管理命令
+cd	#进入目录
+pwd	#显示工作目录
+ls	#显示目录文件
+	#参数：
+		-d:显示目录自身属性
+		-h:
+		-a:显示所有文件，包括.开头的隐藏文件
+		-r:逆序显示
+		-R：递归
+cat	#文本查看类命令
+	#参数：
+		-n:
+		-e:显示行结束符，显示非打印字符
+file	#显示文件类型查看命令
+which	#显示命令路径
+whereis	#显示二进制程序，及帮助手册路径
+date	#时间显示及设置
+	格式
+		%F	完整日期格式，等价于%Y-%m-%d
+		%D	按月计的日期;等价于%m/%d/%y
+		%T	时间，等于%H:%M:%S
+		%H	小时（00-23）
+		%M	分（00-59）
+		%S	秒（00-59）
+	#时间设置
+		date [MMDDhhmm[[CC]YY][.ss]]
+			分时日月年.秒
+hwclock
+	参数：
+		-s :	以硬件时钟为准，调整系统时间
+		-w:	以系统时间为准，调整硬件时钟
+shutdown	#关机重启命令
+	参数：
+		-r:重启
+		-h:关机
+	格式：
+		shutdown -h now
+history		#历史命令
+	参数：
+		-c:清空命令历史
+		-d: 删除历史中指定的命令
+		 #:显示最近多少条命令
+	调用过去执行的命令：
+		！#：第几条
+		！！：上条
+		！string ：最近执行以string开头的命令
+alias		#命令别名
+unalias		#取消命令别名
+mkdir		#创建目录
+	参数：
+		-p：创建父目录
+		-v: 显示创建过程
+rmdir	#删除空目录
+	
+tree	#显示层级目录
+	参数
+		-d：只层级目录类型的文件
+		-L level :只显示几个层级
+head和tail
+	head	#头部开始显示多少行
+	tail	#尾部开始显示多少行
+touch	#显示时间戳、创建空文件
+		时间戳：
+			atime:文件最后一次被访问的时间
+			mtime:文件最近一次被“修改”的时间
+			ctime:文件最近一次被“改变”时间
+	参数：
+		-a:只更新atime
+		-m：只更新mtime
+		-c:不创建空文件
+文件管理命令：
+	cp、mv、rm
+		参数：
+			-r -R 递归操作
+			-d:不跟踪符号连接
+			-v:显示过程
+IO 重定性：
+	>：输入覆盖定向
+	>>：追加重定向
+	错误重定向：
+		2>：覆盖
+		2>>：追加
+	例：
+		COMMAND > /path/to/file.out 2>&1
+			错误结果同时输入至输出文件
+文件处理工具
+	wc	#输出行数单词数
+		-l:显示行数
+		-w:显示单词数
+	cut:	#段格式化输出
+		参数：
+			-d:指定分隔符
+			-f:指定显示字段
+		例：
+			cut -d ; -f1 /etc/passwd
+	sort：	#排序
+		参数：
+			-r：逆序
+			-f: 忽略字符大小写
+			-u:排序后去重
+			-t:指定分隔符
+			-k:字段
+			-n：以数值大小排序
+	uniq：	#显示重复的行
+		参数：
+			-c:显示每行重复的次数
+			-d:只显示重复过的行
+			-u:只显示未重复的行
+用户管理和权限管理：
+	UID分类：0-65535
+		管理员：0
+		普通用户：1-60000
+			系统用户：
+				CentOS6: 1-499
+				CentOS7: 1-999
+			登录用户：
+				CentOS6: 500+
+				CentOS7: 1000+
+	GID分类：0-65535
+		管理员组：0
+		普通组：
+				1-499，1-999
+				500+,	1000+
+	用户组相关配置文件：
+		/etc/passwd:用户名、UID、基本组等信息
+		/etc/group:组名、GID、组内包含的用户
+		/etc/shadow:用户密码及相关属性
+		/etc/gshadow:组的密码相关属性
+用户管理相关命令：
+	useradd:创建用户
+		参数：
+			-D[options]
+			-r:创建系统用户
+			-u:UID指定
+			-g GID：指定GID（此GID必须存在）
+			-c COMMENT:
+			-d 指定用户主目录（不可存在）
+			-s:指定SHELL
+			-G:指定附属用户组
+			-M：不给用户创建家目录
+	groupadd:创建组
+		参数：
+			-g GID ：指定组ID
+			-r:	创建系统组
+	id:	查看用户相关的id信息
+		-u:UID
+		-g:GID
+		-G:groups
+		-n:NAME
+	usermod:用户属性修改
+		参数：
+		-u:UID
+		-g:GID
+		-G:GID附属组
+		-s:shell
+		-c:COMMENT
+		-d: home dir
+		-l LOGIN
+		-L: lock user锁定用户
+		-U：unlock user解锁用户
+	passwd	#添加秘码
+		-l lock user
+		-u unlock user
+		-n mindays 最短使用期限
+		-x maxdays 默认为99999天
+		-w warndays
+	userdel	#删除用户
+		参数
+			-r:删除用户同时删除家目录
+	groupmod #组属性修改
+		参数：
+			-n 组名
+			-g GID
+	gpasswd #设定组密码
+	newgrp #切换基本组为指定组
+	groupdel 删除组
+	chage:	修改用户账号及密码的属性
+		参数：
+文件权限：
+	权限：u,g,o ,w,r,x
+	SUID:可以让非管理员用户执行
+		chmod u+s 
+	SGID:可以让本目录下文件创建的文件为本目录所属组
+		chmod g+s dir
+	Sticky:可以让本目录下文件，只可用属组删除
+		chmod o+t dir/file
+
+###############################################################################################
+bash scripts篇
+正则表达式部分：
+	特殊字符：
+		[:alnum:]:a-z A-Z 0-9
+		[:alpha:] :a-z A-Z
+		[:cntrl:] :控制键 cr le tab del等
+		[:blank:]:空格和tab
+		[:digit:] 0-9
+		[:graph:] 除空格与tab以外的所用键
+		[:lower:] 代表任何小写字符
+		[:print:] 任何可以打印的字符
+		[:punct:] 标点符号
+		[:space:] 任何可以产生空格的字符，包空格，tab cr等
+		[:xdigit:] 代表16进制的数字类型
+	匹配字符：
+		^word 以word开头
+		word$ 以word结尾
+		.	任意单字符
+		\	转意符
+		*	重复任意次
+		[list] 字符集如[1,2,3,62,1][1-9] [a-z]
+		[^list] 非字符集字符
+		\{n, m\} 最少重复n次最多重复m次
+		+	重复0次或1次以上
+变量：可变化的量
+		本地变量
+		环境变量
+		局部变量
+		位置变量
+		特殊变量：$? $* $@ $# $$
+数组很少用！
+算术运算：
+	$[$A+$B]
+	$(($A+$B))
+	let vlure=$A+$B
+	vlure=$(expr $A + $B)
+或与运算：
+	||
+	&&
+整数测试：
+	$A -gt $B 是否大于
+	$A -ge $B 是不小于等于
+	$A -lt $B 是否小于
+	$A -le $B 是否小于等于
+	$A -eq $B 是否等于
+	$A -ne $B 是否不等于
+字符串测试：
+	"$A" > "$B"
+	"$A" < "$B"
+	"$A" == "$B"
+	"$A" != "$B"
+	-z "$A"	是否为空
+	-n "$A" 是否不空
+文件测试：
+	-e:是否存在
+	-a:同上
+	-f:是否为普通文件
+	-d:是否为目录
+	-h:是否为符号连接文件
+	-b:是否为块设备文件
+	-c:是否为字符设备
+	-S：是否为套接字文件
+	-p:是否为管道文件
+	-r:是否有读权限（本用户）
+	-w:是否有写权限（本用户）
+	-x:是否有执行权限（本用户）
+	-u:是否有SUID权限
+	-g:是否拥有SGID权限
+	-k:是否拥有sticky权限
+	-O：是否为指定文件的属主
+	-G：是否为指定件的属组
+双目操作符：
+	$file -nt $file 是否新于
+	$file -ot $file 是否旧于
+	$file -ef $file 是否为同一个硬链接
+特殊变量
+	$0 :脚本名称
+	$1:第一个参数（外送）
+	$2:第二个参数（外送）
+	$?:命令的状态结果
+	$*和$@:传递给脚本或函数的参数列表
+shift[n]:轮替
+read 	#从键盘读取输入字符
+	参数：
+		-p 输入前输出标题
+		-t 多长时间无输入退出read
+语句if：
+	if [ -e $filename ]; then
+		echo "$filename exit"
+	else
+		mkdir -p $filename
+	fi
+
+循环for:
+	列表循环
+		for username in user1 user2 user...../{1...10}; do
+			循环体
+		done
+	c语言用法：
+		for ((i=1;i<=100;i++));do
+			let sum+=$1
+		done
+
+case语句
+	case $VARIABLE in
+		1)
+			echo 1;;
+		2)
+			echo 2;;
+		esac
+循环while:
+	用法一、while [$i -le 100]; do
+		let sum+=$i
+		let i++
+		done
+	用法二、
+		while read VARIABLE ;do
+			循环体
+		done < /PATH/filename
+		#循环读入第一行执行
+################################################
+sed awk grep文本三剑客——让你我掌控一切
+printf	#格式化打印工具
+	%c:显示ASCI码
+	%d:十进制整数
+	%e:科学计数法显示
+	%f:显示浮点
+	%g:科学计数浮点
+	%s:字符串
+	%u:显示无符号整数
+	%%:%号本身
+	%10d %-10d
+sed	#流编辑器
+	支持正则表达式
+		基本正则表达式
+			字符匹配：. [] [^] #单字符，字符集 非字符集
+			次数匹配：* ,\?,\+ \{m,n\},\{n\} 几次，最0次或1次，最少m次最多n次，最多n次
+			位置锚定：^,$,\<,\> 行首，行尾，词首，词尾
+			多选一：a|b|c
+	支持vim编辑器中文本查找替换
+			#:指定行
+			$：最后一行
+			/string/:任何能被字符串匹配到的行
+
+	语法格式：
+		sed [OPTION]....{script} [input-file] ....
+			参数：
+				-r:支持扩展正则表达式
+				-n：静默模式
+				-e script1 -e script2...多脚本
+				-f 输入指定文件
+				-i 直接修改原文件
+			编辑命令
+				d:删除模式空间中的行
+				=：显示行号
+				a:\text 附加text
+				i：\text 插入text支持转行符\n
+				c:\text 用text替换匹配到的行
+				p：打印模式空间的行
+				s/string/string2/g全局查找替换字符串
+				w /PATH/FILENAME指定内容输出至文件
+				r /PATH/FILENAME文件指定位置插入文件内容
+			使用例子：
+				sed 's/^root/fengzi/g' /etc/passwd
+					把passwd文件以root开头的行替换为fengzi
+				cat /etc/passwd|sed '1~10w'/home/centos/passwdname
+					输出passwd文件管道给sed并把1-10行保存至passwdname
+				cat/etc/passwd|grep '!bash$'|sed '200d'
+					把passwd 不以bash结尾的行输出给sed处理，sed查找含200的行删除
+
+
+awk	#报告生成器
+	语法格式：
+		awk [options] 'program' file file...
+		awk [options] 'PATTERN{action}' file file..
+	内置变量：
+		$0：整行
+		$1:切片1
+		$2：切片2
+		
+
+		FS:输入时字段分隔符
+		OFS：输出时字段分隔符
+		ORS:输出时行分隔符
+		RS：输出行分隔符
+		NF：字段
+		NR：行数
+		FNR：行数各文件分别记数
+		-V FS='value'变量赋值
+	例：
+		awk -F : 'NR>15 && NR<=20 {print $1 }‘ /etc/passwd
+			以：作分隔 15-20行内容打印至屏幕
+		awk -F: BEGIN{ print "10-20行有以下用户"} 'NR>10 && NR<=20 {printf $1 }' /etc/passwd
+		先输出标头“10-20行有以下用户”一次，再把10-20内第一片字符逐行输出 输入文件是passwd
+	
+	awk语法控制语名
+		if语名句：
+			awk -F : '{if ($3>=500) {print $1} else {print "此行用户非系统用户"}}' /etc/passwd
+
+		while语名
+			awk -F : '{i=1; while (i<NF) {printf $1}' /etc/passwd
+		for 循环
+			awk 'for(i=1;i<=NF;i+=2) {print $1} ' /etc/passwd
+###############################################################################################################################
+文件系统
+fdisk	#分区工具
+	p:显示
+	n:创建
+	d:删除
+	t:修改分区ID
+	l:列出所有支持ID类型
+	w:保存退出
+	q:放弃修改并退出
+	m:获取帮肋
+	创建完成后，查看内核是否已经识别新的分区
+	cat /proc/partitions
+		内核重读磁盘分区表：
+		partx DEVICE
+		partx -a DEVICE
+		partx -a -n M:N DEVICE
+		kpartx	
+文件系统：
+	linux: ext2, ext3, ext4, reiserfs, xfs, btrfs, swap
+	创建文件系统：
+	1、mkfs -t type DEVICE
+		ext2
+		ext3
+		ext4
+	 blkid命令
+		blkid DEVICE
+	2、mke2fs [OPTION]...DEVICE
+			-t	{ext2|ext3|ext4}
+			-b	{1024|2048|4096}
+			-L	'LABEL'
+			-j	mke2fs -t ext3
+			-i	#
+			-N 	#
+			-m	#预留磁盘空间占据多大百分比的空间为后期管理使用
+交换分区：
+	mkswap:创建交换分区
+		mkswap [option] DEVICE
+			-L 'LABEL'
+	swapon:启用交换分区
+		swapon [opton] [DEVICE]
+			-a: 激活所有交换分区
+			-p: PRIORITY：设定其优先级
+	swapoff:禁用交换分区
+		swapoff [option] [DEVICE]
+文件系统等空间点用信息的查看：
+	df:
+	du:
+文件系统相关挂载配置文件：/etc/fstab
+	每行定义一个文件系统
+
+挂载文件系统：
+	1、mount [options] [-o options] DEVICE MOUNT_POINT
+		 命令选项	挂载选项
+		DEVICE：要挂载的设置
+			（1）设备文件：/dev/sda5
+			(2) 卷标 -L ‘LABEL’
+			(3) UUID: -U 'UUID'
+			(4) 伪文件系统名称
+		MOUNT_POINT：挂载点
+		常用参数：
+			-t type 文件系统类型
+			-r 以“只读”方试挂载此文件系统
+			-w 以“读写”方式挂载此文件系统
+			-a 自动挂载所有支持自动挂载的设备
+			-B 绑定目录至另一个目录上
+		-o挂载选项：
+			async:异步模式
+			sync:同步模式
+			atime/noatime:是否更新访问时间戳
+			diratime/nodiratime 是否更新目录的访问时间戳
+			auto/noauto:是否允许此设备被自动挂载
+			exec/noexec:是否允许执行此文件系统上应用程序
+			dev/nodev 是否支持在此设备上使用设备文件
+			suid/nosuid
+			remount 重新挂载
+			ro
+			rw
+			user/nouser:是否允许普通挂载此设备
+			acl:是否支持此设备上使用facl
+			defaults:rw,suid, dev, exec, auto, nouser, and async
+		2、umount:卸载命令
+			umount DEVICE
+		3、查看正在访问指定挂载点的进程
+			fuser -v MOUNT_POINT
+		  终止所有正在访问指定的挂载点进程
+		  	fuser -km MOUNT_POINT
+三、linux任务计划：
+	时间点执行某任务 at,batch
+	周期性执行某任务 crontab
+		
+	at [option] ..TIME
+		-q QUEUE: at作业队列
+		-f /PATH/filename：从指定的文件中读取要运行的作业
+		-l：查看作业队列中的等运行作业列表;
+		-c: AT_JOB_NUM：查看待运行作业的内容
+		-d:删除指定作业
+	crontab:周期性任务计划
+		文件/etc/crontab
+
+					# Example of job definition:
+					# .---------------- minute (0 - 59)
+					# |  .------------- hour (0 - 23)
+					# |  |  .---------- day of month (1 - 31)
+					# |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+					# |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+					# |  |  |  |  |
+					# *  *  *  *  * user-name  command to be executed	
+			
+	5个时间点：
+				分钟：有效取值范围0-59；
+				小时：0-23
+				日：1-31
+				月：1-12
+				周几：0-7
+
+						注意：几月几号与周几，不建议同时使用；
+crontab -e			
+################################################################################
+程序包管理
+rpm
+	
+     	查询选项：
+       		-qa: 查询本机已经安装的所有程序包；
+       		-qf /PATH/TO/SOMEFILE: 查询此处的文件由哪个程序包安装生成；
+       		-qc: 查询指定程序包安装生成的配置文件
+       		-qd: 查询指定的程序包安装生成的文档
+       		-qi: 查询指定的程序包的相关信息；
+       		-ql: 查询程序包安装生成的所有文件的列表；
+       		-q --scripts：查询程序包相关的脚本：
+       				preinstall: 安装前脚本
+       				postinstall：安装后脚本
+       				preuninstall: 卸载前脚本
+       				postuninstall: 卸载后脚本
+
+       		-p: 查询针对是未安装的程序包文件；
+yum [options] [package ...]
+	命令：
+		安装：install
+		卸载：remove
+		升级: update
+		查询
+			list all |installed|availiable
+			provides /PATH/TO/SOMEFILE查询指定文件由哪个安装包生成的
+		重新安装：reinstall
+		降级：downgrade
+		列出可用软件组：grouplist
+		列出软件组包括的软件：groupinfo
+		软件组安装：	groupinstall
+		删除软件组：	groupremove
+		
+		列出yum使用的容器：repolist all
+		清除旧的容器缓存数据: clean [packages|headers|all]
+						packages:将已下载的软件文件删除
+						headers:将下载的软件文件头删除
+						all:	将所有容器数据都删除
+
+	软件站点配置：	/etc/yum.repos.d/*.repo
+		配置规则：
+			[base]:代表容器的名字，可随意取名！
+			name:	只是说明一下这个容器的意义而已，重要性不高
+			mirrorlist=: 列出这个容器可以使用的站点，可注释掉
+			baseurl=:这个是容器的实际地址，如下：
+					http://ftp.twaren.net/Linux/CentOS/6/x86
+			enable=1:启动这个容器
+			gpgcheck=1:是不查阅rpm文件内的数字签名
+			gpgkey=:数字签名的公钥文件所在位置，可使用默认值
+##################################################################################################
+域名解析服务器dns
+一、正向解析服务器
+	www.fengzi.com --->IP地址
+二、解析过程：
+	递归查询：由本地dns去逐层查询
+    	迭代查询：由机去本地DNS（缓存内没有返回根服务器地址）->.(返回本机com服务器地址)->com(返回给本机fengzi.com的地址)->fengzi.com(返回给本机www.fengzi.com)
+三、主机域名解析流程：
+	先在hosts内查看有无定义
+	无定义则访问/etc/resolv.conf内定义的dns服务器地址
+四、主从dns服务器概念：
+	从服务器会根据版本信息来更新本机zone
+五、资源类型
+	SOA 起始授权记录，-个zone文件只可有一个
+	NS DNS服务器域名名称
+	A：域名解析至IPV4,IP地址
+	MX 邮件服务器域名，有优先级
+	CNAME: 别名
+六、标准SOA配置
+	语法：
+	name [TTL] IN type value mailevalue
+	@配置中的名
+	邮箱@改为.
+	例：
+	@ 60 IN SOA fengzi.com wangqinfeng511.163.com (
+	
+		2015093101
+		1H	刷新时间：从服务器与主服务器核对版本号
+		5m	重试时间从服务器连不上主服务器的重试时间间隔
+		7D	失效时间：从服务器提供多长时间的服务
+		1D	否定时间
+			);
+七、NS配置语法：
+	指定地址解析为哪个IP/域名
+	例：
+  1、	fengzi.com IN NS dns.fengzi.com
+	区域地址名		dns服务器名
+	
+  2、A记录
+  	dns.fengzi.com IN A 192.168.111
+	dns服务器名		IP地址
+
+DNS服务器bind配置
+一、正向解析服务器
+	named.conf配置/etc/named.conf
+		options{
+			listen_on port 53 {192.168.1.111;}监听地址端口53
+			directory " /var/fengzi" //主目录绝对路径此目录
+			allow-query {;} //哪些IP允许解析，默认全部
+			recursion yes //是否递归（递归开启缓存），否是迭代
+		zone "区域名（邮供应商提供）" IN {
+			type master;	主服务器
+			file "./file相对目录"
+		};
+	master:表示主域名服务器
+	slave:表示从域名服务器
+	hiht:表示互联网根域名服务器
+二、zone文件配置
+	@ IN 86400 SOA "fengzi.com" wangqinfeng511.163.com (
+			2015093101
+			1h
+			5m
+			5d
+			1d
+		);
+	      IN NS dns.fengzi.con
+	  dns IN A 192.168.1.111
+	  www IN A 192.168.1.111
+	  mail IN MX 10 192.168.1.111
+	  web  IN CNAME www
+
+检测工具：
+-、netstat -tuln |grep named
+	查看tcp udp 监听端口|筛选出名为named
+二、dig -tns fengzi.com @ 192.168.1.111
+	检查区域服务器信息
+    dig -t A www.fengzi.com @192.168.111
+    	返回www.fengzi.com 解析地址
+#########################################################################################################################################
+网络篇：
+***********网络模型*********
+应用层
+表示层
+会话层
+传输层
+网络层
+数据链路层
+物理层
+一、分层功能介绍
+	物理层：以比特流格式传输
+	数据链路层：传输的单位是帧
+	网络层：传输包
+	传输层：tcp /udp
+	会话层、表示层、应用层
+
+IPv4协议簇中包括三个协议：
+	IP 因特网协议
+	ARP地址解析协议
+	ICMP网控制消息协议
+二、TCP协议三次握手：
+***************客户端发送SYN报文，并发序号为X********************
+			SYN=1 Seq=X
+*******服务端发送SYN和ACK报文，并置发送序号为Y，确认序号为X+1****
+		SYN=1 ACK=1 Seq=Y ack=X+1
+******客户端发送ACK报文，并置发送序号为x+1，确认序号为Y+1********
+		ACK=1 Seq=X+1 ack=Y+1
+三、TCP四次挥手
+***********客户端发送FIN+ACK报文，并置发送序号为X***********
+		FIN=1 ACK=1 Seq=X ack=Z
+*********服务端发送ACK报文，并发送序号为Z，确认序号为X+1****
+		ACK=1 Seq=Z ack=X+1
+	     FIN=1 ACK=1 Seq=Y ack=X+1
+******客户端发送ACK报文，并置发送序号为X+1，确认序号为Y+1****
+		ACK=1 Seq=X+1 ack=Y+1
+四、数据报头格式
+______________________________________________________________
+版本（4位）| 头部长度（4位）| 区分服务（8位）| 总长度（16位）|
+______________________________________________________________
+标识（16位）		    | 	标志（3位） |段偏移（13位）  |
+______________________________________________________________ 
+生存时间（8位） 协议（8）   | 	校验和（16位）               |
+______________________________________________________________
+		源地址（32位）                               |
+______________________________________________________________ 
+		目的地址（32位）                             |
+______________________________________________________________  
+		选项+填充（32位）			     |
+______________________________________________________________	
+五、熟悉以下工具
+	nmap	#检查指定主机端口与协议
+		格式：nmap [扫描类型] [扫描参数] [hosts 地址范围]
+		扫描参数：
+			-sT: 扫描TCP数据包已建立的连接connect()
+			-sS: 扫描TCP数据包带有SYN卷标的数据
+			-sP: 以ping的方式进行扫描
+			-sU: 以UDP的数据包格式进行扫描
+			-sO: 以IP的协议（protocol）进行主机扫描
+		扫描参数：
+			-pT:
+			使用TCP里头的ping的方式来进行扫描，可以获得几台机子存在
+			-pI:使用实际的ping（带ICMP数据包的）来进行扫描
+			-p：这个是端口范围扫描
+		地址范围：
+			192.168.1.0/24 C类地址扫描
+		
+	tcpdump
+	wireshark
+六、MAC帧的封装格式
+	________________________________________________________________________________________________________________
+	前导码(8Bytes)| 目的地址(6Bytes/站点地址) |源地址(6Bytes/本机地址)|长度指示(2Bytes)| LLC数据(46-1500bytes) |帧校验序列(4bytes)
+____________________________________________________________________________________________________________________________	
+LLC帧结构：
+	________________________________________________________________________
+	DSAP目的服务访问点1字节|SSAP源服务访问点1字节|控制1~2字节|数据43~1497字节
+	________________________________________________________________________
+################################################################################################################################
+httpd服务器篇
+	html:编程语言，超文本标记语言
+		<html>
+			<head>
+				<title>TITLE</title>
+			</head>	
+			<body>
+				<h1></h1>
+					<p> blabla...<a href="http://www.baidu.com/logo.jpg">blabla</a></p>
+				<h2></h2>
+			</body>
+		</html>
+MPM模块化
+	prefork:多进程模型，每个进程响应一个请求，一个主进程：生成n个子进程，最多不可超过1024个
+	worker:多线程模型，每个线程响应一个请求
+		m进程，n线程 m*n
+	event:事件驱动模型，每个线程响应n个请求
+		一个主进程：生成m个子进程，每个进程直接n个请求
+			m*n
+	httpd-2.2:event为测试使用
+	httpd-2.4 event为生产使用
+一、程序环境：
+	配置文件：
+		主配置文件：/etc/httpd/conf/httpd.conf
+		分段配置文件：/etc/httpd/conf.d/*.conf
+	服务脚本：
+		/etc/rc.d/init.d/httpd
+	模块文件目录：
+		/etc/httpd/modules -->/usr/lib64/httpd/modules
+	主程序文件：
+		/usr/sbin/httpd(prefork)
+		/usr/sbin/httpd.worker(worker)
+		/usr/sbin/httpd.event(event)
+	日志文件目录：
+		/var/log/httpd
+			access_log:访问日志文件
+			error_log:错误日志
+	站点文档目录：
+		/var/www/html
+二、配置文件：
+	Directive 	Value
+	指令		值
+	### Section 1: Global Environment 全局环境配置
+	### Section 2:	'Main'server configuration  主要核心配置
+	### Section 3:	Virtual Hosts 虚拟主机配置
+    'Main' server 和Virtual Hosts不能同时启用;默认启用‘Main’server
+	1、指定监听地址和端口
+		Listen [IP:] 80
+		(1) IP省略进表示监听所有可用IP
+		(2) Listen指令可出现多次指定多个IP和端口
+	2、持久连接相关
+		持久连接：连接建立后，每个资源获取结束不会断天连接，而继续等待其它资源请求，那如何断开？
+			数量限制：如100个
+			时间限制：如60秒
+		  劣势：对并发访问量较大的服务器，开持久连接会有些请求得不到服务；
+		  改进：减短，httpd-2.4支持毫秒级
+		非持久连接：每个资源都是单独通过专用的连接进行获取
+		KeepAlive off|on  是否开启持久边接
+		MaxKeepAliveRequests 100 最大请求连接数
+		KeepAliveTimeout 15 最大持久连接时间秒
+		测试：
+		# telnet Server 80 
+
+			GET /URL HTTP/1.1
+			Host: Server
+	3、MPM
+		多路处理模块：并发请求响应的不同实现
+		prefork,worker,event
+			HTTP-2.2不支持同时编译多个不同的MPM
+		默认启动为： /usr/sbin/http prefork模型
+			    		http -l 静态编译模块
+						core.c 核心模块
+						prefork.c mpm模块
+						http_core.c http核心模块
+						mod_so.c 动态模块加载模块
+					httd -M
+						列出被编译的所有模块
+						 static 静态模块
+						 shared 动态加载模块
+	一、更换支持不同的MPM主程序
+		/etc/sysconfig/httpd
+		启用变量httpd路径
+
+		<Ifmodule prefork.c> #如果是prefork.c模块执行下面
+			start servers 	8		启动8个启动进程备着
+			minSpareServers	5 		最少空闲进程序数
+			MaxSpareServers 20		最大空闲数
+			ServerLimit	256		最多进程响应客户端数
+			MaxClients	256		最大客户端数
+			MaxRequestsperchild 4000	每个进程最多少次服务
+		<\Ifmodule prefork.c>结束
+		#########worker.c模块###########
+		<Ifmodule worker.c>
+			start server	4	子进程数
+			max clients都启用
+				3>Allow override Noe 全部禁用
+		（二、）基于来源地址访问控制：
+			order:检查次序
+				order Allow Deny
+				只有明确Allow的来源地址，允许访问
+				order Dey Allow: 指定的地址不允许访问
+			
+			例：Order Allow deny:
+				黑名单：deny from 192.168.1.0 /24
+				白名单:	allow from 192.168.2.0/24
+lvcreate 
+SELinux是一种安全子系统
+			它能控制程序只能访问特定文件
+			/etc/sysconfig/selinux

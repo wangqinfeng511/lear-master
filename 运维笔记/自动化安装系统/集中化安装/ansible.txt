@@ -1,0 +1,156 @@
+yum install ansible
+vim /etc/ansible/hosts #定义被管理的服务组，可定义变量
+[服务器组名]
+ 个节点服务器IP
+	192.168.2.112
+基于ssh通信：
+	认证方式有互信认证｜在hosts内定义变量进行认证。
+#ansible-doc -l 	显示已有模块
+#ansible-doc -s 模块名 	显示模块使用帮助
+###############################################################################
+常用模块：
+command #默认模块。主要用来支持bash命令，但不支持管道，变量等。
+	例：	ansible all -m command -a 'cat /etc/passwd'
+cron	#周期任务模块  主要用来添加周期性任务。
+	例：	ansible 192.168.2.112 -m cron -a 'minute=*/10 job="/bin/echo hell" name="xunhuan" state=present' 添加任务
+	ansible 192.168.2.112 -m cron -a ' name="xunhuan" state=absent' 移除任务
+		state=
+			present启动任务
+			absent 移除任务
+		minute 分钟，每10分钟执行一次。
+		job	执行的事务
+		name	此任务的名字
+user #用户模块
+	system 是否为系统用户
+	uid
+	gid
+	home		家目录
+	createhome	不创建家目录
+	name	添加的用户名
+	例：ansible 192.168.2.112 -m user -a 'system=yes name=mysqld'
+copy #复制模块：主要用于从机本复制到目标机
+	dest=	存放的的绝对地址
+	src=	本机文件的绝对地址
+	owner=	指定复制后的属主
+	mode=	指定复制后的权限
+	content='sfsdf' 将字符串输入至目标文件。
+	例：ansible all -m copy -a 'src=/etc/passwd dest=/home/ owner=mysql mode=777'
+file #文件设定模块
+	src 连接文件
+	path 操作的文件
+	state＝link表示链接文件
+	例 ansible all -m file -a 'path=/etc/passwd src=/home/passwd state=link'
+ping #探测各节点的网络
+	例 ansible all -m ping 
+service #服务模块
+	enabled 开机启动
+		yes|no
+	state 启动服务
+		started
+		stopped
+	runlevel	开机启动级别
+	例：ansible 192.168.2.112 -m service -a 'enabled=true name=nfs state=started'
+shell	#模块	支持变量，管道等。
+	ansible all -m shell -a 'echo $PATH'
+script #模块 本地脚本，复制到远程主机并执行。
+	ansible all -m script -a 'a.sh'只支持本目录内执行。
+yum 	#模块 yum源安装。
+	state=
+		present ,latest 安装
+		absent	卸载
+	例：	ansible all -m yum -a 'name=vim state=absent'
+setup #模块 收集各节点的主机
+	ansible all -m setup
+		此收集到变量可直接调用
+###########################################################################	一、剧本：playbooks
+	支持变量 
+	name.yaml
+	例：
+	-host: 192.168.2.112 #使用主机
+        	var:		#定义变量
+                	http_port:80	#变量http_port
+                	max_clients:256
+ 	remote_user:root	#此脚本以root用户所用
+ 	tasks:			#事务集
+        	-name:install nginx	#第一事务名字
+         	yum : name=nginx start=latest	#事务用到的模块。参数
+		-name:copy config
+         	copy: dest=/etc/nginx.conf src=/etc/nginx.conf
+         	notify: 条件引用，在此事件执行后执行-restart nginx事件
+                	-restart nginx
+			
+ 	handlers:			
+        	-name:restart nginx
+         	service: name=nginx state=restarted||/bin/true #强制返回为成功
+		ignore_errors:ture	#忽略错误继续执行。	
+	-host可以有多个	
+二、
+	handlers条件达到时执行：
+	变量引用：name={{http_port}}
+	变量可定义的位置：host,模版，setup模块返回的变量，都 可引用
+			hosts文件中定义变量：ansilble_user=root
+三、条件测试：
+	when
+	  when:ansible_fqdn=="RS1"
+四、迭代(徇环)
+	with_items
+	例：
+	-name useradd
+	 user:name={{items.name}}
+	 
+	with_items:
+		{ name:fengzi}
+		{name:cao}
+		{name:exit}
+五、tags标签
+	 tags: confi
+	执行剧本时加上 --tags="confi"就会单执行此事务了
+################################################################################	roles 层级结构，好处是可以多次调用事务。
+mkdir -pv ./roules/nginx/{tasks,files,templates,handlers,yml,vars,meta,default}
+··········································································
+roles #site.yml中定义playbook，额外也可有其它的yml文件。
+    └── nginx
+            ├── default 
+            ├── files	#静态文件
+            ├── handlers #至少有一个main.yml文件，定义各handlers
+            ├── meta	#定义依赖关系等信息
+            ├── tasks	#至少有一个main.yml文件，定义各tasks
+            ├── templates#模版存放地
+            ├── vars	#至少有一个main.yum文件，定义变量
+            └── yml
+####################################
+roles文件集
+├── hosts
+├── roles
+│   └── nginx
+│       ├── default
+│       ├── files  #放至要copy的文件
+│       ├── handlers #放han
+│       ├── meta
+│       ├── tasks
+│       │   └── main.yml
+│       ├── templates
+│       │   └── httpd.j2 模板
+│       ├── vars
+│       └── yml
+└── web.yml
+ansible-play web.yml 使用。
+##web.yml##剧本
+- name: wed servise
+  remote_user: root
+  hosts: web
+  roles:
+     - nginx
+###tasks/main.yml########################################事件定义。
+#vim roles/nginx/tasks/main.yml   
+- name: install nginx
+  yum: name=nginx state=present
+- name: service nginx
+  service: name=nginx state=started
+- name: copy conf
+  template: src=nginx.j2 dest=/etc/nginx/nginx.conf
+ ##########handlers###########################
+#vim roles/nginx/handlers/main.yml
+- name: restart nginx
+  service: name=nginx state=restarted
+

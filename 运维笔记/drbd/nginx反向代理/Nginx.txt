@@ -1,0 +1,147 @@
+Nginx:
+偶数为稳定版，奇数为测试版
+一个主进程master 生成多个worker子进程。
+支持热部署。
+支持AIO，namp
+epoll:边缘触发
+模块类型：standard http modules 标准http模块。
+	optional http modules	可选http模块
+	mail modules		邮件模块
+	3rdparty module		第三方模块
+IO模型：
+	blocking/monblocking 阻塞/非阻塞
+	multiplexing复用模型
+	event_driven 事件
+	AIO	异步IO
+一、安装
+	url重写支持：pcre-devel
+	编译安装：
+		--prefix=路径
+		--conf-path=主配置文件
+		--user=nginx(添加的用户)
+		--group=nginx(用户组)
+		--error-log-path=错误日志路径
+		--http-log-path=连接日志
+		--pid-path=进程锁路径
+		--with_http_ssl_module #ssl
+		--with_http_stub_status_module #状态页
+		--with_http_gzip_static_module #压缩
+		--with_http_flv_module	#flv流支持
+		--with_http_mp4_module	#mp4支持
+		--http-client-body-temp-path #大文件临时目录
+		--http-proxy-temp-path
+		--http-fastcgi-temp-path #fastcgi路径
+		--http-uwsgi-temp-path
+二、配置
+	main全局配置
+	event:定义event模型工作特性
+	http:定义http协议相关配置
+
+	设备变量：set var_name value
+###########################################################################
+主配置部分：
+	正常配置：
+		1、user nignx nignx;#用户和用户组
+		2、pid 		:指定niginx守护进程的pid文件位置
+		3、worker_rlimit_mofile:设定所有work进程的能打开的最大文件数
+		4、worker_rlimit_core:设定所有work所能使用的内存
+	性能优化：
+		1、worker_processes	#worker进程的个数
+		2、work_cpu_affinity	#CPU绑定
+					cpu mask:00000001 00000010
+		3、timer_resolution:	#计时器解析度降低此值可减少gettimeofday()调用次数
+		4、worker_priority_number#指定worker进程的ice值，优先级。
+	事件相关配置：
+		1、accept_mutex on|off	#启用多work进程轮流响应。
+		2、accept_mutex_delay	#如果work盳则等多长时间换别的worker
+		3、lock_file		#accept_mutex用到的锁文件
+		4、use			#连接处理方法，建议自动选择。
+					[epoll|rtsig|select|poll]
+		5、worker_connections	#一个worker进程所能处理的最大并发数，最大50000因为网络套接字
+	用户调试配置：
+		--with-debug
+		1、daemon on|off	#是否以守护进程方式运行nginx
+		2、master_process on|off#是否以master|worker模型运行nginx 调试为off
+		3、error_log		#错误日志级别
+				error_log 位置 级别
+
+	http{}配置段：
+	配置指令：
+		1、server{ #定义虚拟机
+			listn 80	端口
+			servername 	服务器名字
+			root		网站路径
+			}
+		2、location	#允许根据用户请求的URL来匹配定义location
+			location /{}
+			location /imge{}
+		3、alias path;	#用于location中定义别名。相当后部分而言
+		4、index file 默认主页 模块
+				index index.php index.html
+		5、error_page	#错误页定义
+			列：error_page 404 /cuowu.html
+		6、deny IP 黑名单
+		   allow IP 白名单
+		7、基于用户的访问控制：basic,digest
+			auth_basic "提示信息"
+			autn_basic_user_file 账号密码路径 用htpasswd -c -m /path
+		8、https配置
+			server{
+				listen 433 ssl;
+				server_name www.fengzi.com
+				ssl_certificate #CA路径
+				ssl_certificat_key	#密钥路径
+				ssl_session_timeout	#5m
+				ssl_ciphers ..... 	#加密方式
+				ssl_prefer_server_ciphers on
+				}生成私钥，生成证书签署请求，并获得证书
+		9、stub_stalus on|off 	#状态页面只能用于location上下文
+		10、rewrite #URL重写
+			列：rewrite ^/imges/(.*\jpg)$ /imgs/$1 breack
+				把请求目录换为imgs
+				last:完成后重启机制
+				break:匹配后跳出
+				redirect:临时重定向以302相应码返回新url
+				permanent：以301响应码返回新的url
+		11、if
+			语法：if(condition){...}
+			condition
+				(1)变量名；变量值为空，或以0开始为false ，其他均为true
+				(2)可以使用=,!= 类似比较操作符
+				(3)正则表达式的模式匹配操作。
+				~：区分大小写的模式匹配检查。
+				~*：不区分大小写模式匹配检查
+				！取反，！~ ,!~*
+				(4)测试文件存在性，-f ,!-f
+				(5)测试指定路径为目录 -d
+				(6)检查文件是否可执行 -x,!-x
+				列如：if($http_user_agent ~* MSIE) #检查是否使用IE浏览器
+							{
+								
+							}
+		12、防盗链
+			location ~* \.(jpg|gif|jpeg|png)$ {
+				
+				valid_referer none blocked www.fengzi.com #合法性返回值	
+				if ($invalid_referer)			#非法性检查
+				{}
+				}
+			}
+		13、定制访问日志格式
+			log_format
+				eccess_log 日志路径
+
+		14、网络连接相关的配置
+			1、keepalive_timeout 长连接的时长
+			2、keepalive_requests	在长连接的最大资源数
+			3、keepalive_disable [msie6|safari|none] 浏览器时长定义
+			4、tcp_nodelay on|off 	tcp是否对长连接延迟
+			5、client_header_timeout 	#读取http请求报文首部的时长
+			6、client_body_timeout		#读http请求报文body部分的超时长
+			7、send_timeout			#发送响应报文的超时长
+		15、fastcgi的相关配置
+			LNMP
+			配置文件里搜php
+同步/异步：
+	同步：被调用者收到调用时，是否马上返回。同步为等我算完给你值。异步是你先忙，等我算完你来取值。
+阻塞/非阻塞：调用者在收到请求之前，是否被挂起。阻塞挂起，非阻塞不挂起。

@@ -1,0 +1,35 @@
+vlan模块 8021q
+网络名称空间
+一、升级ip工具：
+	配置yum源
+	https://repos.fedorapeople.org/openstack/EOL/openstack-grizzly/epel-6/
+二、添加网络命名空间 r0：
+	ip netns add r0
+三、添加俩网卡前
+	ip link add eth0.1 type veth peer name vtey
+			前半段				后半段
+四、把一半网卡添加到命名空间
+	ip link set eth0.1 netns r0
+五、查看命名空间r0的内的网卡：
+	ip netns exec r0  ifconfig -a
+	ip netns exec  r0 ifconfig eth0.0 up
+	
+六、命名空间的网卡重命名：
+	ip netns exec r0  ip link set eth0.1 name xveth0.1
+七、	另一半网卡添加至桥
+	brctl addif br0 vnet0.0
+	ifconfig vnet0.0 up启用网卡 ifconfig vnet0.0 192.168.2.200 添加地址
+八、命名空间内执行ping 命令
+	ip netns exec r0 ping 192.168.2.2
+#######################################################################################################
+抓包
+	tcpdump -i wlan0 -nn icmp
+命名空间内抓包
+	ip netns exec r0 tcpdump -i eth0.0 -nn icmp
+名称空间地址转发：
+	查看是否打开：
+		ip netns exec r0 cat /proc/sys/net/ipv4/ip_forward
+	打开地址转发：
+		 ip netns exec r0 sysctl -w net.ipv4.ip_forward=1
+
+

@@ -1,0 +1,190 @@
+回顾：iptables, rsyslog+loganalyzer, tcp_wrapper		
+	
+	iptables: 
+		CentOS 6.5: layer7
+		CentOS 6.6
+		
+		二进制格式：
+			.i386.rpm
+			x86_64.rpm 
+			ppc.rpm 
+		源码：
+			.spec 
+			源码
+			
+	tcp_wrapper: 
+		/etc/hosts.allow, /etc/hosts.deny 
+		
+	rsyslog(/etc/rsyslog.conf) <-- syslog
+		facility, priority
+		
+sudo:
+	su: switch user
+		[-l] USERNAME
+		
+	root的权限太大：不能以管理员直接登录
+		sudo: 
+			1、授权指定用户在指定主机上运行指定的管理命令；
+			2、详细记录用户基于sudo执行的命令的相关日志信息；
+			3、“检票系统”：时效性认性，用户第一次执行sudo时会要求输入密码来验正用户身份，成功后用户会获得一个有固定存活时长的“令牌”；5分钟
+			
+	如何实现sudo功能？
+		/etc/sudoers：授权文件，只能由管理员编辑；
+		
+		专用编辑工具：visudo
+			两个文档：
+				man visudo
+				man sudoers
+				
+		/etc/sudoers：
+			别名定义: 别名必须使用全大写字符
+				User_Alias：
+					User_Alias NAME = item1, item2, ...
+						item: 
+							用户名
+							%组名
+							#UID
+							$#GID
+							User_Alias
+				Host_Alias:
+					Host_Alias NAME = item1, item2, ...
+						item:
+							hostname
+							ip
+							network
+							Host_Alias
+				Runas_Alias
+					ALL: 所有用户
+					Runas_Alias NAME = item1, item2, ...
+						
+				Cmnd_Alias：
+					Cmnd_Alias NAME = item1, item2, ...
+						item:
+							命令
+							目录(目录下的所有命令)
+							"sudoedit"
+							Cmnd_Alias
+			sudo授权：
+				WHO  	HOST=(WHOM) 	COMMAND
+				
+				标签：
+					NOPASSWD：
+					PASSWD：
+				
+		sudo命令：
+			-l: 查看当前用户 可执行的sudo命令；
+			-u USERNAME COMMAND: 以指定的用户身份执行指定的COMMAND；
+			-k: 清除“令牌”
+			-b COMMAND: 在后台运行指定的COMMAND
+			-e /path/to/somefile：修改指定的文件；
+			
+nsswtich & pam 
+	
+	认证：Authentication
+	授权：Authorization
+	
+	Linux: glibc
+	
+	名称解析：
+		依赖名称解析库：一种存储 
+			存储的访问接口可能各不相同 
+				用户名 UID
+		
+		login, httpd
+			nameresolve()
+	
+		nsswitch: 
+			DATABASE: aliases, ethers, group, hosts, netgroup, networks, passwd, protocols, rpm, services, shadow
+			
+			nsswitch.conf:
+				group: files
+				hosts: files dns
+				
+					SUCCESS  service ok, found name
+
+					NOTFOUND  service ok, name not found
+
+					UNAVAIL  service not available
+
+					TRYAGAIN  temporary service failure
+	
+					
+				在第一次遇到SUCCESS状态之后，即return，否则，则continue
+				
+					passwd: nis [NOTFOUND=return]  files
+					
+	pam: Plugable Authentication Module
+		认证：
+			httpd, vsftpd, nfs 
+			
+		为系统或服务程序（用到认证功能）提供公共认证框架；
+			认证：查找某存储，对比用户此次提供的认证信息与库中信息是否一致；
+				访问接口：
+				
+			配置文件：
+				/etc/pam.conf
+					
+				/etc/pam.d/*
+					auth
+					account
+					password
+					session
+					
+				配置格式：
+					type  control  module-path  module-arguments
+
+						type: auth, account, password, session
+						control: required, requisite, sufficient, optional, include
+						
+					
+					
+			pam模块：
+				/lib64/security
+				
+				/etc/security/limits.conf
+					<domain> <type> <item> <value>
+				
+				ulimit: 临时调整
+					-S
+					-H
+					-n #: 同时打开的文件数；
+					-u #: 同时运行的进程数；
+					
+				pam_unix.so, pam_listfile.so, pam_cracklib.so, pam_shells.so, pam_securetty.so, pam_limits.so, 
+				
+回顾：sudo, nsswitch, pam 
+	sudo: visudo, /etc/sudoers
+		WHO 	HOST=(WHOM) 	COMMAND
+			WHO: 
+				User_Alias
+			HOST:
+				Host_Alias
+			WHOM:
+				Runas_Alias
+			COMMAND:
+				Cmnd_Alias
+				
+		标签：
+			NOPASSWD， PASSWD
+			
+		sudo [options] COMMAND
+			-l, -k, -u USERNAME
+			
+	nsswitch: 名称解析
+		libnss3.so, libnss_files.so
+		/etc/nsswitch.conf
+			DATABASE: D1[status=action]
+				
+	pam: 认识框架
+		/lib64/security/
+		应用程序：service
+			/etc/pam.conf
+				service type control module module_arguments
+			/etc/pam.d/*
+				*: service
+					type control module_path module_arguments
+					
+			type: auth, account, password, session
+			control: required, requisite, sufficient, optional, include
+			module:
+				pam_unix.so, pam_limits.so, pam_listfile.so, ...

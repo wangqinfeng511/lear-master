@@ -1,0 +1,61 @@
+flush privileges 重读受权表
+mysqldump
+	-A备份所有
+	-x锁定所有表 温备用到
+	-l锁定备份的表
+	--single-transaction:启动一个大事务来实现innodb热备。	
+	--databases|-B 指定备份哪个库或多个
+		mysqldump -B ceshi > /path
+	-C，--compress:压缩传输。
+	-E,--events :备份指定库的事件调度器。
+	-R,routines:备份存储过程和存储函数。
+	--triggers:备份触发器。
+	--master-data[=#] 完全备份时 记录二进制使用到日志
+			1.记录change master to 语句：此语名示被注释。
+			2.记录为注释语句。
+	
+
+二进制日志不要跟数据放在同一磁盘上。
+案例：每周一次完全备份,每日增量。
+################################################################################
+	hellodb单个库：mysqldump -B hellodb --lock-all-tables --master-data=2>/home/hellodb-`date+%F`.sql
+	unlock tables;解锁
+	增量：
+	mysqlbinlog --start-datetime '2015-09-01 15:00:00' --stop-datetime '2015-09-02 15:00' >/home/ince-`date +%F`.sql
+
+还原：
+	如果操作失务：
+		mysqlbinlog --stop-position=567 /mydata/mysql.000001 > /tmp/3.spl
+	mysql </全备
+	mysql </增量
+	mysql <3.spl
+################################################################################
+mysql>flush tables with read lock; 上锁
+	unlock tables;解锁
+	show master logs #查看二进制日志事务数。
+	show binlog events in 'mysql-bin.00000001'
+	流动日志：
+		flush logs
+###############################################################################
+binary logs 增量写成脚本。
+
+####################################LVM物理备份###############################
+物理备份：数据文件的时间一至性。
+ 	最好以主从，在从上冷备。
+二、lvm创建 
+	kpartx -af /dev/sda
+	partx -a /dev/sda
+	pvcreate /dev/sda3
+	vgcreat myvg /dev/sda3 
+	lvccreate -L 5G -n mydtata /myvg
+	mke2fs -t ext4 /dev/myvg/mydata
+
+三、
+	flush tables with read lock;锁定表。
+	滚动日志，记录好日志名，事务日志
+	不要退出
+快照	lvcreate -L 200M -n mydata-snap /dev/myvg/mydata -s -p r
+	mkdir /snap
+	mount /dev/myvg/mydata-snap /snap/
+	cd /snap
+rsync -a hellodb/ /backup/hellodb-`date` 	

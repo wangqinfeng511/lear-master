@@ -1,0 +1,41 @@
+站点：www.percona.com
+https://www.percona.com/software/mysql-database/percona-xtrabackup
+#############################
+实现innodb引擎热备。
+innobackupex 
+	--user=
+	--host=
+	--password=
+	/path/备份目录
+	--apply_log #将事务提交或回滚。
+	--copy-back #还原
+	--incremental #增量备份
+	--apply-log  #合并备分
+	--redo-only  #只读不回滚
+	--export	     #备份中提取
+############################################
+备份：
+	innodb热备isamy温备
+完全备份：innobackupex --user=root --host=localhost --password=fengzi /home/
+增量备份：
+innobackupex --user=root --password=fengzi  --incremental /home/ --incremental-dasedir=/home/2016-01-15_19-09-51/
+	
+合并备份：
+	二进制日志一定要分开保存	
+1、   	innobackupex --user=root --host=localhost --password=fengzi --apply-log --redo-only  /完全备份/
+2、	innobackupex --user=root --host=localhost --password=fengzi --apply-log --redo-only /完全备份/ --incremental-dir=/增量备备份/
+3、 	innobackupex --user=root --password=fengzi  --copy-back /合并后的主目录/4、	chown -R mysql.mysql /mydata#数据库目录。
+5、   /my.conf 加
+	skip_neworking #禁用网络登录。
+	socket 		#改目录防内网通过ssh连来恢复。最好先停ssh.
+6、   	把增量备份结束的事务号，往后的数据导出至文件。
+	mysqlbinlog --start-position=567 /mydata/mysql.000001 > /tmp/3.spl
+###############################################################################
+innodb单表导出：
+ innobackupex --apply-log -export /合并后的备份/
+导入表时要与原表结构一样
+	导出后的表复制到原表目录，所以必要：表空间独立
+	1，mysql> alter table 表名 discard tablespace
+		删除原表空间
+	2、mysql>alter table 表名 import tablespace
+	

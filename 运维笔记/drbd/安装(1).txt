@@ -1,0 +1,35 @@
+安装：
+2.633内核以前的版本未收录brdb.
+安装brdb内核模块
+	kmod-drbd84-8.45-504.1.e16.X86_64.rpm
+确保504于内核版本一至。
+	并安装drdbadm
+源码安装：
+		 perl
+yum install gcc
+yum install kernel-headers
+yum install kernel-devel
+drbd-8.4.6.tar.gz 
+drbd-utils-8.9.0.tar
+	 make KDIR=/usr/src/kernels/2.6.32-573.8.1.el6.x86_64/
+make install
+	 cp /lib/modules/2.6.32-573.8.1.el6.x86_64/updates/drbd.ko /lib/mo			dules/2.6.32-573.8.1.el6.x86_64/lib/ #如果加载不了模块
+		depmod
+	加载模块：modprobe
+	此模块依赖：libcrc32c
+检查模块：lsmod |grep drbd
+	/lib/modules/2.6.32-573.8.1.el6.x86_64/updates/drbd.ko
+查看模块信息：modinfo drbd
+
+drbd-utils-8.9.0.tar
+make
+make install
+
+/usr/local/et\
+###########################################################################
+elrepo源安装
+
+ rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+ rpm -Uvh http://www.elrepo.org/elrepo-release-6-6.el6.elrepo.noarch.rpm
+kmod-drbd84.x86_64 
+drbd84-utils.x86_64

@@ -1,0 +1,91 @@
+安装jdk
+一、rpm -ivh jdk-8u65-linux-x64.rpm 
+二、下载tomcat。解压并移至/usr/local/tomcat/
+三、vim /etc/profile.d/java.sh
+	JAVA_HOME_USR="/usr/java/latest/bin"
+  	   PATH=$JAVA_HOME_USR:$PATH
+     	   export PATH
+四、vim /etc/profile.d/tomcat.sh
+  	 TOMCAT_DIR="/usr/local/tomcat/bin"
+   		PATH=$TOMCAT_DIR:$PATH
+		#   echo $PATH
+  		 export PATH
+五、添加tomcat_web资源：
+	1.mkdir /usr/local/tomcat/webapps/test(路径名)
+	2.mkdir test/{WEB-INF,classes,lib,META-INF}	
+六、在ROOT1添加页面index.jsp。
+	touch index.jsp
+	vim index.jsp
+<%@ page language="java" %>
+<html>
+  <head><title>TomcatA</title></head>
+  <body>
+    <h1><font color="red">TomcatA.magedu.com_RS1</font></h1>
+    <table align="centre" border="1">
+      <tr>
+        <td>Session ID</td>
+    <% session.setAttribute("magedu.com","magedu.com"); %>
+        <td><%= session.getId() %></td>
+      </tr>
+      <tr>
+        <td>Created on</td>
+        <td><%= session.getCreationTime() %></td>
+     </tr>
+    </table>
+  </body>
+</html>
+		
+七、启动tomcat：catalina.sh start
+八、配置tomcat的页面配置用户：
+	vim /usr/local/tomcat/conf/tomcat-users.xml
+	<role rolename="admin-gui"/>
+	<role rolename="manager-gui"/>	
+	<user username="tomcatset" password="fengzi" roles="admin-gui,manager-gui"/>
+	
+	注释：
+	启用admin-gui 
+	启用 manager－gui
+################################################################################
+Engine引擎组件：
+Host组件：
+	属性：
+		appbase :虚拟主机目录。
+		autoDeploy:启动tomcat时自动部署
+		unpackWARs:启动tomcat时自动部署war压缩文件。
+Alias组件：命令别名
+Context组件：容器定义
+	属性：
+		docBase:web项目的绝对路径。
+		path	:相对于tomcat的web根目录而言。
+		reloadable:是否允许重新加载web相关的类。默认为false;
+#########################################################################
+tomcat与apche结合。可使用ajp协议，与nginx结合只能使用http
+apche
+	proxy pass ajp://192.168.1.113:8005
+	
+###################################tomcat负载均衡##########################
+				mod-jk模式
+cd native#切入此目录
+	编译需要指定apxs位置，可用whereis apxs
+	./configure --with-apxs=/usr/sbin/apxs
+	make&&make install
+默认安装目录：/usr/lib64/httpd/modules/mod_jk.so
+##############################################################################
+			此为反代理但并未开启负载
+/etc/httpd/conf.d/mod_jk.conf	
+	LoadModule jk_module  modules/mod_jk.so #启动时加载模块。
+        JkWorkersFile /etc/httpd/extra/workers.properties #mod_jk的配置文件。
+        JkLogFile    logs/mod_jk.log	#mod_jk的日志路径。
+        JkLogLevel      debug		#错误日志级别
+        JkMount         /* TomcatA	#定义实例，IP端口在/etc/httpd/extra/workers.properties中配置。
+        JkMount         /status/  stat1 #mod_jk的内置实例。
+
+		此为代理至后端
+/etc/httpd/extra/workers.properties
+	worker.list=TomcatA,stat1 #引用mod_jk.conf内定义的实例。
+	worker.TomcatA.port=8009  #ajp端口号
+	worker.TomcatA.host=172.16.100.1 #TomcatA的地址。
+	worker.TomcatA.type=ajp13	#使有的ajp的1.3
+	worker.TomcatA.lbfactor=1 	#定义权重值。
+	worker.stat1.type = status	#定义stat1的状态。
+

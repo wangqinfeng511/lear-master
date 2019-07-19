@@ -1,0 +1,82 @@
+sudo yum install http://mirrors.yun-idc.com/epel/6/x86_64/epel-release-6-8.noarch.rpm
+sudo yum install docker-io
+service docker start
+#docker镜像文件：https://hub.tenxcloud.com/category/o
+#docker镜像下载：http://openvz.org/Download/template/precreated
+#########################################################################
+Dockerfile
+FROM       centos:centos7.1.1503#父镜像。
+MAINTAINER Carson,C.J.Zeong <zcy@nicescale.com> #维护者信息。
+ENV TZ "Asia/Shanghai"	#环境变量
+ADD aliyun-mirror.repo /etc/yum.repos.d/CentOS-Base.repo #复制本地文件到容器
+RUN yum install -y curl wget tar	#执行的命令
+EXPOSE 22			#开放的端口
+ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c","/etc/supervisord.conf"]#启动时执行的命令。
+ONBUILD ADD ./app
+ONBUILD RUN chow -R nginx:nginx /app
+VOLUME ["/var/lib/mysql"] #对宿主机开放的目录映射地址。
+
+###############################################################################
+导入镜像：cat ubuntu-14.04-x86_64-minimal.tar.gz |docker import - ubuntu:14.04
+列出镜像：docker images
+启动镜像：docker -t -i centos /bin/bash
+	-t:docker分配一个伪终端（pseudo-tty）并绑定到容器的标准输入上。
+	-i：则让容器的标准输入保持打开
+	--name:给容器起名字。
+	-e:传入环境变量
+	-d:后台运行
+	-v: /disk:/media:or /宿主机目录:/镜像内挂载的目录:只读(不加读写)
+从仓库搜索镜像 docker search nginx
+从仓库下载镜像：docker pull nginx
+查看运行的镜像：docker ps -a
+获取容器的运行信息： docker logs ID(docker ps 输出的ID)
+启动终止容器： docker restart|start|stop ID(docker ps 输出的ID)
+进入运行镜像： docker attach   ID(docker ps 输出的ID)
+导出镜像：docker save -o centos_6.tar centos
+载入镜像：docker load --input centos_6.tar 
+	  docker load <centos_6.tar
+导出容器快照：docker export ID(docker ps 输出的ID) >ubuntu.tar
+导入容器快照：cat ubuntu.tar|sudo docker import - test/buntu:v1.0
+移除本地镜像：docker rmi centos:6
+删除一个终止状态的容器：docker rm ID(docker ps -a 输出的ID)
+				-f可删除运行中的容器
+删除镜像之前要先用 docker rm 删掉依赖于这个镜像的所有容器
+################################################################################
+dl.dockerpool.com/ubuntu
+注册服务器/仓库名
+################################################################################
+创建私有仓库：
+一、	docker pull registry 使用官方registry镜像运行本地仓库。
+	-v 将镜像文件存在本地的指定路径。
+	vim /etc/sysconfig/docker
+	尾部添加OPTIONS='--selinux-enabled --insecure-registry 192.168.12.105:5000'
+
+	docker run -d -p 5000:5000 -v /disk:/disk docker.io/registry
+	docker run -d -v /disk:/var/lib/registry -p 5000:5000 docker.io/registry
+二、通过yum源安装#未成功
+	yum install -y python-devel libevent-devel python-pip gcc xz-devel
+	yum install openssl-devel 
+	pip install m2crypto
+	yum install swig
+	yum install m2crypto
+	pip install docker-registry
+	cp config/config_sample.yml config/config.yml
+########################
+docker pull registry:2.1.1
+docker run -d -v /opt/registry:/var/lib/registry -p 5000:5000 --restart=always --name registry registry:2.1.1
+		 本机目录：	对应docker内挂载目录
+##########################################################################################
+
+三、编译安装
+	git clone https://github.com/docker/docker-registry.git
+	cd docker-registry
+	pip install SQLAlchemy
+	python setup.py install
+#######################################################################################
+docker images #把本地镜像标记为  192.168.12.100:5000/centos
+docker tag index.tenxcloud.com/tenxcloud/docker-centos 192.168.12.100:5000/centos
+上传：docker push 192.168.12.100:5000/centos
+查看：curl http://192.168.7.26:5000/v1/search
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+	

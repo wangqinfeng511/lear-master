@@ -1,0 +1,30 @@
+一、iscsi:
+	节点间用到
+		iqn.格式的名称。/etc/iscsi/initiatorname.iscsi
+		发现target总线上的设备。
+		登入设备。
+		服务：
+			service iscsi start
+			service iscsid start	
+		此服务会在发现设备命令时自动启动。
+	分享端：
+		iqn格式的名称。
+		添加配置文件target.conf分享详见iscsi.txt
+		service tgtd start
+_____________________________________________________________________
+二、配置集群服务：
+	在一台机子上安装：luci用于以web界面设置cman.
+	在所有节点安装rgmanager套件，包含ricci
+	ricci用户添加秘码。echo 123456|passwd --stdin ricci
+		cman启动必顺大于三个节点。
+
+三、文件锁部分。
+	各节点安装：gfs2-utils（提供分布式文件锁）
+				挂载gfs2模块
+			并提供格式化工具，mkfs.gfs2。格式化时锁名格式有要求。
+	如要使有lvm分布式文件系统
+		安装：lvm2-cluster
+				lvmconf --enable-cluster开启lvm分布式文件3
+			service clvmd start
+格式化时如发现不了设备，则再iscsi发现一次设备
+		

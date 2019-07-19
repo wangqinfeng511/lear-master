@@ -1,0 +1,125 @@
+
+一、关于Systemd
+
+Systemd用于提供用户空间的第一个进程，即PID为1的进程，它负责以预定义好的方式完成系统初始化。Systemd由内核直接启动，并且对SIGKILL信号免疫，因此，其将无法由kill命令终止。而其它的程序均直接或间接地由此进程启动。CentOS从第7版开始使用Systemd取代之前使用的upstart，而OpenSUSE从12版开始使用systemd取代之前的SysV init程序。其它转向使用Systemd系统还包括Debian、Mageia及Gentoo等不过，Systemd与SysV init完全兼容。
+
+Systemd在完成系统引导时以并行启动模式启动相关的服务或进程，因此，系统启动速度大大提升。进一步地，Systemd按需启动服务，这意味着服务只有在首次被用到时才会真正被启动，而非在系统引导期间启动。此外，systemd还支持内核控制组(cgroups)、快照(snapshotting)以及系统状态恢复(restoring system state)等特性。可通过http://www.freedesktop.org/wiki/Software/systemd/获取更多的介绍。
+
+
+二、Systemd用法入门
+
+SysV init系统通过几种不同的命令来处理“服务”，如init scripts、insserv、telinit等等。而systmed则将地它们统一为一种管控机制。其基本如法如下所示：
+
+	systemctl [general OPTIONS] subcommand [subcommand OPTIONS]
+
+2.1 subcommand
+
+Systemd的subcommand类似于SysV init脚本的start、stop等参数，其常用的subcommand如下所示：
+
+	systemctl reload|restart|start|status|stop|... <my_service(s)>.service
+
+不过，与SysV init脚本不同的是，systemctl可一次操作多个服务，只需要将它们在命令行列出即可。
+
+	systemctl start <my_1st_service>.service <my_2nd_service>.service
+
+2.2 服务管理子命令的说明：
+
+Systemd Subcommand  	SysV init Subcommand  	Task
+start					start					启动服务
+stop					stop					停止服务
+restart					restart					重启服务
+try-restart				try-restart				条件式重启，即重启运行中的服务，而对没有运行的服务不执行任何操作
+reload					reload					重新装载，即不中止服务程序运行而让其重载配置文件
+reload-or-restart		n/a 					重新装载或重启，即支持reload则执行reload，否则，执行restart
+reload-or-try-restart	n/a 					重新装载或条件式重启
+status					status					获取服务运行状态，systemd会输出详细信息，如description、executable、status、cgroups以有服务最后生成的信息等
+is-active 				status 					获取简要状态信息
+
+2.3 服务调试
+
+默认情况下，systemd输出的信息并非为最详细级别，服务启动成功时不会输出任何信息，而失败时也仅仅输出简单的信息。如果想获取相关的详细信息，可以使用systemctl status命令来查看这些信息，而且可通过一些选项来调整要查看的信息的内容。
+
+	--last=#: 指定显示的信息的行数；默认为最后10行；
+	--follow：实时跟随新产生的信息，类似于tail命令的-f选项； 
+	--output=MODE：指定服务信息的输出模式，常用的模式有
+		short：简要模式，此为默认模式； 
+		verbose：详细模式； 
+		cat：无时间戳模式； 
+
+三、启用/禁用service
+
+	前述的start、stop等子命令仅用于控制服务的当下状态，而systemd也允许定制systemd控制服务的永久目标状态。不过，对永久目标状态的控制命令对当下状态却无任何影响，因此，必要时可能需要将两类操作同时完成。
+
+	Systemd subcommand 		SysV subcommand   		Task
+	enable					insserv 				启用服务
+	disable 				insserv -r 				禁用服务
+	is-enabled 				n/a 					查看是否启用
+	reenable 				n/a 					重新启用指定服务，即先禁用而后再启用
+	mask					n/a 					处于“禁用”状态的服务依然可以手动“启用”，mask则禁止此类功能
+	unmask 					n/a 					mask操作的逆操作
+
+四、System start and Target Management
+
+SysV init程序在引导系统时有所谓的“运行级别”的概念，用于定义系统如何启动以及哪些服务被服动等。运行级别用0-6等7个数字来表示，例如0表示关机，3表示多用户模式，5表示带GUI的多用户模式，6表示重启等。而systemd却引入了一个全新的概念称作“target units（目标单元）”，不过，它与”运行级别“完全兼容。不同于运行级别的数字表示格式，target units使用”名字”来表示，如local-fs.target、graphical.target等。
+
+4.1 常用的target units
+
+default.target：系统引导时默认使用的target，其并非一个真正的target，而是一个指定“真正”target的符号链接；
+emergency.target：在console上启动一个emergency shell的target，常用于系统修复时； 
+graphical.target：带GUI界面的完全多用户模式；
+halt.target：关机
+mail-transfer-agent.target：启动保证邮件收发功能所必须的所有服务； 
+multi-user.target：完全多用户模式； 
+reboot.target：重启系统； 
+rescue.target：紧急救援模式； 
+
+为了与SysV init兼容，systemd的有些target units还拥有runlevelX.target的别名。不过需要注意的是，systemd不会使用/etc/inittab配置文件。
+
+SysV runlevel  	Systemd target   									Purpose
+0				runlevel0.target, halt.target, poweroff.target 		关机
+1，S				runlevel1.target, rescue.target 					单用户模式
+2 				runlevel2.target, multi-user.target 				不带网络功能的本地多用户模式
+3 				runlevel3.target, multi-user.target 				完全多用户模式
+4 				runlevel4.target 									预留模式
+5 				runlevel5.target, graphical.target 					带GUI的完全多用户模式
+6  				runlevel6.target, reboot.target 					重启
+
+4.2 target修改
+
+Systemd command 						SysV command 			Task
+systemctl isolate <my_target>.target 	telinit X 				修改当前target或runlevel
+systemctl default 						n/a 					切换至默认target或runlevel
+systemctl list-units --type=target  	who -r或runlevel 		显示当前target或runlevel
+ln -sf /lib/systemd/system/<my_target>.target /etc/systemd/system/default.target  id:X:initdefault:    设定默认target或runlevel
+systemd.unit=<my_target>.target 		# 						在系统引导时向内核传递target或runlevel以将系统启动为指定的target或runlevel
+systemctl show -p "Requires|Wants" <my_target.target>    n/a 	显示指定target或runlevel的依赖关系
+
+4.3 系统引导过程的调试信息
+
+不带任何选项和参数的systemctl命令可以列出当前系统在引导期间启动的所有服务及其简要信息，而--failed选项可用于仅列出启动时有错误发生的相关服务的信息。
+
+systemd-analyze命令可用于显示系统引导所经过的总体时长，而附带“blame”参数则可以获取各服务在系统引导时所历经的时长。
+
+4.4 快照
+
+systemd当前的状态信息可以被“快照”保存，并可在必要时使用“isolate”命令预以恢复。不过，快照仅在当前系统上可用，这意味着系统重启后所有快照统统会被删除。另外需要注意的是，所有的快照必须使用“.snapshot”后缀。
+
+创建快照：systemctl snapshot <my_snapshot>.snapshot
+删除快照：systemctl delete <my_snapshot>.snapshot
+查看快照：systemctl show <my_snapshot>.snapshot
+激活快照：systemctl isolate <my_snapshot>.snapshot
+
+
+
+
+
+
+Systemd有11类“units”，它们分别是：
+	Services, Sockets, Targets, Devices, Mounts, Automounts, Snapshots, Timers, Swaps, Paths, Slices
+
+
+
+
+
+
+

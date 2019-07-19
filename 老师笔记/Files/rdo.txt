@@ -1,0 +1,24 @@
+https://repos.fedorapeople.org/repos/openstack/openstack-icehouse/
+
+# qemu-kvm -name "c1" -m 128 -smp 2 -drive file=/vm/images/cirros-0.3.0-x86_64-disk.img,media=disk,format=qcow2,if=virtio -boot c -
+net nic,model=virtio,macaddr=52:54:00:a6:b7:c8 -net tap,ifname=vnet0,script=/etc/qemu-ifup,downscript=/etc/qemu-ifdown --daemonize
+
+# qemu-kvm -name "c1" -m 128 -smp 2 -drive file=/vm/images/cirros-0.3.0-x86_64-disk.img,media=disk,format=qcow2,if=virtio -boot c 
+-net nic,model=virtio,macaddr=52:54:00:a6:b7:c8 -net tap,ifname=vnet0,script=/etc/qemu-ovsup,downscript=/etc/qemu-ovsdown --daemonize
+
+
+# virt-install --name "c1" --ram 128 \
+    --disk /vm/images/cirros-no_cloud-0.3.0-i386-disk.img,format=qcow2 \
+    --boot=hd --vcpus 2,maxvcpus=4 \
+    --network bridge=br0,model=virtio \
+    --virt-type=kvm --cpu=qemu32 --import
+
+
+# yum install libvirt openvswitch python-virtinst virt-manager virt-viewer qemu-kvm tigervnc
+
+
+qemu-kvm -name "c1" -m 128 -smp 2 -drive file=/vm/images/cirros-no_cloud-0.3.0-i386-disk.img,media=disk,format=qcow2,if=virtio -boot c -net nic,model=virtio,macaddr=52:54:00:ab:b2:33 -net tap,ifname=vnet0,script=/etc/qemu-ovsup -daemonize
+
+
+	icehouse安装文档路径：
+		http://docs.openstack.org/icehouse/install-guide/install/yum/content/keystone-install.html

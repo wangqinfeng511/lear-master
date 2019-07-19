@@ -1,0 +1,102 @@
+基本功能：
+	stop [<pid_file>]
+		#停止在relang node上运行的rabbintmq,会使rabbitma停止。
+	stop_app
+		#只停止rabbitmq不停止relang
+	start_app
+		#启动rabbitmq应用
+	wait <pid_file>
+		#等侍rabbitmq启动
+	reset
+		#初始化node状态，会从集群中删除该节点，从管理数据库中删除所有数据，例如vhosts等等。在初始化之前rabbitmq
+	force_reset
+		#无条件的初始化node状态。
+	fotate_logs<suffixi
+	#轮转日志文件
+cluster集群管理：
+	join_cluster <clusternode> [--ram]
+		#clusternode表示node名称，--raw表示node以ram node加入集群中。默认node以disk node加入集群。应先停止node app 再加入集群。
+	cluster_status
+		#显示cluster中的所有node
+	change_cluster_node_type disc |ram
+		#改变一个cluster中node的模式，该节点在转换前必须先停止。不能把一个集群中唯一的disk node转化为ram node
+	forget_cluster_node [--offline]  
+    		#远程移除cluster中的一个node，前提是该node必须处于offline状态，如果是online状态，则需要加--offline参数。
+	sync_queue queue  
+    		#同步镜像队列
+	cancel_sync_queue queue
+用户管理
+add_user <username> <password>  
+    #在rabbitmq的内部数据库添加用户
+delete_user <username>  
+    #删除一个用户
+change_password <username> <newpassword>  
+    #改变用户密码  \\改变web管理登陆密码
+clear_password <username> 
+    #清除用户密码，禁止用户登录
+set_user_tags <username> <tag> ...
+    #设置用户tags
+list_users  
+    #列出用户
+add_vhost <vhostpath>  
+    #创建一个vhosts
+delete_vhost <vhostpath>  
+    #删除一个vhosts
+list_vhosts [<vhostinfoitem> ...]  
+    #列出vhosts
+set_permissions [-p <vhostpath>] <user> <conf> <write> <read>  
+    #针对一个vhosts 给用户赋予相关权限
+clear_permissions [-p <vhostpath>] <username>  
+    #清除一个用户对vhosts的权限
+list_permissions [-p <vhostpath>]   
+    #列出哪些用户可以访问该vhosts
+list_user_permissions <username>  
+    #列出该用户的访问权限
+set_parameter [-p <vhostpath>] <component_name> <name> <value>
+    #
+clear_parameter [-p <vhostpath>] <component_name> <key>
+    #
+list_parameters [-p <vhostpath>]
+    #
+
+    policy管理，策略用来控制和修改queues和exchange在集群中的行为，策略可以应用到vhost
+set_policy [-p <vhostpath>] [--priority <priority>] [--apply-to <apply-to>]  
+<name> <pattern> <definition>    
+    #name 策略名称，pattern  正则表达式，用来匹配资源，符合的就会应用设置的策略，apply-to 表示策略应用到什么类型的地方，一般有queues、exchange和all，默认是all。priority 是个整数优先级，definition 是json格式设置的策略。
+clear_policy [-p <vhostpath>] <name>  
+    #清除一个策略
+list_policies [-p <vhostpath>]  
+    #列出已有的策略
+     
+     
+queues && exchange状态信息
+list_queues [-p <vhostpath>] [<queueinfoitem> ...]  
+    #返回queue的信息，如果省略了-p参数，则默认显示的是"/"vhosts的信息。
+list_exchanges [-p <vhostpath>] [<exchangeinfoitem> ...]  
+    #返回exchange的信息。
+list_bindings [-p <vhostpath>] [<bindinginfoitem> ...] 
+    #返回绑定信息。
+list_connections [<connectioninfoitem> ...]  
+    #返回链接信息。
+list_channels [<channelinfoitem> ...]  
+    #返回目前所有的channels。
+list_consumers [-p <vhostpath>]  
+    #返回consumers，
+status  
+    #显示broker的状态
+environment  
+    #显示环境参数的信息
+report  
+    #返回一个服务状态report，
+eval <expr>
+ 
+ 
+开启：rabbitmq-plugins enable rabbitmq_management
+web http://host:15672/  
+api http://host:15672/api/
+cli http://host:15672/cli
+	
+
+	
+
+

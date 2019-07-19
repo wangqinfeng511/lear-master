@@ -1,0 +1,192 @@
+AMP
+	httpd PHP php-mysql(php访问数据库工具) mysqlserver(主服务器)
+	mariadb
+
+skip_name_resolve = off关闭dns反解
+##########################################
+MariaDB安装
+####################msqld安装###############################
+1、tar -xzvf mariadb-5.5.46-linux-x86_64.tar.gz ##解压缩
+mv mariadb-5.5.46-linux-x86_64 ./mysql  ########改文件名
+useradd -r mysql  -u 306（已创建mysql组） #####创建用户及用户组mysql
+mkdir  /home/mysql/mydata	#########创建数据库文件夹
+chown mysql.mysql /home/mysql/mydata ######改变文件夹用户组和属组为mysql
+mkdir /etc/mysql/	########创建配置文件夹
+cp ./support-files/my-large.cnf  /etc/mysql/my.cnf ###复制配置文件到etc/mysq/
+	datadir=/home/mysql/mydata	###把数据库目录设为自己建的目录
+	inndb_file_per_table=on		###设置存储引擎
+./scripts/mysql_install_db --datadir=/home/mysql/mydata/  --user=mysql 
+vim /etc/mysql/my.conf 加datadir=/home/mysql/mydata
+	###创建字典，数据库路径，数据库用户
+cp ./support-files/mysql.server  /etc/rc.d/init.d/mysqld ###复制服务到启动目录
+vim /etc/profile.d/mysql.sh ##创建启动shell
+	export PATH=/usr/local/mysql/bin:$PATH 添加环境变量
+service mysqld start ### 启动mysqld
+mysql -u mysql 启动mysql
+########################mysqld安装完成###########################&
+设置秘码：mysqladmin -u root password mariadb
+mysqlserver
+	TCP3306端口
+	存储引擎：
+		InnoDB MyISAM
+mysql:命令行交互式客户端应用程序：
+	-u: username
+	-h: IP地址
+	-p: 秘码
+		例：mysql -u fengzi -h 127.0.0.1 -p 
+常用进程：
+	mysqld: 	服务端主程序
+	mysqld_safa:	线程安全的服务端程序
+	mysqld_multi:	同一主机运行多MYSQL实例
+	配置文件：
+		/etc/my.cnf-->/etc/mysql/my.cnf-->~.my.cnf
+		ini风格配置
+			[server]
+			[client]
+			[mysql]
+			[mysqld]
+			datadir=/data/mydata
+			innodb_file_per_table=on
+启动mysql:
+	mysql-server /var/lib/mysql
+	/usr/local/mysql/data数据目录应该让运行mysqld进程的普通用户有完全权限
+
+mysql语句：
+	DDL:数据定义语句
+	DML:数据操纵语句
+	
+	数据类型：
+		整形：
+			INT
+			TINYINT
+			SMALLINT
+			MEDIUMINT
+			BIGINT
+		浮点型：
+			float	单精度
+			double	双精度
+		日期时间型：
+			date
+			time
+			datetime
+			year(2)
+			year(4)
+		数据类型修饰符：
+			UNSIGNED
+			NULL	可以为空
+			NOTNULL	不可为空
+			DEFAULT	默认值	
+			AUTO_INCREMENT	自动增加
+		键：
+			PRIMAPYD KEY	主键
+			UNIQUE KEY	唯一键
+			FOREIGN KEY	外键
+mysql客户端命令：
+	quit|\q	退出
+	help|\h	帮助
+	clear|\c	中止正在编写的语句	
+	go|\g	语句结束符
+	ego|\G	语句结束符，但竖排显示每行数据
+	delimter|\d	定义结束符
+	usr|\u	设定要操作的默认操作数据库
+DDL语句：
+*******	数据库操作：
+	CREATE（创建） DATABASE（数据库） IF NOT EXISTS(是否存在，否建)  fengzi数据库名
+	SHOW(显示) DATABASES(数据库)	显示已有数据库
+	SHOW(显示) WARNINGS(警告)	显示错误信息
+	SHOW CREATE DATABASE fengzi 	显示数据库创建方式和属性
+	CREATE DATABASE IF NOT EXISTS fengzi CHARACTER SET 'utf8'	指定数据库字符集
+	DROP DATABASE fengzi	删除数据库
+	ALTER DATABASE	fengzi longhen	修改数据库名
+*******	表的管理操作：
+***********************创建表************************
+		CREATE TABLE（创建表）
+		IF NOT EXISTS （判断是否存在）
+		mydb.fengzi(数据库.表名)  
+	       (name字端名 INT(整形类型)
+		UNSIGNED(无符号)
+		NOT NULL(不能为空) 
+		PRIMARY KEY(指定为主键) ，
+		**第一字端完成** 
+		ider(字端二) 
+		CHAR(30)（定义类型） 
+		NOT NULL （不能为空）, 
+		***第二字端完成**
+		Gender(字端三) 
+		ENUM('男','女')
+		DEFAULT'男' 权举类型，默认为男
+		);
+		ENGINE=引擎名（一般不用）
+***********************删除表************************	
+	DROP  TABLES 表名	删除表
+	SHOW  TABLES IN 库名	显示表
+*********************修改表：**********************
+	ALTER TABLE  	修改
+	mydb.fengzi	数据库.表
+	ADD		添加
+	name		添加的字端名
+	SMALLINT	字端类型
+	UNSIGED		无符号
+	NOT NULL	不可为空
+	AFTER		添加的字端位于哪个字端后
+	ID		位于这个字端后
+******************显示表的结构********************
+	DESC 	   (desc sushe/表名)显示表的结构
+	SHOW INDEXES FROM mydb.fengzi 显示表缩影
+	SHOW ENGINES 	显示支持的存储引擎
+	SHOW TABLE STATUS LIKE(模糊) ‘表名’\G 坚显 显示表的信息，非数据
+				_:单字符匹配
+				%：匹配任意长度的任意字符
+DML：数据库操作
+*************插入值**********	
+	INSERT INTO teachers(表名) (name,age,gender,dazhao)（字端） VALUES ('limochou',35,'F','bingfeng')（值）
+*************查询值**********
+	SELECT *FROM 表
+	SELECT name（字端） FROM（表）WHERE age>30 AND age<50 （条件）
+					WHERE 字端 LIKE ‘%a%’  	此处支持模糊搜索
+						RLIKE		支持正则表达式
+*************删除值**********
+	DELETE  FROM 表 WHERE（过滤） dazhao=='值'（条件）
+************数据更新*********
+	UPDATE mydb.fengzi SET 字端='值' WHERE 字端=值
+
+
+++++++++++++++++++++++++++++++++++用户及权限管理++++++++++++++++++++++++++++
+************创建用户*************
+	CREATE USER 'fengzi'(用户名) @ %(所有人)|172.16.%.%  IDENTIFIED BY ‘秘码’
+************删除用户*************
+	DROP USER 'fengzi'(用户名)@'host|IP'
+************数据库授权****************
+	GRANT（权限） ALL（全部） ON（到） mydb.* TO 'fengzi' @'地址'
+************查看用户授权********
+	SHOW GRANTS FOR '用户'@'地址'
+************收回权限************
+	REVOKE INESERT,UPDATE ON 表 FORM 用户
+		移除插入更新数据
+***********显示用户*************
+ select User,password from mysql.user;
+
+***********用户添加秘码*********
+set password for root@localhost=password('fengzi');
+**********修改秘码************************
+sh: mysqladmin -uroot -pfengzi password fengzi1;
+ 
+***********
+WHERE过滤：
+	支持的条运算：
+		+ - x / % 
+	比较运算：
+	 	＝ != |<> <=>空值比较，<= >=
+	BETWEEN 1 AND 50 ；1－50
+	IN (10,15,16)   ;列表
+	IS NULL		;空值
+	IS NOT NULL     ;非空
+	LIKE		;模糊匹配
+			%任意长度字符。
+			-：任意单字符。
+	REGEXP		；正则表达式，但不会使用索引。
+	逻辑操作符：
+		NOT 非
+		AND 与
+		OR  或
+		XOR 异或

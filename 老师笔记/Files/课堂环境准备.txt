@@ -1,0 +1,51 @@
+
+网络环境：172.16.0.0/16
+	172.16.x.1-254, 255.255.0.0
+	172.16.1x.1-254, 255.255.0.0
+
+172.16.0.1:
+	yum仓库
+	ftp服务器
+		ftp://172.16.0.1/pub
+	cobbler：
+	web服务器：
+
+ftp：
+	
+虚拟化技术：
+	vmware workstation 11
+	virtualbox
+
+
+如何使用vmw 11安装虚拟机：
+
+	创建虚拟机：
+		CPU（）
+			time slice
+		Memory
+
+		I/O
+			硬盘:
+				磁盘映像文件：用文件模拟硬盘
+					loopback
+					sparse：稀疏格式
+						120G
+
+			网卡：
+				模拟：
+
+			键盘、鼠标
+			监视器
+
+
+
+
+	1、cobbler
+		CentOS X86_64
+			用户名：root
+			密码：mageedu
+
+	2、基于iso映像
+
+
+

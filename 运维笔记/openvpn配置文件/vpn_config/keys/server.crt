@@ -1,0 +1,97 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 2 (0x2)
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=CN, ST=tianjin, L=wuqing, O=yuanmeixing, OU=yunwei, CN=server/name=EasyRSA/emailAddress=wangqinfeng511@163.com
+        Validity
+            Not Before: May 19 08:47:24 2016 GMT
+            Not After : May 17 08:47:24 2026 GMT
+        Subject: C=CN, ST=tianjin, L=wuqing, O=yuanmeixing, OU=yunwei, CN=server/name=EasyRSA/emailAddress=wangqinfeng511@163.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:b2:32:7f:65:ac:65:0b:a9:90:d2:e5:50:ff:d2:
+                    6c:e7:4c:49:9a:f1:6f:12:47:c4:13:16:84:76:27:
+                    56:3e:e4:14:ca:f9:93:c9:64:d5:d0:3f:87:b8:ba:
+                    79:3a:48:26:0d:88:e8:6b:cf:35:77:72:72:37:3e:
+                    90:74:09:3f:34:04:01:2f:ec:30:14:47:5c:35:2d:
+                    19:a2:71:a0:35:54:65:24:27:04:b7:a6:c1:6c:e6:
+                    b8:d8:d1:5b:55:7b:e5:fb:02:e1:29:06:bb:0d:81:
+                    a6:41:d7:a5:b3:33:6c:f3:2d:fd:58:88:0e:1d:2f:
+                    0f:50:27:4c:be:bf:28:67:77:2a:99:ff:20:84:ae:
+                    05:10:63:38:b7:6d:40:c2:ce:83:c1:7d:22:ff:89:
+                    f4:f9:74:0c:3a:b2:a7:f3:48:4b:af:69:e0:a3:76:
+                    be:81:3f:8b:ec:2d:34:55:ca:66:3d:b7:22:bb:79:
+                    52:2f:95:d7:5f:88:b4:e3:0a:5a:fb:37:f5:73:20:
+                    6b:b5:e7:c9:3d:d8:b6:81:ce:ea:8d:d4:cb:e1:e6:
+                    64:15:fa:8e:29:19:a0:5e:84:c5:2f:bc:fb:d3:93:
+                    d6:c4:46:b8:27:38:94:62:02:e7:b3:2a:61:68:53:
+                    83:f3:8d:7f:b7:2a:0f:e9:45:51:b4:ea:f4:51:a2:
+                    b8:a1
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            Netscape Cert Type: 
+                SSL Server
+            Netscape Comment: 
+                Easy-RSA Generated Server Certificate
+            X509v3 Subject Key Identifier: 
+                6C:4A:78:98:3E:7E:43:E4:08:BE:0E:9A:55:E0:00:86:C9:98:5B:61
+            X509v3 Authority Key Identifier: 
+                keyid:82:38:9A:CF:B6:15:95:75:6F:D1:96:06:5F:BB:AC:3F:06:0C:6D:C6
+                DirName:/C=CN/ST=tianjin/L=wuqing/O=yuanmeixing/OU=yunwei/CN=server/name=EasyRSA/emailAddress=wangqinfeng511@163.com
+                serial:AE:DB:63:39:82:99:2E:C7
+
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Key Usage: 
+                Digital Signature, Key Encipherment
+    Signature Algorithm: sha256WithRSAEncryption
+         37:68:6b:5d:d4:49:e6:34:b3:7a:28:7b:31:c4:de:a3:6b:e4:
+         ef:7e:d2:20:35:fc:00:b3:66:f4:9a:7f:e9:3a:fb:23:76:dc:
+         ac:dc:77:2c:15:98:f7:75:e6:a0:a7:ae:c8:70:2f:0e:40:7f:
+         bc:d0:78:bc:66:07:f5:58:29:b6:18:b3:cc:f8:bb:f1:09:3b:
+         8f:58:5d:21:cd:cd:ee:54:be:78:5c:91:3f:b8:54:41:b0:92:
+         f3:e5:92:38:d6:49:71:dc:42:e4:a9:ba:9c:18:1c:40:a5:5c:
+         6b:35:52:06:6a:8c:32:06:f8:d3:c2:79:9e:3b:96:b2:96:48:
+         11:6c:61:b7:29:b7:4b:47:5f:09:f3:4b:c3:aa:01:45:6e:81:
+         8d:2f:7b:e3:c9:41:e5:7b:39:36:49:7a:f0:e7:0f:e4:9f:d4:
+         5d:bf:46:13:d9:cc:1e:3a:4e:50:51:f3:9d:f3:ed:74:8d:6c:
+         78:e5:5f:bb:48:4b:93:b1:a8:17:f4:33:5f:81:87:77:12:83:
+         8e:37:84:dd:57:b0:60:fe:42:4d:9f:e6:ff:51:13:83:3e:54:
+         79:6e:ee:4a:62:28:d1:d5:c1:8d:a0:f5:3e:5b:fe:15:e8:c4:
+         3e:66:0b:da:b3:6a:26:2e:7c:f4:9e:01:6f:f8:96:e1:b4:95:
+         f7:e5:c0:ad
+-----BEGIN CERTIFICATE-----
+MIIFMzCCBBugAwIBAgIBAjANBgkqhkiG9w0BAQsFADCBoTELMAkGA1UEBhMCQ04x
+EDAOBgNVBAgTB3RpYW5qaW4xDzANBgNVBAcTBnd1cWluZzEUMBIGA1UEChMLeXVh
+bm1laXhpbmcxDzANBgNVBAsTBnl1bndlaTEPMA0GA1UEAxMGc2VydmVyMRAwDgYD
+VQQpEwdFYXN5UlNBMSUwIwYJKoZIhvcNAQkBFhZ3YW5ncWluZmVuZzUxMUAxNjMu
+Y29tMB4XDTE2MDUxOTA4NDcyNFoXDTI2MDUxNzA4NDcyNFowgaExCzAJBgNVBAYT
+AkNOMRAwDgYDVQQIEwd0aWFuamluMQ8wDQYDVQQHEwZ3dXFpbmcxFDASBgNVBAoT
+C3l1YW5tZWl4aW5nMQ8wDQYDVQQLEwZ5dW53ZWkxDzANBgNVBAMTBnNlcnZlcjEQ
+MA4GA1UEKRMHRWFzeVJTQTElMCMGCSqGSIb3DQEJARYWd2FuZ3FpbmZlbmc1MTFA
+MTYzLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALIyf2WsZQup
+kNLlUP/SbOdMSZrxbxJHxBMWhHYnVj7kFMr5k8lk1dA/h7i6eTpIJg2I6GvPNXdy
+cjc+kHQJPzQEAS/sMBRHXDUtGaJxoDVUZSQnBLemwWzmuNjRW1V75fsC4SkGuw2B
+pkHXpbMzbPMt/ViIDh0vD1AnTL6/KGd3Kpn/IISuBRBjOLdtQMLOg8F9Iv+J9Pl0
+DDqyp/NIS69p4KN2voE/i+wtNFXKZj23Irt5Ui+V11+ItOMKWvs39XMga7XnyT3Y
+toHO6o3Uy+HmZBX6jikZoF6ExS+8+9OT1sRGuCc4lGIC57MqYWhTg/ONf7cqD+lF
+UbTq9FGiuKECAwEAAaOCAXIwggFuMAkGA1UdEwQCMAAwEQYJYIZIAYb4QgEBBAQD
+AgZAMDQGCWCGSAGG+EIBDQQnFiVFYXN5LVJTQSBHZW5lcmF0ZWQgU2VydmVyIENl
+cnRpZmljYXRlMB0GA1UdDgQWBBRsSniYPn5D5Ai+DppV4ACGyZhbYTCB1gYDVR0j
+BIHOMIHLgBSCOJrPthWVdW/RlgZfu6w/BgxtxqGBp6SBpDCBoTELMAkGA1UEBhMC
+Q04xEDAOBgNVBAgTB3RpYW5qaW4xDzANBgNVBAcTBnd1cWluZzEUMBIGA1UEChML
+eXVhbm1laXhpbmcxDzANBgNVBAsTBnl1bndlaTEPMA0GA1UEAxMGc2VydmVyMRAw
+DgYDVQQpEwdFYXN5UlNBMSUwIwYJKoZIhvcNAQkBFhZ3YW5ncWluZmVuZzUxMUAx
+NjMuY29tggkArttjOYKZLscwEwYDVR0lBAwwCgYIKwYBBQUHAwEwCwYDVR0PBAQD
+AgWgMA0GCSqGSIb3DQEBCwUAA4IBAQA3aGtd1EnmNLN6KHsxxN6ja+TvftIgNfwA
+s2b0mn/pOvsjdtys3HcsFZj3deagp67IcC8OQH+80Hi8Zgf1WCm2GLPM+LvxCTuP
+WF0hzc3uVL54XJE/uFRBsJLz5ZI41klx3ELkqbqcGBxApVxrNVIGaowyBvjTwnme
+O5aylkgRbGG3KbdLR18J80vDqgFFboGNL3vjyUHlezk2SXrw5w/kn9Rdv0YT2cwe
+Ok5QUfOd8+10jWx45V+7SEuTsagX9DNfgYd3EoOON4TdV7Bg/kJNn+b/URODPlR5
+bu5KYijR1cGNoPU+W/4V6MQ+Zgvas2omLnz0ngFv+JbhtJX35cCt
+-----END CERTIFICATE-----

@@ -1,0 +1,309 @@
+yum install yum-plugin-priorities
+yum install http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+yum install http://rdo.fedorapeople.org/openstack-juno/rdo-release-juno.rpm
+yum upgrade
+yum install openstack-selinux
+一、安装keystone
+	yum install openstack-keystone python-keystoneclient openstack-utils
+二、初始化数据库。
+	openstack-db 
+		--init 初始化	
+		--service 数据库名
+		--pass  keystone
+三、初始化数据库方法二、也可使用mariadb-galera-server数据库。
+	mysql> create database keystone  CHARACTER SET utf8
+		grant all on keystone.* to 'keystone'@'%'identified by 'keystone'
+		用户授权。
+	mysql>flush privileges; 刷新授权表。
+三、生成字符令牌；
+	ADMIN_TOKEN=$(openssl rand -hex 10); 生成变最，并赋值。
+	echo $ADMIN_TOKEN > ~/.admin_token.rc 保存生成的令牌值。
+	编辑：vim /etc/keystone/keystone.conf 
+		adadmin_token=ec645e3ccffd3918feff 添加$ADMIN_TOKEN的值。
+		connection=mysql://keystone:keystone@localhost/keystone
+四、生成pki ca认证
+	keystone-manage pki_setup --keystone-user keystone --keystone-group keystone 
+	chown -R keystone:keystone /etc/keystone/ssl/	
+	chmod  -R o-rwx /etc/keystone/ssl/
+五、启动openstack-keystone 服务
+	systemctl start openstack-keystone
+	su -s /bin/sh -c 'keystone-manage db_sync' keystone
+    	keystone-manage db_sync:用来为数据库初始化数据
+六、加入开机启动：
+	systemctl enable openstack-keystone
+七、查看日志有无错误
+	tail -f /var/log/keystone/keystone.log 
+八、把令牌变最添加至环境变量中。
+	export OS_SERVICE_TOKEN=$ADMIN_TOKEN
+	export OS_SERVICE_ENDPOINT=http://controller:35357/v2.0
+	管理接口的环境变量。
+九、	令牌登录，因为此时还没有用户。
+	先用令牌方式登录：keystone --os-token $ADMIN_TOKEN user-list;
+	user-list:列出现有用户。
+十、	创建用户：因为添加了环境变最所以不用输入token(令牌)。
+	keystone user-create --name=admin --pass=admin --email=wangqinfeng511@163.com
+		user-create:创建用户
+		--name --pass --email
+十一、创建角色：
+	keystone role-create --name=admin
+		role-create 创建角色 名字为admin
+十二、创建租户：
+	 keystone tenant-create --name=admin --description="管理"
+		tenant-crate:创建租户  --description=描述。
+十三、 用户关联至角色至租户：
+	keystone user-role-add --user admin --role admin --tenant admin
+	 	user-role-add  关联命令
+	角色：_member_为web接口角色 j牌默认没有此角色了。
+十四、查看关联属于哪些角色，因为一用户可属于多角色。
+	keystone user-role-list --user admin --tenant admin
+########################################################################################
+一、创建测试用户：	
+	keystone user-create --name=demo --pass=demo --email=360065954@qq.com
+	keystone tenant-create --name=demo --description="租户"
+	keystone role-create --name=_member_
+	keystone user-role-add --user demo --role _member_ --tenant demo
+二、创建服务：
+	keystone service-list查看已有服务
+	添加服务：
+	keystone service-create --name=keystone --type=identity --description="keystone"
+	列出服务的ID号：
+ 	keystone service-list | awk '/keystone/ {print $2} '
+三、添加端点（访问接口）：
+	keystone endpoint-create 
+	--service-id=$( keystone service-list | awk '/keystone/ {print $2} ') 
+	--publicurl=http://controller:5000/v2.0  公用url
+	--internalurl=http://controller:5000/v2.0
+# keystone endpoint-create  --service-id=$( keystone service-list | awk '/keystone/ {print $2} ')  --publicurl=http://controller:5000/v2.0  --internalurl=http://controller:5000/v2.0  --adminurl=http://controller:35357/v2.0  
+   管理的url
+	列出端点：
+		keystone endpoint-list
+#######################################################################################
+使用账号登录了
+移除：环境变量：
+	unset OS_SERVICE_TOKEN
+	unset OS_SERVICE_ENDPOINT
+
+	export OS_USERNAME=admin
+	export OS_PASSWORD=admin
+	export OS_TENANT_NAME=admin
+	export OS_AUTH_URL=http://192.168.229.130:35357/v2.0
+
+#	export OS_TENANT_NAME=demo
+#	export OS_USERNAME=demo
+#	export OS_PASSWORD=demo
+#	export OS_AUTH_URL=http://192.168.229.130:5000/v2.0
+测式登入：
+      keystone --os-username=admin --os-password=admin --os-auth-url=http://192.168.229.130:35357/v2.0 user-list
+	keystone --os-username=admin --os-password=admin --os-auth-url=http://controller:35357/v2.0 user-list
+     keystone user-list	
+
+
+###############################################################################
+glance服务（img服务） 安装
+介绍：
+Glance :主机用于openstack中的映像文件的注册，管理。
+glance-api :访问接口。负责接收对image,api中映像文件的查看。
+glance-registry:存储处理及获取映像文件的元数据信息，
+glance-database:存储映像文件的元数据。
+一、安装glance
+ yum install openstack-glance python-glanceclient
+
+二、初始化数据库：
+	mysql>create database glance CHARACTER SET utf8
+	mysql> grant all on glance.* to 'glance'@'%' identified by 'glance';
+	mysql>flush privileges;
+
+#初始数据：
+	su -s /bin/sh -c "glance-manage db_sync" glance
+三、修改mysql的联接配置：
+	vim /etc/glance/glance-api.conf
+		connection=mysql://glance:glance@localhost/glance
+	vim /etc/glance/glance-registry.conf
+		connection=mysql://glance:glance@localhost/glance
+四、在keyston中为glance添加服务用户：
+	keystone user-create --name=glance --pass=glance --email=360065954@qq.com
+keystone tenant-create --name=service --description="service"
+
+	关联用户到角色，服务
+	 keystone user-role-add --user=glance --tenant=service --role=admin
+五、修改glance连接keystone的配置。
+api|glance.conf
+[keystone_authtoken]
+identity_uri=http://controller:35357
+admin_tenant_name=service
+admin_user=glance
+admin_password=glance
+flavor=keystone
+
+#revocation_cache_time=10
+
+
+[glance_store]
+...
+default_store = file
+filesystem_store_datadir = /var/lib/glance/images/
+
+[DEFAULT]
+...
+notification_driver = noop
+
+[DEFAULT]
+...
+verbose = True
+六、添加端点：
+keystone service-create --name=glance --type=image --description="你好"
+七、为glance添加端点
+keystone endpoint-create  --service-id=$(keystone service-list |awk '/image/ {print $2}') --publicurl=http://controller:9292 --internalurl=http://controller:9292 --adminurl=http://controller:9292
+八、启动服务	
+systemctl  start openstack-glance-api
+systemctl  start openstack-glance-registry
+
+
+九、上传磁盘镜像
+	glance image-create --name "cirros-0.3.3-x86_64" --file /tmp/images/cirros-0.3.3-x86_64-disk.img \
+  --disk-format qcow2 --container-format bare --is-public True --progress
+##################################################################################################################
+
+compute service
+	api:nova-api nova-api-metadate
+	compute core:nova-comput,nova-schedaler,nova-conductor
+	console interface:nova-consoleauth nova-novncproxy
+	command lin and other interfaces
+一、qpid 消息服务主节点安装
+	yum install qpid-cpp-server
+	/etc/qpid/qpidd.conf
+		auth=no
+	service  qpidd start
+		
+
+	yum install openstack-nova-api openstack-nova-cert openstack-nova-conductor openstack-nova-console openstack-nova-novncproxy openstack-nova-scheduler 
+二、数据库
+mysql>create database nova CHARACTER SET 'utf8'
+grant all on nova.* to 'nova'@'%' IDENTIFIED BY 'nova';
+flush privileges;
+su -s /bin/sh  -c "nova-manage db sync" nova
+配置：
+vim /etc/nova/nova.conf
+	rpc_backend=qpid
+	qpid_hostname=controller
+	my_ip=192.168.229.130
+	vncserver_listen=192.168.229.130
+	vncserver_proxyclient_address=192.168.229.130
+三、keystone创建用户：source ./keystone.sh
+	keystone user-create --name=nova --pass=nova --email="360065954@qq.com"
+	keystone user-role-add --user=nova --tenant=service --role=admin
+	 keystone service-create  --name=nova --type=compute --description="nova"
+	
+端点创建
+	keystone endpoint-create \
+  --service-id $(keystone service-list | awk '/ compute / {print $2}') \
+  --publicurl http://controller:8774/v2/%\(tenant_id\)s \
+  --internalurl http://controller:8774/v2/%\(tenant_id\)s \
+  --adminurl http://controller:8774/v2/%\(tenant_id\)s \
+  --region regionOne
+
+例如：# keystone endpoint-create --service-id $(keystone service-list | awk '/ compute / {print $2}')  --publicurl http://controller:8774/v2/%\(tenant_id\)s  --internalurl http://controller:8774/v2/%\(tenant_id\)s  --adminurl http://controller:8774/v2/%\(tenant_id\)s   --region regionOne
+
+四、vim /etc/nova/nova.conf
+	[keystone_authtoken]
+auth_url=http://controller:5000
+auth_host=controller
+auth_port=35357
+admin_auth_url=http://controller:35357/v2.0
+identity_url=http://controller:5000
+auth_protocol=http
+admin_user=nova
+admin_password=nova
+admin_tenant_name=service
+		[DEFAULT]
+qpid_hostname=controller
+rpc_backend=qpid
+my_ip=192.168.229.150
+auth_strategy=keystone
+vncserver_listen=192.168.229.150
+vncserver_proxyclient_address=192.168.229.150
+启动服务
+systemctl  start openstack-nova-api
+		systemctl  start openstack-nova-cert
+		systemctl  start openstack-nova-consoleauth
+		systemctl  start openstack-nova-scheduler
+		systemctl  start openstack-nova-conductor
+		systemctl  start openstack-nova-novncproxy
+###############################################################################
+network 管理节点安装部分：
+	mysql> create database neutron CHARACTER SET 'utf8';
+	grant all on neutron.* to 'neutron'@'%' identified by "neutron";
+	flush privileges;
+keystone:
+keystone user-create --name neutron --pass neutron --email "360065954@qq.com"
+ keystone user-role-add --user=neutron --tenant=service --role=admin
+keystone service-create --name=neutron --type=network --description="network"
+添加端点：
+keystone endpoint-create --service-id=$( keystone service-list|awk '/network/ {print $2}') --publicurl http://controller:9696 --adminurl http://controller:9696 --internalurl http://controller:9696
+安装：
+yum install openstack-neutron openstack-neutron-ml2 python-neutronclient
+
+修改配置：
+vim /etc/neutron/neutron.conf
+	connection = mysql://neutron:neutron@controller:3306/neutron
+	 auth_strategy =keystone	
+[keystone_authtoken]
+auth_url=http://192.168.229.130:5000
+auth_host=controller
+auth_protocol = http
+auth_port=35357
+admin_user=neutron
+admin_password=neutron
+admin_tenant_name=service
+
+rpc_backend = neutron.openstack.common.rpc.impl_qpid	
+qpid_hostname = controller
+notify_nova_on_port_status_changes = True
+notify_nova_on_port_data_changes = true
+nova_url = http://controller:8774/v2
+nova_admin_username = nova
+nova_admin_tenant_id = ab57116df8424cde9410b1459270579d
+ nova_admin_password =nova
+ nova_admin_auth_url = http://controller:35357/v2.0
+
+ core_plugin =ml2  2层网络插件
+service_plugins = router 路由插件
+
+ verbose = True
+
+vim /etc/neutron/plugins/ml2/ml2_conf.ini
+	type_drivers=gre #使用vpn隧道
+	tenant_network_types=gre #租客使用的网络模型，也为vpn
+	mechanism_drivers =openvswitch	#使用openswitch虚拟机
+[ml2_type_gre]
+	tunnel_id_ranges=1:1000	总共可用的vlan号
+	firewall_driver = neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
+
+再次配置nova.conf
+	network_api_class=nova.network.neutronv2.api.API
+	neutron_url=http://controller:9696	
+	neutron_auth_strategy=keystone
+	neutron_admin_tenant_name=service
+	neutron_admin_username=neutron
+	neutron_admin_password=neutron
+	neutron_admin_auth_url=http://controller:35357/v2.0
+	linuxnet_interface_driver=nova.network.linux_net.LinuxBridgeInterfaceDriver
+	linuxnet_interface_driver=nova.network.linux_net.LinuxOVSInterfaceDriver
+	firewall_driver=nova.virt.firewall.NoopFirewallDriver
+	security_group_api=neutron
+	vif_plugging_is_fatal=false
+	vif_plugging_timeout=300
+##############################################################################
+ln -sv /etc/neutron/plugins/ml2/ml2_conf.ini  /etc/neutron/plugin.ini
+
+
+mysql>create database neutron CHARACTER SET 'utf8'
+grant all on neutron.* to 'neutron'@'%' IDENTIFIED BY 'neutron';
+flush privileges;
+su -s /bin/sh  -c "nova-manage db sync" nova
+重启nova	
+service  neutron-server start
+chkconfig neutron-server on
+######################################################################################
+computer节点：
+	

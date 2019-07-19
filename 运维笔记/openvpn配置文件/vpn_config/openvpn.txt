@@ -1,0 +1,42 @@
+# 关闭selinux
+setenforce 0
+sed -i '/^SELINUX=/c\SELINUX=disabled' /etc/selinux/config
+# 安装epel源
+# 安装openvpn和easy-rsa
+yum -y install openvpn easy-rsa
+# 修改vars文件
+cd /usr/share/easy-rsa/2.0/
+vim vars
+# 修改注册信息，比如公司地址、公司名称、部门名称等。
+export KEY_COUNTRY="CN"
+export KEY_PROVINCE="Shandong"
+export KEY_CITY="Qingdao"
+export KEY_ORG="MyOrganization"
+export KEY_EMAIL="me@myhost.mydomain"
+export KEY_OU="MyOrganizationalUnit"
+# 初始化环境变量
+source vars
+# 清除keys目录下所有与证书相关的文件
+# 下面步骤生成的证书和密钥都在/usr/share/easy-rsa/2.0/keys目录里
+./clean-all
+ # 生成根证书ca.crt和根密钥ca.key（一路按回车即可）
+./build-ca
+# 为服务端生成证书和密钥（一路按回车，直到提示需要输入y/n时，输入y再按回车，一共两次）
+./build-key-server server
+# 每一个登陆的VPN客户端需要有一个证书，每个证书在同一时刻只能供一个客户端连接，下面建立2份
+# 为客户端生成证书和密钥（一路按回车，直到提示需要输入y/n时，输入y再按回车，一共两次）
+./build-key client
+# 创建迪菲·赫尔曼密钥，会生成dh2048.pem文件（生成过程比较慢，在此期间不要去中断它）
+./build-dh
+# 生成ta.key文件（防DDos攻击、UDP淹没等恶意攻击）
+openvpn --genkey --secret keys/ta.key
+# 在openvpn的配置目录下新建一个keys目录
+mkdir /etc/openvpn/keys
+# 将需要用到的openvpn证书和密钥复制一份到刚创建好的keys目录中
+cp /usr/share/easy-rsa/2.0/keys/{ca.crt,server.{crt,key},dh2048.pem,ta.key} /etc/openvpn/keys/
+# 复制一份服务器端配置文件模板server.conf到/etc/openvpn/
+cp /usr/share/doc/openvpn-2.3.2/sample/sample-config-files/server.conf /etc/openvpn/
+# 查看server.conf里的配置参数
+grep '^[^#;]' /etc/openvpn/server.conf
+# 编辑server.conf
+vim /etc/openvpn/server.conf

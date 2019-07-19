@@ -1,0 +1,14 @@
+
+
+yum install libvirt
+yum install libvirt-daemon-xen
+ yum install virt-manager
+#service libvirtd start 启动服务
+
+#################################################################
+vnc 服务安装：
+ yum install tigervnc-server
+	设置vnc密码：vncpasswd
+	启用服务：vncserver :1......255
+链接：
+	 vncviewer  输入IP:5901

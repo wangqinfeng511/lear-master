@@ -1,0 +1,13 @@
+  - name: copy the nginx package
+    copy: src=nginx-1.6.2-1.el6.ngx.x86_64.rpm dest=/tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm
+  - name: install nginx package
+    shell: yum -y install /tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm
+  - name: provide nginx.conf and default.conf
+    template: src={{ item.name }} dest=/etc/nginx/{{ item.confpath }}
+    with_items:
+    - { 'name':'nginx.conf','confpath':'nginx.conf' }
+    - { 'name':'default.conf','confpath':'conf.d/default.conf' }
+    notify: restart nginx
+    tags: ngxconf
+  - name: start nginx
+    service: name=nginx state=started enabled=true

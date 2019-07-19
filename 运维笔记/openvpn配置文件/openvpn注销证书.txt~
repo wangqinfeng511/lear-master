@@ -1,0 +1,29 @@
+ openvpn注销用户证书 2009-10-19 22:40:27
+分类： 系统运维
+因两个同事离职，所以需注销其vpn证书。即要注销两张证书
+ 
+执行命令进入openvpn的安装目录，在easy-rsa目录下。使用revoke-full命令来注销其证书。先把一位同
+ 
+事证书文件放到easy-rsa/keys下，然后执行
+ 
+revoke-full client1
+ 
+client1为证书名称，这条命令执行完成之后， 会在 keys 目录下面， 生成一个 crl.pem 文件，这个文
+ 
+件中包含了吊销证书的名单。接着再次执行
+ 
+revoke-full client2
+ 
+这条命令执行完成之后， 会在 keys 目录下面， 生成一个新的crl.pem 文件覆盖旧的。
+ 
+把此crl.pem文件放到相应的配置目录config下，然后在配置文件加入如下参数，重新启动openvpn服务器
+ 
+即可。
+ 
+crl-verify crl.pem
+ 
+注：如以后需要再注销其他证书，可继续执行revoke-full client3，生成新的crl.pem文件替换配置目录
+ 
+下的文件，重新启动openvpn服务即可。
+ 
+此方法对于windows和linux下都通用

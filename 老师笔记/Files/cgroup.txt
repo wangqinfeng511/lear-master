@@ -1,0 +1,318 @@
+
+
+
+一、cgroup基础
+
+CentOS 6 提​​​供​​​新​​​的​​​内​​​核​​​功​​​能​​​：控​​​制​​​组（control group），简​​​称​​​cgroup。​​​Cgroup的主要功能在于为系​​​统​​​中​​​所​​​运​​​行​​​任​​​务​​​（即进​​​程​​​）的​​​用​​​户​​​定​​​义​​​cgroup分​​​配​​​资​​​源​​​ -- 比​​​如​​​CPU、​​​memory、​​​network bandwidth，或​​​者​​​这​​​些​​​资​​​源​​​的​​​组​​​合​​​。​​​使用中，可以按需监控cgroup，控制cgroup的资源访问，甚​​​至​​​在​​​运​​​行​​​的​​​系​​​统​​​中​​​动​​​态​​​配​​​置​​​cgroup。​​​可​​​将​​​ cgconfig（“控​​​制​​​组​​​配​​​置​​​ ”）服​​​务​​​配​​​置​​​为​​​在​​​引​​​导​​​时​​​启​​​动​​​，并​​​重​​​新​​​建​​​立​​​预​​​先​​​定​​​义​​​的​​​ cgroup，这​​​样​​​可​​​使​​​其​​​在​​​重​​​启​​​过​​​程​​​中​​​保​​​留​​​它​​​们​​​。​​使​​​用​​​ cgroup，系​​​统​​​管​​​理​​​员​​​可​​​更​​​具​​​体​​​地​​​控​​​制​​​对​​​系​​​统​​​资​​​源​​​的​​​分​​​配​​​、​​​优​​​先​​​顺​​​序​​​、​​​拒​​​绝​​​、​​​管​​​理​​​和​​​监​​​控​​​。​​​可​​​更​​​好​​​地​​​根​​​据​​​任​​​务​​​和​​​用​​​户​​​分​​​配​​​硬​​​件​​​资​​​源​​​，提​​​高​​​总​​​体​​​效​​​率​​​。​​​
+
+1.1 cgroup及其子系统
+
+Cgroup是​​​分​​​层​​​管​​​理​​​的​​​，其每个子系统都是具有一个倒置的树状结构，这有点类​​​似​​​于进​​​程​​​的层级结构，因此，同样地，​​子​​​cgroup也会​​​继​​​承​​​其​​​父cgroup的​​​一​​​些​​​属​​​性​​​。不过，需要注意的是，进程树是单一层级结构，而cgroup却可以有着多个分别关联于不同子系统的层级树。子系统代表某一单一可分配资源，如CPU、memory或者blkio等。CentOS 6提供了9个cgroup子系统。
+
+	blkio -- 控制和监控cgroup中的进程对设备I/O资源的访问；
+	cpu -- 通过调​​​度​​​器​​​调度cgroup任​​​务​​​获取CPU资源；
+	cpuacct -- 为CPU Accounting的简写，用于自​​​动​​​为cgroup中的​​​任​​​务​​​所​​​使​​​用​​​的​​​CPU资源信息生成报​​​告​​​；​​​
+	cpuset -- 为​​​cgroup中​​​的​​​任​​​务​​​分​​​配​​​独​​​立​​​CPU（在​​​多​​​核​​​系​​​统​​​）及内​​​存​​​节​​​点​​​；即将指定的某单CPU或内存节点分配至目标cgroup中；
+	devices -- 控制cgroup中​​​的​​​任​​​务​​​对设​​​备​​​的访问权；​​​
+	freezer -- 挂​​​起​​​或​​​者​​​恢​​​复​​​cgroup中​​​的​​​任​​​务​​​；
+	memory -- 设​​​定​​​cgroup中​​​任​​​务​​​使​​​用​​​的​​​内​​​存​​​限​​​制​​​，并​​​自​​​动​​​生​​​成​​​由此些​​​任​​​务​​所​使​​​用​​​的​​​内​​​存​​​资​​​源​​​报​​​告​​​；
+	net_cls -- 使​​​用​​类别识​​​别​​​符​​​（classid）标​​​记​​​网​​​络​​​数​​​据​​​包​​​，可​​​用于​​​Linux流​​​量​​​控​​​制​​​程​​​序​​​（tc）识​​​别​​​从​​​具​​​体​​​cgroup中​​生​​​成​​​的​​​数​​​据​​​包​​​；
+	net_prio -- 用于动态设定每个网络接口的优先级；
+	ns -- 名​​​称​​​空​​​间​​​子​​​系​​​统​​​；
+
+1.2 cgroup中子​​​系​​​统​​​、​​​层​​​级​​​、​​​控​​​制​​​组​​​和​​​任​​​务​​​的​​​关​​​系	
+
+规则1 一个单一层级结构可以关联一个或多个子系统。因此，cpu和memory子系统（或任意数量的子系统）可被关系至同一个层级，只要其此前未被关联至任何其它层级结构。
+
+规则2 任何子系统(例如CPU)不能被关联至任何已经已经关联了其它子系统的层级结构。这意味着，任何单一子系统均不能被附加至两个不同类别的层级结构（有类别的层级表示已经关联了某种类型的子系统），但却可以被关联至多个此前没有关联任何子系统的层级结构。
+
+规则3 一个层级结构刚被创建时，当前系统上的所有任务均自动成为此层级结构默认cgroup（即root cgroup）的成员。而对于任何所创建的一个层级而言，当前系统上的每个任务仅能成为此层级上的某单个cgroup的成员，不过，一个任务却可以同时属于多个不同层级中的不同的cgroup。对一个特定的层级来说，只要修改了指定任务的cgroup，那么它将立即从当前cgroup中脱离。简言之，对于特定的层级来说，一个任务仅能从属于一个cgroup，但可以同时从属于多个不同层级中的cgroup。
+
+首​​​次​​​创​​​建​​​层​​​级​​​时​​​，该​​​系​​​统​​​中​​​的​​​每​​​个​​​任​​​务​​​都​​​至​​​少​​​是​​​一​​​个​​​cgroup的​​​成​​​员​​​，即​​​root cgroup。​​​因​​​此​​​一旦开始使​​​用​​​cgroup，每​​​个​​​任​​​务​​​总​​​是​​​至​​​少​​​从属于一​​​个​​​cgroup。
+
+规则4 任何进程都在其所在的cgroup中创建子进程，子进程也会自动继承其父进程的cgroup从属关系。然而，子进程却是与父进程完全独立的，因此，可按需将其分配至其它cgroup而对父进程没有任何影响，反之亦然，即创建子进程后，修改父进程的cgroup不会影响至此前创建的子进程的cgroup从属关系。
+
+二、使用cgroup
+
+有两种途径配置和使用cgroup：shell命令行工具以及libcgroup。libcgroup是较易用的方式，它是一个程序包，包含了cgroup相关的大量专用命令行工具，这些工具可简化配置过程并提供了扩展功能。使用libcgrop之前需要事先安装之。
+
+~] # yum install libcgroup
+
+2.1 cgconfig服务
+
+由libcgroup包安装的cgconfig服务提供了创建层级、在层级在附加子系统以及在层级中管理cgroup的简便方法。在启动cgconfig服务时，它通过读取/etc/cgconfig.conf配置文件创建层级、挂载所需文件系统、创建cgroup以及为每个cgroup设定子系统参数等功能。不过，在停止cgconfig服务时，它会自动卸载所有的层级。
+
+cgconfig.conf配置文件主要包含两种类型的条目———— mount和group，用于生成并挂载层级将其作为虚拟文件系统，以及将子系统关联至层级上。
+
+2.1.1 mount条目
+ 
+ mount类型的条目语法格式如下：
+
+	mount {
+	    subsystem = /cgroup/hierarchy;
+	    …
+	}
+
+例如，以cpuset子系统创建层级的方法如下：
+	mount {
+	    cpuset = /cgroup/cpu;
+	}
+
+不过，这也可以直接通过shell命令来实现，这意味着如上配置通过cgconfig实现的过程也可以替换为如下命令：
+	~]#  mkdir /cgroup/cpu
+	~]# mount -t cgroup -o cpu cpu /cgroup/cpu
+
+当然，也可以将多个子系统关联至同一个新创建的层级上。例如下面的例子则实现了将cpu、cpuset、cpuacct和memory子系统关联至名为cpu_and_mem的层级上。
+	mount {
+	    cpuset  = /cgroup/cpu_and_mem;
+	    cpu     = /cgroup/cpu_and_mem;
+	    cpuacct = /cgroup/cpu_and_mem;
+	    memory  = /cgroup/cpu_and_mem;
+	}
+
+这些也可以通过shell命令来实现：
+~]# mkdir /cgroup/cpu_and_mem
+~]# mount -t cgroup -o subsystems name /cgroup/name
+
+使用“lssubsys -am”命令可列出当前系统上的所有子系统及其相关的挂载点。下面的输出信息表示cpuset、cpu、cpuacct和memory子系统关联至了/cgroup/cpu_and_mem，而余下的子系统尚未关联至任何层级。
+~]# lssubsys -am
+ns
+devices
+freezer
+net_cls
+blkio
+perf_event
+net_prio
+cpuset,cpu,cpuacct,memory /cgroup/cpu_and_mem
+
+2.1.2 group条目
+
+group类型的条目语法格式如下。其中permissions部分用于定义权限，是可选内容。
+
+	group <name> {
+	    [<permissions>]
+	    <controller> {
+	        <param name> = <param value>;
+	        …
+	    }
+	    …
+	}
+
+	其中permissions部分用于定义权限，是可选内容。perm部分的定义遵循如下语法格式。
+
+		perm {
+		    task {
+		        uid = <task user>;
+		        gid = <task group>;
+		    }
+		    admin {
+		       uid = <admin name>;
+		       gid = <admin group>;
+		    }
+		}
+
+例如，为sql守护进程创建cgroup，可为sqladmin cgroup中的用户在cgroup中添加任务，并让root用户修改子系统参数：
+
+	group daemons {
+	     cpuset {
+	         cpuset.mems = 0;
+	         cpuset.cpus = 0;
+	     }
+	}
+	group daemons/sql {
+	     perm {
+	         task {
+	             uid = root;
+	             gid = sqladmin;
+	         } admin {
+	             uid = root;
+	             gid = root;
+	         }
+	     }
+	     cpuset {
+	         cpuset.mems = 0;
+	         cpuset.cpus = 0;
+	     }
+	}
+
+不过，这也可以直接通过shell命令来实现，这意味着如上配置通过cgconfig实现的过程也可以替换为如下命令：
+
+~]# mkdir -p /cgroup/cpu/daemons/sql
+~]# chown root:root /cgroup/cpu/daemons/sql/*
+~]# chown root:sqladmin /cgroup/cpu/daemons/sql/tasks
+~]# echo $(cgget -n -v -r cpuset.mems /) > /cgroup/cpu/daemons/cpuset.mems
+~]# echo $(cgget -n -v -r cpuset.cpus /) > /cgroup/cpu/daemons/cpuset.cpus
+~]# echo 0 > /cgroup/cpu/daemons/sql/cpuset.mems
+~]# echo 0 > /cgroup/cpu/daemons/sql/cpuset.cpus
+
+需要注意的是，对配置文件的任何个性操作只有重启相应的服务方能生效。这可以通过如下命令实现。
+
+~]# service cgconfig restart
+
+另外，出于复用等目的，也可以在/etc/cgconfig.d/目录中合建以“.conf”结尾的文件来单独定义每一个mount和cgroup相关的条目。cgconfig服务在读取/etc/cgconfig.conf后则会读取/etc/cgconfig.d/目录下的所有的此类文件，因此，不要在不同的文件中定义同名的group以免发生冲突。
+
+2.2 创建和删除cgroup
+
+cgcreate命令可用于创建cgroup，其使用语法为：
+
+	cgcreate -t uid:gid -a uid:gid -g subsystems:path
+
+	“-t uid:gid”选项用于指定此cgroup中的tasks伪文件系统的用户和组，此用户将拥有在此cgroup中添加任务的权限；
+	“-a uid:gid”选项用于指定整个cgroup中除了tasks以外的其它伪文件系统的属主，此用户拥有为此cgroup的任务分配可用资源的权限； 
+	“-g subsystems:path”选项指定在其中要创建指定的cgroup的层级，格式为关联至层级的子系统的列表以及此cgroup相对于子系统相关层级的路径；如果这些子系统分属于不同的层级，则会在各层级中分别创建一个cgroup；
+
+例如，下面的命令表示在cpu和net_cls所属的层级中创建一个cgroup，其路径为cpu和net_cls所属的层级下的test-subgroup。
+	~]# cgcreate -g cpu,net_cls:/test-subgroup
+
+事实上，简单创建cgroup的方法也可通过直接使用mkdir命令在相关的层级路径下创建子目录来实现。这意味着，上述过程可通过下面的命令完成（假设cpu和net_cls均关联至专用的单独层级）。
+	~]# mkdir /cgroup/cpu/test-subgroup
+	~]# mkdir /cgroup/net_cls/test-subgroup
+
+删除cgroup可使用cgdelete命令进行，语法如下所示。
+	cgdelete subsystems:path
+
+因此，如果要删除此前述过程中创建的cgroup，可通过如下命令完成。
+	~]# cgdelete cpu,net_cls:/test-subgroup
+
+2.3 设置参数
+
+以拥有cgroup资源配置权限的用户运行cgset命令即可完成资源配置，这也称作设置资源参数。cgset命令的语法格式如下所示。
+
+	cgset -r parameter=value path_to_cgroup
+
+	其中parameter为层级上相关子系统的可调参数，每个子系统都有许多可调参数，具体请参照官方文档中的说明；path_to_cgroup表示目标cgroup的相对路径，如果为root cgroup，则直接使用“/”表示路径即可。
+
+例如，假设在/cgroup/cpu_and_mem层级下存在testgroup这个cgroup，现在设置其中的所有任务可运行于0和1两颗CPU上，可使用如下命令进行。
+	~]# cgset -r cpuset.cpus=0-1 testgroup
+
+另外，cgset命令也可以复制一个cgroup的设置为另一个cgroup的设置，这可以使用如下方式使用cgset命令进行。
+	cgset --copy-from path_to_source_cgroup path_to_target_cgroup
+
+上述操作过程也可以通过直接编辑cgroup中的参数文件实现，例如上面的操作示例可替换为如下命令。
+	~]# echo 0-1 > /cgroup/cpu_and_mem/group1/cpuset.cpus
+
+2.4 移动进程至cgroup中
+
+将进程移动至cgroup中可控制其仅能使用相应cgroup中定义的资源量，从而实现资源在进程间的配置。cgclassify命令可用于实现此功能，命令语法格式如下所示。
+	cgclassify -g subsystems:path_to_cgroup pidlist
+
+	其中subsystems:path_to_cgroup为指定子系统的cgroup，而pidlist则为空白分隔的PID列表。如果未为cgclassify命令使用-g选项，其将自动搜索/etc/cgrules.conf配置文件，并使用第一个可用的配置行来确定subsystems和相应的cgroup，并将各PID表示的进程移至其中。
+
+另外，还​​​可​​​以​​​在​​​pid前​​​面​​​添​​​加​​​“--sticky”选​​​项​​​以​​​保​​​证​​​所​​​有​​​子​​​进​​​程​​​位​​​于​​​同​​​一​​​cgroup中​​​。​​​不过，如​​​果​​​没​​​有​​​设​​​定​​​这​​​个​​​选​​​项​​​且​​​cgred守​​​护​​​进​​​程​​​正​​​在​​​运​​​行​​​，其则​​​会​​​根​​​据​​​/etc/cgrules.conf配置文件中​​​的​​​设​​​置​​​将​​​子​​​进​​​程​​​分​​​配​​​到​​​cgroup 中​​​。​​​该​​​进​​​程​​​本​​​身​​​则​​​仍​​​保​​​留​​​在​​​启​​​动​​​它​​​的​​​cgroup中​​​。
+
+下面的示例实现了将1993和2014进程同时移至cpu和memory子系统的testgroup中。
+	~]# cgclassify -g cpu,memory:testgroup 1993 2014
+
+不过，也可以通过直接编辑相关cgroup的tasks文件实现上述功能，例如，将1993进程移至testgroup中，也可以使用如下命令。
+	~]# echo 1993 > /cgroup/cpu_and_mem/testgroup/tasks
+
+cgclassify命令的作用范围是当前系统，在系统重启后将会失效。如果期望系统重启后依然有效，则需要使用/etc/cgrules.conf配置文件来保存进程的分配目标cgroup，并通过cgrep守护进程将其应用至当前系统。
+
+/etc/cgrules.conf配置文件的语法格式可以是如下两种格式其中之一。
+	user subsystems control_group
+	user:command subsystems control_group
+
+	其中，user为当前系统上的某用户或组，组名需要使用“@”符号前缀，用于配置相关用户或组启动的所有进程或某进程(user:command)至由后面的“subsystems control_group”指定的cgroup中。
+
+例如，“@mageedu  devices	/usergroup/staff”表示mageedu组内的所有用户访问devices子系统的资源时将根据/usergroup/staff这个cgroup的配置进行资源指定，而“@mageedu:ftp devices /usergroup/staff/ftp”则表示mageedu组内的所有用户访问运行ftp命令时，进程会自动地被移至/usergroup/staff/ftp这个包含devices子系统的cgroup中。
+
+/etc/cgrules.conf配置文件还可以使用除了@以外的其它符号。
+	*：表示所以，例如subsystems字段中的*可代表所有的子系统； 
+	%：表示使用上一行中对应字段中的相同项目；
+
+定义在/etc/cgrules.conf中的规则可以被链接至/etc/cgconfig.conf或/etc/cgconfig.d/*.conf配置文件中定义的模板(template)，从而实现cgroup的弹性应用。
+
+假设下面是一个在/etc/cgconfig.conf中定义的模板：
+	template users/%g/%u {
+	                     cpuacct{
+	                     }
+	                     cpu {
+	                        cpu.shares = "1000";
+	                     }
+	          }
+
+于是，在/etc/cgrules.conf中可以定义类似如下的规则，它在指明使用的cgroup时使用了前面定义的模板。
+	peter:ftp		cpu		users/%g/%u	         
+
+规则中的%g和%u会自动替换成ftp进程的属主和属组，例如，如果进程属于adminstaff组中的peter用户，前述cgroup路径将被替换为users/adminstaff/peter。此时，cgrepd守护进程会搜索此路径，如果目标目录不存在，cgrepd会自动创建之并将此进程的PID添加至users/adminstaff/peter/tasks文件中。
+
+在定义模板时常用的变量除了前面提到的%g和%u之外还有如下几个：
+	%U: 替换为相关用户的UID；
+	%G: 替换为相关组的GID；
+	%p：替换为当前进程的进程名； 
+	%P：替换为当前进程的PID；
+
+2.5 在特定cgroup中运行进程
+
+除了使用cgclassify命令将已经启动的进程移至指定的cgroup外，对于尚未运行的程序，还可以使用cgexec命令直接在指定的cgroup中启动进程。此命令的语法格式为：
+	cgexec -g subsystems:path_to_cgroup command arguments
+
+	其中command为要运行的程序，而arguments为程序的选项或参数等。另外，还可以通过为cgexec命令使用--sticky将其启动进程的所有子进程放置于当前cgroup中，否则，运行中的cgrepd进程就会根据/etc/cgrules.conf中的定义将相应的子进程移至配置的目标cgroup中，不过，当前进程会依然保留在启动它的cgroup中。
+
+例如，下面的命令将会在testgroup这个cgroup中启动elinks进程浏览http://www.magedu.com站点。
+	~]# cgexec -g cpu:testgroup elinks -dump http://www.magedu.com
+
+因为新启动的进程会继承父进程的cgroup，因此，上述功能也可以通过shell命令来实现，其简要方法如下：
+	~]# bash -c "echo \$$ > /cgroup/cpu_and_mem/testgroup/tasks && elinks -dump http://www.magedu.com"
+
+如果要在CentOS 6上将服务启动于指定的cgroup中，需要通过编辑/etc/sysconfig/SERVICENAME配置文件定义“CGROUP_DAEMON=subsystems:control_group”变量，以及通过/etc/init.d/functions中的daemon函数来启动服务进程实现。
+
+需要额外说明的是，blkio和cpu子系统对于配置在root cgroup或子cgroup中的进程在运行时有着不同的影响方式。假设在/cgroup/cpu/层级下有两个cgroup，分别为/cgroup/cpu/first和/cgroup/cpu/second，而后，为root cgroup，以及first和second两个子cgroup均设置其cpu.shares参数的值为1，那么，如果有三个进程分别运行于三个cgroup中时，那么它们各自占用的CPU比例均为33.333%，然而，如果在root cgroup中有不止一个进程，假设有8个，那么三个cgroup中的进程各自占用的CPU的比率则成了80%（root cgroup）、10%和10%，因为，root cgroup中的多进程间资源分配的方式是按每进程平均的，而非每cgroup，这意味着，root cgroup的每个进程与每一个cgroup要平均分配这些可用资源。因此，实际使用中，推荐将所有的进程都定义在子cgroup中以避免这种独特的行为。另外一个有着类似行为的则是blkio子系统的blkio.weight参数。
+
+2.6 生成cgconfig.conf配置文件
+
+如前所述，cgroup的配置即可以通过直接定义/etc/cgconfig.conf配置文件，通过cgconfig服务读取进行，也可以通过shell命令进行，例如使用mount命令创建层级并关联子系统，使用mkdir命令创建cgroup，使用echo命令为参数设定了取值等。而对于后一种方式所实现的配置也可以使用cgsnapshot命令获取成为cgconfig.conf配置文件的内容。
+
+命令的语法格式为：
+	cgsnapshot [-h] [-s] [-f FILE] [controller] [...]
+
+	其中，-s选项表示忽略所有的警告信息，而“-f FILE”则用于将命令的输出直接保存至指定的文件中，这通常为cgconfig.conf配置文件，“controller”为Cgroup的各可用子系统。
+
+2.7 获取Cgroup的相关信息
+
+若要查看一个进程所属的cgroup，可以通过使用“ps -o cgroup”命令实现，当然，也可直接获取/proc/PID/cgroup文件的内容。例如查看当前系统上所有进程相关的cgroup信息。
+
+~]# ps axo pid,command,cgroup
+  PID COMMAND                     CGROUP
+    1 /sbin/init                  memory,cpuacct,cpu,cpuset:/
+    2 [kthreadd]                  memory,cpuacct,cpu,cpuset:/
+    3 [migration/0]               memory,cpuacct,cpu,cpuset:/
+    4 [ksoftirqd/0]               memory,cpuacct,cpu,cpuset:/
+    5 [stopper/0]                 memory,cpuacct,cpu,cpuset:/
+    …… ……
+    …… ……
+
+如果要获取当前系统上所有的可用subsystem及其关联的层级信息，可直接查看/proc/cgroups文件。如果要查看某特定的subsystem所关联至层级，可以使用前述内容中曾经用到的lssubsys命令进程。例如，获取memory子系统的。
+	~]# lssubsys -m memory
+	cpuset,cpu,cpuacct,memory /cgroup/cpu_and_mem
+
+要获取所有的cgroup或某特定cgroup下的所有cgroup，需要使用lscgroup命令，例如：
+	~]# lscgroup 
+	cpuset,cpu,cpuacct,memory:/
+	cpuset,cpu,cpuacct,memory:/second
+	cpuset,cpu,cpuacct,memory:/first
+
+要显示指定cgroup的某参数的设定或所有参数的设置信息，需要使用cgget命令。例如，获取cpu子系统的first cgroup中的所有参数设定，可使用如下命令。
+	~]# cgget -g cpu:/first
+	/first:
+	cpu.rt_period_us: 1000000
+	cpu.rt_runtime_us: 0
+	cpu.stat: nr_periods 0
+		nr_throttled 0
+		throttled_time 0
+	cpu.cfs_period_us: 100000
+	cpu.cfs_quota_us: -1
+	cpu.shares: 1024
+
+如果只想获取指定cgroup中的某特定参数，可以使用类似如下命令。
+	~]# cgget -r cpu.shares  /first
+	/first:
+	cpu.shares: 1024
+
+
+
+
+
+
+
+

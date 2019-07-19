@@ -1,0 +1,23 @@
+各节点要安装：
+ricci
+cam
+组件名为：packages
+1、echo 123456|passwd --stdin ricci
+###############################################
+调试端安装：luci:
+
+yum install luci
+##############################################
+集群配置：
+登录 web
+	创建:clusters 集群节点
+		download packages:在线下载并安装软件包。
+		enable shared storage supper: 本地安装软件包。
+		reboot node before joining dufter:节点加入集群时重启。
+	创建failover domain ：集群故障转移域。
+		failove domain name :转移转移域的名子。
+		prioritized 	:是否故障优先级。
+				:故障恢复时是否作资源转回。
+	创建 资源resources;
+	创建 组资源：
+

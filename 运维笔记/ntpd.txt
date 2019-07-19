@@ -1,0 +1,24 @@
+server
+#####################################################
+driftfile /var/lib/ntp/drift
+restrict default nomodify notrap noquery
+restrict 127.0.0.1
+restrict 192.168.2.0 mask 255.255.255.0 nomodify
+restrict -6 ::1
+server asia.pool.ntp.org prefer
+server 210.72.145.44
+server 127.127.1.1
+fudge 127.127.1.1 stratum 10 refid NIST
+broadcastdelay 0.008
+logfile /var/log/ntp.log
+includefile /etc/ntp/crypto/pw
+keys /etc/ntp/keys
+#####################################################
+客户端
+添加
+server   192.168.2.102
+###################################################
+服务端和客户端启动
+service ntpd start                                                               ntpq -p  查看时间调整                                                                                                           
+~                
+

@@ -1,0 +1,59 @@
+前提：
+drbd主从模型已搭建好。
+**********************************************************************
+corosync+pacemaker+crmsh+mysql
+########################################################
+配置：
+#crm
+	configure:界面
+定义drbd资源：	primitive mystor ocf:linbit:drbd params drbd_resource="mystore" drbdconf=/usr/local/etc/drbd.d/ op monitor role="Master" interval=10s timeout=20s op monitor role="Slave" interval=20s timeout=20s op start timeout=240s  op stop timeout=100s
+注释：
+primitive #定义一个主资源
+mystor		#此为资源名
+ocf:linbit:drbd #资源代理：linbit为drbd公司：资源
+params		#后面为参数定义
+drbd_resource="mystore"#指明drbd中定义的资源名（非pacemaker定义的资源名）
+op monitor	#监控：
+role="Master"	#指明监控从drbd从节点
+interval	#指明多少秒监控一次。
+timeout		#指明多少秒后超时
+op monitor	#监控
+role="Slave"	#指明监控主drbd节点
+______________________________________________________________
+
+
+定义克隆资源： ms ms_mstor mystor meta clone-max="2" clone-node-max="1" master-max="1" mast-node-max="1" notify="Ture" op moitor_slave  interval= 20s timeout=20s op monitor_Master interval=10s timeout=20s op start timeout=240s op stop timeout=100s
+注释：
+ms		#定义为克隆资源。
+ms_mstor	#克隆资源的名字。
+mystor		#克隆哪个资源名，此为上个定义。
+meta		#指明源属性：
+clone-max="2"	#最多运行几份（主drbd+从drbd）
+clone-node-max="1"	#一个节点最多运行一分（此分为：drbd上定义的资源）
+master-max="1"		#共有几个drbd主节点
+master-node-max="1"	#一个节最多运行1个主节点资源
+notify="Ture"		#要不要通知节点。可不定义默认为ture
+op monitor_Slave	#监控主节点。
+op monitor_Master	#监控从节点
+	
+_________________________________________________________________
+挂载资源：	primitive  mydate ocf:heatbeat:Filesystem params device="/dev/drbd0" directory="/mydatePATH" fstype="ext4" op monitor interval=20s timeout=20s op start timeout=60s op stop timeout=60s
+	
+注释：
+	device=		#为drbd磁盘设备路径
+	directory=	#本机挂载的位置
+	fstype-		#系统格式
+
+___________________________________________________________________________
+约束：
+	colocation mydatedf inf: mydata  mystor:Master
+注释：
+	mydata 要跟Master在一起
+顺序约束：
+	orde ....名   Mandatory: mystore:promote mydata:start
+注释：
+	Mandatory:表示强制！
+	mystore为主节点时，
+		mydata节点运行。
+
+	

@@ -1,0 +1,28 @@
+
+
+CentOS 5, 6, 7
+	5: SysV init
+		/etc/rc.d/rc.sysinit
+		/etc/init.d/*
+			串行
+	6: upstart, d-bus
+		/etc/init/*
+		/etc/init.d/*
+			并行
+	7：systemd,
+		grub2 
+
+	httpd
+		start()
+
+
+
+
+
+
+
+pid, 
+
+
+
+

@@ -1,0 +1,15 @@
+fastcgi_pass 	192.168.1.107:9000	#php-fpm监听的端口；
+fastcgi_index	index.php		#默认主页
+fastcgi_param SCRIPT_FILENAME	$document_root$fastcgi_script_name;
+###document_root=网站路径。fastcgi_script_name=访问的文件名  #合起来/usr/local/www/pe.php	
+fastcgi_connect_timeout 300;		#指定连接到后端fastcgi的超长时间
+fastcgi_send_timeout 300 ;	#向fastcgi传送请求的超长时间，这指已完成两次握手后向fastcgi传送请求的时间。
+fastcgi_read_timeout	300;	#指fastcgi应答的超时时间，指完成两次握手后的接收fastcgi应答时间。
+fastcgi_buffer_size 32k;	#指读取fastcgi应答第一部分需要多大的缓冲区，一般第一部分不会超过程1k，由于面大小为4k.
+fastcgi_buffers	4 32k;		#本地需要多少和多大缓冲区来缓冲。
+fastcgi_busy_buffers_size 64k;	#默认值是fastcgi_buffers的两倍。
+fastcgi_temp_file_write_size 64k #在写入fastcgi_temp_path时将多大的数据块
+fastcgi_cache_path /var/logs/nginx/	缓冲文件路径。
+fastcgi_cache_dir	levels=1:2
+keys_zone=cache_fastcgi:128 inactive=1d max_size=10g
+关键字区域存储  缓存时间	非活动删除时间   最大占用空间

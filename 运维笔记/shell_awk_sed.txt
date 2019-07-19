@@ -1,0 +1,205 @@
+###############################################################################################
+bash scripts篇
+正则表达式部分：
+	特殊字符：
+		[:alnum:]:a-z A-Z 0-9
+		[:alpha:] :a-z A-Z
+		[:cntrl:] :控制键 cr le tab del等
+		[:blank:]:空格和tab
+		[:digit:] 0-9
+		[:graph:] 除空格与tab以外的所用键
+		[:lower:] 代表任何小写字符
+		[:print:] 任何可以打印的字符
+		[:punct:] 标点符号
+		[:space:] 任何可以产生空格的字符，包空格，tab cr等
+		[:xdigit:] 代表16进制的数字类型
+	匹配字符：
+		^word 以word开头
+		word$ 以word结尾
+		.	任意单字符
+		\	转意符
+		*	重复任意次
+		[list] 字符集如[1,2,3,62,1][1-9] [a-z]
+		[^list] 非字符集字符
+		\{n, m\} 最少重复n次最多重复m次
+		+	重复0次或1次以上
+变量：可变化的量
+		本地变量
+		环境变量
+		局部变量
+		位置变量
+		特殊变量：$? $* $@ $# $$
+数组很少用！
+算术运算：
+	$[$A+$B]
+	$(($A+$B))
+	let vlure=$A+$B
+	vlure=$(expr $A + $B)
+或与运算：
+	||
+	&&
+整数测试：
+	$A -gt $B 是否大于
+	$A -ge $B 是不小于等于
+	$A -lt $B 是否小于
+	$A -le $B 是否小于等于
+	$A -eq $B 是否等于
+	$A -ne $B 是否不等于
+字符串测试：
+	"$A" > "$B"
+	"$A" < "$B"
+	"$A" == "$B"
+	"$A" != "$B"
+	-z "$A"	是否为空
+	-n "$A" 是否不空
+文件测试：
+	-e:是否存在
+	-a:同上
+	-f:是否为普通文件
+	-d:是否为目录
+	-h:是否为符号连接文件
+	-b:是否为块设备文件
+	-c:是否为字符设备
+	-S：是否为套接字文件
+	-p:是否为管道文件
+	-r:是否有读权限（本用户）
+	-w:是否有写权限（本用户）
+	-x:是否有执行权限（本用户）
+	-u:是否有SUID权限
+	-g:是否拥有SGID权限
+	-k:是否拥有sticky权限
+	-O：是否为指定文件的属主
+	-G：是否为指定件的属组
+双目操作符：
+	$file -nt $file 是否新于
+	$file -ot $file 是否旧于
+	$file -ef $file 是否为同一个硬链接
+特殊变量
+	$0 :脚本名称
+	$1:第一个参数（外送）
+	$2:第二个参数（外送）
+	$?:命令的状态结果
+	$*和$@:传递给脚本或函数的参数列表
+shift[n]:轮替
+read 	#从键盘读取输入字符
+	参数：
+		-p 输入前输出标题
+		-t 多长时间无输入退出read
+语句if：
+	if [ -e $filename ]; then
+		echo "$filename exit"
+	else
+		mkdir -p $filename
+	fi
+
+循环for:
+	列表循环
+		for username in user1 user2 user...../{1...10}; do
+			循环体
+		done
+	c语言用法：
+		for ((i=1;i<=100;i++));do
+			let sum+=$1
+		done
+
+case语句
+	case $VARIABLE in
+		1)
+			echo 1;;
+		2)
+			echo 2;;
+		esac
+循环while:
+	用法一、while [$i -le 100]; do
+		let sum+=$i
+		let i++
+		done
+	用法二、
+		while read VARIABLE ;do
+			循环体
+		done < /PATH/filename
+		#循环读入第一行执行
+################################################
+sed awk grep文本三剑客——让你我掌控一切
+printf	#格式化打印工具
+	%c:显示ASCI码
+	%d:十进制整数
+	%e:科学计数法显示
+	%f:显示浮点
+	%g:科学计数浮点
+	%s:字符串
+	%u:显示无符号整数
+	%%:%号本身
+	%10d %-10d
+sed	#流编辑器
+	支持正则表达式
+		基本正则表达式
+			字符匹配：. [] [^] #单字符，字符集 非字符集
+			次数匹配：* ,\?,\+ \{m,n\},\{n\} 几次，最0次或1次，最少m次最多n次，最多n次
+			位置锚定：^,$,\<,\> 行首，行尾，词首，词尾
+			多选一：a|b|c
+	支持vim编辑器中文本查找替换
+			#:指定行
+			$：最后一行
+			/string/:任何能被字符串匹配到的行
+
+	语法格式：
+		sed [OPTION]....{script} [input-file] ....
+			参数：
+				-r:支持扩展正则表达式
+				-n：静默模式
+				-e script1 -e script2...多脚本
+				-f 输入指定文件
+				-i 直接修改原文件
+			编辑命令
+				d:删除模式空间中的行
+				=：显示行号
+				a:\text 附加text
+				i：\text 插入text支持转行符\n
+				c:\text 用text替换匹配到的行
+				p：打印模式空间的行
+				s/string/string2/g全局查找替换字符串
+				w /PATH/FILENAME指定内容输出至文件
+				r /PATH/FILENAME文件指定位置插入文件内容
+			使用例子：
+				sed 's/^root/fengzi/g' /etc/passwd
+					把passwd文件以root开头的行替换为fengzi
+				cat /etc/passwd|sed '1~10w'/home/centos/passwdname
+					输出passwd文件管道给sed并把1-10行保存至passwdname
+				cat/etc/passwd|grep '!bash$'|sed '200d'
+					把passwd 不以bash结尾的行输出给sed处理，sed查找含200的行删除
+
+
+awk	#报告生成器
+	语法格式：
+		awk [options] 'program' file file...
+		awk [options] 'PATTERN{action}' file file..
+	内置变量：
+		$0：整行
+		$1:切片1
+		$2：切片2
+		
+
+		FS:输入时字段分隔符
+		OFS：输出时字段分隔符
+		ORS:输出时行分隔符
+		RS：输出行分隔符
+		NF：字段
+		NR：行数
+		FNR：行数各文件分别记数
+		-V FS='value'变量赋值
+	例：
+		awk -F : 'NR>15 && NR<=20 {print $1 }' /etc/passwd
+			以：作分隔 15-20行内容打印至屏幕
+		awk -F: BEGIN{ print "10-20行有以下用户"} 'NR>10 && NR<=20 {printf $1 }' /etc/passwd
+		先输出标头“10-20行有以下用户”一次，再把10-20内第一片字符逐行输出 输入文件是passwd
+	
+	awk语法控制语名
+		if语名句：
+			awk -F : '{if ($3>=500) {print $1} else {print "此行用户非系统用户"}}' /etc/passwd
+
+		while语名
+			awk -F : '{i=1; while (i<NF) {printf $1}' /etc/passwd
+		for 循环
+			awk 'for(i=1;i<=NF;i+=2) {print $1} ' /etc/passwd
+

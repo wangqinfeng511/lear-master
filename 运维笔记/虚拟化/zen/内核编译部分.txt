@@ -1,0 +1,40 @@
+一、创建img映像文件
+ #dracut /home/initramfs-$(uname -r).img $(uname -r)
+	-m  额外加载哪些模块 
+	-d  额外加载哪些驱动
+ 	查看文件：
+	file initramfs-2.6.32-431.el6.x86_64.img
+	1.解压gzip
+	2.再用 cpio -id 解压
+打包方法：
+	find . |cpio -o -H newc --quiet> myramdisk.img
+	gzip -q myramdisk.img
+	mv myramdisk.img.gz /boot/myramdisk.img
+二、编译内核：
+	充分工获取目标硬件设备信息
+	充分获知目标系统设备信息。
+	打算启用的新功能
+	开发环境及内核源代码树。
+三、获取硬件设备信息：
+  	cpu 信息：
+		cat /proc/cpuinfo
+		lscpu
+		x86info -a 详细信息
+	pci 信息：
+		lipci -v 详细信息
+		lsusb -v
+		lsbik -v 查看块设备
+	全部硬件信息：
+		hal-device 
+四、编译：
+	环境安装：
+ 		yum -y groupinstall "DeveloPment Tools"
+ 		yum groupinstall "server Platform Development"
+	cp /boot/config-3.18.21-16.el6.x86_64 ./.config 把本机的内核配置放置编译文件中。
+	make menuconfig
+		[] 不启用此功能
+		[m] 编译成内核模块。
+		[*] 编译进内核
+	make
+	make modules install 安装模块
+	make install 安装内核

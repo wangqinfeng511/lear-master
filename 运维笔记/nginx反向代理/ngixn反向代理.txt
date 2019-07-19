@@ -1,0 +1,103 @@
+session保持：
+	session绑定
+		cookie	#方式绑定，可解决局域网源IP都为路由IP的ip_hash问题。
+		route	#路由方式绑定。
+	session复制。
+nginx反向代理模块：ngx_http_proxy_moduie
+	location /url {
+		proxy_pass: http://userveer	#调用nginx中定义的服务器组，负载均衡。
+		proxy_pass http:192.168.1.112/	#请求/url反向至192.168.1.112/
+		proxy_set_header Host $host X-peaI-IP	$remote_addr
+					#头文件中含客户地址，
+		proxy_cache mycache	#引用缓存名mycache在nginx.conf定义。
+		proxy_cache_valid 200 1d; #响应码为200缓存一天。
+		proxy_cache_valid 301,302 10m #响应码为301,302缓存10分钟。
+		proxy_cache_valid any 1m	#其他则缓存1分钟。
+		proxy_cache_use_stale error timeout http_500 http502 http_504
+			#哪此状态下可使用过期缓存。
+		proxy_connect_timeout;	#后端up服务器连接超时时间。
+		proxy_hlde_header :	#隐藏首部，响应客户端首部。
+		proxy_read_timeout	#后端接收服务器超时时间。
+#		proxy_cache_bypass	string #在何情况下不缓存。 
+		proxy_cache_bypass $cookle_nocache $arg_nocache $http_authorlzatlon.
+	
+	}
+##########################################################################
+nginx.conf
+http{
+	proxy_cache_path  /cach/nginx levels=1:1 max_size=5G keys_zone=mycache:32m	
+	#缓存目录位置，属主要求为nginx用户。
+	#levels设置有几层目录，1代表单字符命名方式。
+	#max_size设缓存大小最大存储值。
+	#keys_zone设置内存建值名（hash）和大小。
+
+	fastcgi_cache_path /cache/fastcgi/ levels=1:1 keys_zone=fastcache:10m inactive=3m max_size=1g #inactive非活动时间。
+
+负载均衡定义：
+	upstream userveer{#定义服务器组
+		lest_conn	#最少连接算法，调度至upserver最少连接.
+		keepalive	#激活nginx与upserver建立持久连接。
+		server 192.168.1.113  weight=2#权重值
+		server 192.168.1.112  down	#下线。
+		server 192.168.1.114	backup	#备用服务器。
+		ip_hash		#启用ip哈希算法，IP定向同一server。写到服务组后面
+		max_fails=2	#up服务器错误几次。确定不健康。
+		fail_timeout=1s	#多少秒检查一次	。
+
+
+	}
+
+##########################################################################
+health_cheack:	#明确定义检测健康状态检查，一般用于特定资源定义在location。
+		interval=5s #多久检查一次。
+		fails=1	    #多少次检查不到认为是错误。
+		passer=1    #多少次检测正常可上线。
+		uri=http:192.168.1.112/de.html
+		match=name #检测返回内容含此字符串认为正常。
+例：
+http {
+	server{
+		location / {
+		proxy_pass http:192.168.1.112/de.html
+		health_cheack match=welcome
+			}
+	}
+	match welcome {
+		status 200	#返回状态码200进行下面检测
+		header Content-Type=text|html;
+		body ~ " welcome to nginx ";
+
+		}
+
+}	
+
+#########################################################################
+自定义响应首部：
+	add_header X_Vig $server_addr $uppstream_cache_status
+########################################################################
+fastcgi 动态代理模块：
+	yum install php-fpm#安装php fpm
+	loction ~\.php$ {
+			fastcgi_pass 192.168.1.114:9000	#php地址：端口
+			fastcgi_index index.php		#fastcgi默认网页。
+			fastcgi_param SCRIPT_FILENAME /scripts $fastcgi_scipt_name #请求的php,/scripts/...php.
+		fastcgi_cache fastcache #调用conf中定义的fastcgi缓存定义。
+		fastcgi_cache_valid	200 10m 反回状态码200则缓存10分钟。
+		fastcgi_store PATH	#不建议启用。
+
+	}
+
+########################################################################
+常用变量：
+$host	     #客户端首部值。
+$remote_addr #客户端地址.
+$cookle_nocache	#含cookle
+$arg_nocache
+$http_authorlzatlon
+$upstream_cache_status # 缓存是否命中，miss未命中，hid命中。
+$fastcgi_scipt_name	#请求资源名。
+###########################################################################
+压力测试：
+ab -n 1000 -c 50 http:192.168.1.115
+-n总共多少次。
+-c一次并发。

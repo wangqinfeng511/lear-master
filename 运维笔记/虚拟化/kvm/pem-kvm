@@ -1,0 +1,123 @@
+查看是否支持cpu虚拟化技术
+下载云测试镜像。http://download.cirros-cloud.net/                   
+cirros-0.3.4-x86_64-disk.img 
+grep -E --color "(vmx|svm)" /proc/cpuinfo #有vmx表示支持。svm是admCPU
+加载KVM模块：modprobe kvm
+加载intel支持：modprobe kvm-intel
+查看是否已经被kvm寄宿：ll /dev/kvm
+#yum install qemu-kvm 
+#ln -sv /usr/libexec/qemu-kvm  /usr/bin/ 
+#########################################################################################
+一、qem-kvm 命令：
+	启动是列：
+		qemu-kvm -m 128 -name "web" -smp 2  -hda /home/kvm/cirros-0.3.4-x86_64-disk.img
+	-m 内存大小
+	-name:虚拟机名字
+	-smp：虚拟机物理核心数
+	-hda:镜像文件路径
+	##################################
+光盘：-drive file=/home/winxp.iso,media=cdrom
+硬盘：-drive file=/home/dom.img, if=virtio media=disk cache=writeback format=qcow2
+		file:映像文件路径
+		if:模拟的接口类型。
+		media:类型
+		cache:缓存方式：
+			none:不缓存
+			writeback:回写缓存
+			unsafs:不安全缓存
+			writethrough
+		format:映像文件的格式。可以用qemu-img info ...img
+cpu:-smp sockets=1,cores=2,threads=2,
+		sockets:物理插槽数
+		cores:每核的线程数
+		threads:核心数
+		1棵cpu俩核心，4线程
+内存：-m 512
+显示：
+	-nographic:不启用图形界面，使用串口设备交互。
+	-cirrus:	禁用图形界面，并使用curses/ncurses作交互。
+	-alt-grab	使用ctrl+ait+shift释放鼠标。
+	-ctrl-grab	使用ctrl键释放鼠标。
+	-sdl		启用sdl
+	-spice	使用spice远程桌面协议。
+	-vga	type	指定仿真VGA接口类型。
+		type:
+			cirlus:模拟gd5446显卡
+			std	:带Bochs VBI扩展的标准VGA显示
+			vmware:vmware兼容的显示
+			dxl	:半虚拟化显示卡
+			none	:禁用VGA
+	-vnc:使用vnc:
+		列：-vnc :3 ,password -monitor stdio 
+			-monitor stdio 当前界面直接进入monitor接口
+			 #change vncpassword 设置vnc登录密码。
+	-net 网络：
+		-net nic :虚拟机网卡部分
+			model= 模拟的网卡设备默认使用virtio.
+			vlan=加入的vlan号默认是0
+			macaddr=52:54:00:xx:xx:xx mac地址指定
+		-net tap: 宿主机内为虚拟主机建立的上半部分。
+			ifname:接口显示的名字
+			script:虚拟机启动创建网卡时时为执行的脚本。
+			downscript:虚拟机正常关机时执行的脚本。
+	-boot启动顺序：
+		
+#######################################################################################################################################################
+桥接网卡脚本：虚拟机桥接网卡需要用到
+# cat /etc/qemu-ifup
+#/bin/bash
+bridge=br0
+if [ -n "$1" ];then
+        ip link set $1 up 
+        sleep 1
+        brctl addif $bridge $1
+        [ $? -eq 0 ] && exit 0 ||exit 1
+else
+        echo "Error :no interface"
+fi
+
+#cat /etc/qemu-ifdown
+#!/bin/bash
+				#
+				bridge=br0
+
+				if [ -n "$1" ];then
+					brctl delif $bridge $1
+					ip link set $1 down
+					exit 0
+				else
+					echo "Error: no interface specified."
+					exit 1
+				fi
+
+#######################################################################################################################################################
+网卡部分：
+-net nic -net tap script=qemu-ifup,downscript=no
+-net nic #虚拟机网卡半段
+-net tap #主机前半段
+
+qemu-kvm -m 128 -name "web" -drive file=./cirros-0.3.4-x86_64-disk.img,if=virtio,media=disk,cache=writeback,format=qcow2 -smp sockets=1,cores=2,threads=2 -vga cirrus -net nic  -nographic
+
+自动桥接的虚拟机
+qemu-kvm -m 128 -name "web2" -drive file=./cirros2.img,if=virtio,media=disk,cache=writeback,format=qcow2 -smp sockets=1,cores=2,threads=2 -vnc :1 -daemonize -net nic,model=virtio -net tap,ifname=dom2,script=/etc/qemu-ifup,downscript=no
+
+
+##########################################################################################################################
+virtio半虚拟化技术设备：
+	主要针对网络和磁盘，cpu的虚拟化是cpu的支持。
+	支持依赖： Guestos的驱动（虚拟机系统）前半段    Qemu中的后端驱动（后半段驱动）。
+如果开启用半虚拟化性能没有提升，关掉网卡的GSO TSO
+	查看：ethtool -k |grep gso
+		ethtool -K eth0 gso off
+		ethtool -K eth0 tso off
+##########################################################################################################################
+vhost-net 模块：virtio加速功能，取代工作于用户空间的gemu中的virtion于内核中。
+	使用方法：-net tap,vnet_har=on,vhost=on
+
+迁移：
+原主机使用：monitor接口
+		#migrate tcp 目标主机IP:端口号
+被迁移主机：qemu-kvm -incoming tcp:0:7777
+
+
+	

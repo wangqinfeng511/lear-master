@@ -1,0 +1,24 @@
+ yum install memcached python-memcached mod_wsgi openstack-dashboard
+一、service memcached start
+	chkconfig memcached on
+二、cd /etc/openstack-dashboard/local_set..
+OPENSTACK_HOST = "controller"
+OPENSTACK_KEYSTONE_URL = "http://%s:5000/v2.0" % OPENSTACK_HOST
+OPENSTACK_KEYSTONE_DEFAULT_ROLE = "_member_"
+ALLOWED_HOSTS = ['*']
+
+ CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
+
+#CACHES = {
+#    'default': {
+#        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'
+#    }
+#}
+TIME_ZONE = "Asia/Chongqiang"
+#############################################################
+systemctl start httpd

@@ -1,0 +1,117 @@
+工作组件：
+	exchange:交换器
+	queue	:消息队列
+	routing key :路由键
+	几个概念说明：
+
+1.  Broker：简单来说就是消息队列服务器实体。
+
+2.  Exchange：消息交换机，它指定消息按什么规则，路由到哪个队列。
+
+3.  Queue：消息队列载体，每个消息都会被投入到一个或多个队列。
+
+4.  Binding：绑定，它的作用就是把exchange和queue按照路由规则绑定起来。
+
+5.  Routing Key：路由关键字，exchange根据这个关键字进行消息投递。
+
+6.  vhost：虚拟主机，一个broker里可以开设多个vhost，用作不同用户的权限分离。
+
+7.  producer：消息生产者，就是投递消息的程序。
+
+8.  consumer：消息消费者，就是接受消息的程序。
+
+9.  channel：消息通道，在客户端的每个连接里，可建立多个channel，每个channel代表一个会话任务。
+
+#########################################################################################
+消息队列的使用过程大概如下：
+
+1.  客户端连接到消息队列服务器，打开一个channel。
+
+2.  客户端声明一个exchange，并设置相关属性。
+
+3.  客户端声明一个queue，并设置相关属性。
+
+4.  客户端使用routing key，在exchange和queue之间建立好绑定关系。
+
+5.  客户端投递消息到exchange。
+
+6.  exchange接收到消息后，就根据消息的key和已经设置的binding，进行消息路由，将消息投递到一个或多个队列里。
+#########################################################################################
+
+采用erlang语言开发。
+工作于三种模式：
+	单一模式：单一的非集群。
+	普通模式：集群，消息进入A节点的queue后，如果b节点被consumer请求A节点的内的消息，b节点才去a节点中去拿消息。
+	镜像模式：把需要的队列作成镜像队列，存在于多个节点，属于rabbitmq的ha方案。
+################################################################################
+镜像分为：内存节点，磁盘节点。如果投递消息时，打开了消息持久化，那么即使内存节点数据还是会安全的同步到磁盘节点。
+一个rabbit可以共享user,vhost,queue,exchange等。
+内存节点：只保存状态到内存。
+磁盘节点：保存状态到内存各磁盘。
+################################################################################
+安装：epel源。
+yum install erlang xmlto
+http://www.rabbitmq.com/releases/rabbitmq-server/v3.5.0/rabbitmq-server-3.5.0-1.noarch.rpm
+yum localinstall rabbitmq-server-3.5.0-1.noarch.rpm
+service rabbitmq-server start
+###############################################################################
+#/etc/init.d/rabbitmq-server restart
+  
+ # rabbitmqctl delete_user guest
+ #rabitmqctl add_user admin password
+ #rabbitmqctl set_user_tags admin administrator
+ #rabbitmqctl add_vhost web
+ #rabbitmqctl set_permissions -p web admin ".*" ".*" ".*"
+ #rabbitmq restart
+ #sudo rabbitmq-plugins enable rabbitmq_management
+ 工作于IP:15672端口
+  
+ #node2
+  # rabbitmqctl delete_user guest
+ #rabitmqctl add_user admin password
+ #rabbitmqctl set_user_tags admin administrator
+ #rabbitmqctl add_vhost web
+ #rabbitmqctl set_permissions -p web admin ".*" ".*" ".*"
+ #rabbitmq restart
+ #sudo vim /var/lib/rabbitmq/.erlang.cookie #保持2台node 上的文件一直，权限一样
+ -r-------- 1 rabbitmq rabbitmq 21 8月  14 10:21 /var/lib/rabbitmq/.erlang.cookie
+  
+ 将node1和node2 组成集群
+ node2 上面执行如下命令
+ #rabbitmqctl stop_app
+ #rabbitmqctl join_cluster --disk rabbit@node1  
+ #rabbitmqctl start_app
+ #rabbitmqctl cluster_status
+  
+ Cluster status of node 'rabbit@node2' ...
+[{nodes,[{disc,['rabbit@node1']},
+         {ram,['rabbit@node2']}]},
+ {running_nodes,['rabbit@node1','rabbit@node2']},
+ {cluster_name,<<"rabbit@node1">>},
+ {partitions,[]}]
+  
+  
+ #sudo rabbitmq-plugins enable rabbitmq_management
+  
+ #sudo rabbitmqctl stop_app
+  sudo rabbitmqctl change_cluster_node_type ram
+  sudo rabbitmqctl start_app
+ ########################################################################################################################################
+ 集群映射
+ rabbitmqctl  set_policy -p web ceshi "^.*" '{"ha-mode":"all", "ha-sync-mode":"automatic"}'
+ 镱像队列通过添加policy策略完成。
+ 添加policy命令格式：
+ 	rabbitmqctl set_policy [-p vhost] Name pattern definition [priority]
+	-p vhost :虚拟主机的名称，上面创建的是web
+	Name	:此policy策略的名称。
+	pattern	:queue自动队列匹配模式‘‘'正则表达式'
+	definition:镜像定义，包括三个部分，ha-moder; ha-params, ha-sync-mode
+		ha-mode:指明镜像队列的模式，有效值all/exactly/nodes
+			all:表示在集群所有节点上进行镜像
+			exactly:表示在指定个数的节点上进行镜像，节点的个数由ha-params指定。
+			nodes:表示在指定的节点上进行镜像，节点名称通过ha-params指定。
+		ha-params:ha-mode模式需要用到的参数。
+		ha-sync-mode:镜像队列中消息的同步方式，有效值为automatic(自动同步)，manuall(手动同步)
+	priority:可选参数，policy的优行级别
+例如：
+	rabbitmqctl  set_policy  hello-ha  "^hello"  '{"ha-mode":"exactly","ha-params":2,"ha-sync-mode":"automatic"}'

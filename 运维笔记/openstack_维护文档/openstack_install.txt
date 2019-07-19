@@ -1,0 +1,26 @@
+yum install openstack-keystone httpd mod_wsgi
+yum install openstack-glance -y
+python2-PyMySQL
+yum install rabbitmq-server
+	 rabbitmqctl add_user openstack rabbit
+	rabbitmqctl set_permissions openstack ".*" ".*" ".*"
+
+ yum install memcached python-memcached
+/etc/sysconfig/memcached
+	OPTIONS="-l 127.0.0.1,::1,controller"
+
+yum install openstack-nova-api openstack-nova-conductor \
+  openstack-nova-console openstack-nova-novncproxy \
+  openstack-nova-scheduler openstack-nova-placement-api\
+	openstack-nova-spicehtml5prox -y
+
+yum install openstack-cinder
+
+############################
+compute
+yum install spice-server spice-protocol spice-html5
+systemctl enable libvirtd.service openstack-nova-compute.service
+systemctl restart neutron-linuxbridge-agent
+nova service-delete 11
+nova-manage cell_v2 discover_hosts
+

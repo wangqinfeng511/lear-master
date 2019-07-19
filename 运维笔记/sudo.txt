@@ -1,0 +1,40 @@
+sudo 
+授权指定用户可执行另一个用户的指定权限
+添加用户指定命令：
+/etc/sudoers#授权表
+专用编辑命令：visudo
+centos localhost=(root) /usr/sbin/useradd
+用户：centos
+IP：localhost本地/IP/ALL全部
+/usr/sbin/useradd 命令
+#############################################################################
+sudo命令：
+	-L：查看当前用户可执行命令
+	-u:user commadd 指定用户执行命令
+	-k:清除令牌
+	-b:COMMAND在后台运行命令
+	-e:修改指定文件
+#############################################################################
+命令别名：
+User_Alias FENGZI= centos ,fengzi %MYSQL
+		用户名
+		%组名
+		#UID
+		$#GID
+主机别名：
+Host_Alias IPHOST=192.168.10.107,192.168.0.0/16,192.0.0.0/8
+		192.168.0.0/16
+		192.0.0.0/8
+命令别名：
+Cmnd_Alias COMD=/user/sbin/useradd,user/sbin
+		/user/sbin/useradd命令
+		/user/sbin 所用命令
+		/user/sbin/passwd [a-zA-Z0-9]* #用户名可包以上字符。
+		!/user/sbin/passwd root 	#但不可改root用户
+
+#############################################
+FENGZI IPHOST=(root) COMD ###引用
+User_Alias FENGZI= centos
+Host_Alias IPHOST=192.168.0.0/16
+Cmnd_Alias COMD= /usr/sbin/passwd
+

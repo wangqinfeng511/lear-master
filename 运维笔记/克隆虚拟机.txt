@@ -1,0 +1,6 @@
+vim /etc/udev/rules.d/70-persistent-net.rules
+删除里面的内容
+modprobe -r e1000
+modprobe e1000
+ifconfig eth0 hw ether MAC地址
+重启service network service 

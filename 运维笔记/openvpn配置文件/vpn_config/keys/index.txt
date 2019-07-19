@@ -1,0 +1,2 @@
+V	260517084702Z		01	unknown	/C=CN/ST=tianjin/L=wuqing/O=yuanmeixing/OU=yunwei/CN=client/name=EasyRSA/emailAddress=wangqinfeng511@163.com
+V	260517084724Z		02	unknown	/C=CN/ST=tianjin/L=wuqing/O=yuanmeixing/OU=yunwei/CN=server/name=EasyRSA/emailAddress=wangqinfeng511@163.com

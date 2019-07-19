@@ -1,0 +1,86 @@
+yum install readline-devel -y
+#python交互式用到的输入命令行支持，解决无法删除问题
+
+yum groupinstall Development Tool #gcc编译环境
+
+二、tar -xf Python-2.7.11.tgz
+	yum groupinstall Development Tool
+	 ./configure  --prefix=/usr/local/python27
+	make&&make install
+ln -vs /usr/local/python27/bin/python2.7 /usr/bin/python27
+三、tar xf ipython-1.2.1.tar.gz
+模块编译：/usr/local/python27/bin/python2.7 setup.py build
+安装：/usr/local/python27/bin/python2.7 setup.py install
+ln -vs /usr/local/python27/bin/ipython /usr/bin/
+##########################################################################
+python 数据类型：
+	整形
+	布尔型：True False
+	浮点型：
+	复数：
+	十进制数字：
+	字符串：
+命令惯例：
+	以_x单下划线开头的变量名，不会被from module import语句导入。
+	_x_ 单下划线开头，单下划下结尾，对python解释器有特殊意义。
+	__x双下划下开头，是类的本地变量。结尾没有下划线。
+	_ 交互式下，“_”单下划线变量名保存表达式结果。
+type()函数用来输出变量类型。
+raw_input():函数，从键盘获取输入值。类bash的read命令
+print:格式化 print "string %format1 %format2..." %(variable1,variable2...)
+	d,i	十进制整型或长整型。
+	u	无符号整数或长整数
+	o	八进制整数或长整数。
+	x	十六进制整数或长整数(a_f)。
+	X	十六进制整数（大A_F）
+	f	浮点m.dddddd
+	e	浮点m.ddddd土xx
+	E	浮点
+	g,G	指定小于-4或更高精度的%e %E 否则使用%f
+	s	字符串或任意对象。
+	r	同repr()生成字符串。
+	c	单字符。
+	%	字面量
+格式化%后加：
+	-：左对齐
+	+：输出带正负值的符号。
+	0：表示填充一个0。
+	%-+10.10f:表示格式化一个浮点值，整数部分宽度10位，小数部分10位，左对齐，并显示是否为正负。
+	print "zhe is number %-+10.10f" %number
+今日函数：
+	str() 转换为字符串。
+	dir(__builtins__) 显示内置工具
+	help(str) 显示str帮助
+	callable() 显示一个函数或对象是否可被调用。
+	dir() :
+	id()	显示对象内存的地址值。
+	type()	显示对象的类型
+	str()	对象转为字符串
+	help()	显示对象的帮助
+	len()	返回字符串的长度
+python:一切皆对象。支持方法。
+##############################################################################
+函数：
+	def fuctionname(参数):
+		print name
+		return 0
+	默认返回值，none;
+查看函数或某对象可否调用：
+	callable()
+##############################################################################
+注释：
+	#：注释
+	续行：
+		\:
+		''':闭合操作符，单一语句跨多行。
+	代码组：
+		缩进相同的一组语句，构成一个代码块
+		首行以关键字，if while 以冒号结束。
+		同一行放置多个语句以分号分隔。一般不使用。
+##############################################################################
+显示一个对像文档部分
+	print str.__doc__显示str的简要帮助。
+		__doc__用来显示'''的部分。
+每个模块都有一个名为__name__的内建变量，此变量值会根据调用的方法发生变化。
+		如果此文件作为模块导入，则__name__的值为模块名称。
+		如果此文件直接运行，则__name__的值为"__main__"

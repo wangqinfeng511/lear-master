@@ -1,0 +1,22 @@
+nfs分布式文件系统：
+nfsd mountd idmapd
+yum install nfs-utils  #service nfs start
+nfsd 端口：ftp/udp 2049
+rpcinfo -p :显示rpc端口号。#显示portmapper端口映射器
+		
+nfsd:nfs主服务。##程序名nfs-utils##启动服务：service nfs start
+mountd:管理idmapd端口分配
+工作流程：
+访问者先访问mountd返回给用户idmapd端口号--idmapd验正用户IP是否在可访问返回给用户nfsd的端口号--nfsd把用户提交的指令传给内核文件管理。
+
+nfs配置文件位置：/etc/exports
+	/shared/nfs  192.168.1.107(rw),192.168.103(rw)/此处为可访问的主机IP非nfsIP地址。
+查看指定ip地址上的nfs文件
+	showmount -e 192.168.1.107
+###############################################################################
+挂载nfs文件
+mount -t nfs 192.168.1.107:/shared/nfs /tmp/def
+##############################################################################
+/etc/fstab
+192.168.1.107:/home/centos   /mnt/centos        nfs     defaults        0 0 
+

@@ -1,0 +1,2079 @@
+
+
+运维工具：
+	
+	系统安装（物理机、虚拟机）--> 程序安装、配置、服务启动 --> 批量操作（批量运行命令） --> 程序发布 --> 监控
+
+
+	程序发布：
+		不能用户体验；
+		系统不能停机；
+		不能导致系统故障或造成系统完全不可用；
+
+		灰度发布模型：
+			通过调度器将线上的一批服务器(maintanance)标记为down模式-->关闭相应的服务-->部署新版本的应用程序至目标位置-->启动相关应用-->调度主机上线；
+
+			/webapps/shop
+				shop-1.1
+				shop-1.2
+				shop-1.2.1
+
+			自动化灰度发布：脚本、发布平台；
+
+			灰度发布：
+				基于主机
+				基于用户
+
+	OS Provisioning：
+		PXE, Cobbler
+		Cloud: 
+	Configuartion:
+		puppet
+		saltstack
+	Command and Control:
+		Fabric
+		Ansible
+
+	监控工具：
+		不允许没有被监控的系统上线
+
+		监控数据采集
+			用户行为日志
+			服务器性能
+			运行数据报告
+		监控管理
+			异常报警
+			失效转移
+			自动优雅降级
+
+PXE and Cobbler
+
+	PXE: preboot execute environment
+
+	dhcp: dynamic host configuration protocol
+		提供地址池：
+
+		能提供的信息包括：ip, netmask
+			gateway, dns server, dns search domain, nis server
+
+			lease time
+
+		C/S：
+			Client: 68/udp
+			Server: 67/udp
+
+			bootp --> dhcp (租约)
+
+			Client: dhcpdiscover
+			Server: dhcpoffer
+			Client: dhcprequest
+			Server: dhcpack
+
+			续租：单播
+				50% --> 75% --> 87.5% --> 93.75%
+
+				dhcprequest
+				dhcpack
+
+				dhcprequest --> dhcpnack
+
+			169.254.X.X
+
+		安装：
+			rpm包
+			isc.org: bind, dhcp
+
+		subnet {
+
+		}
+
+			标记一个为其分配地址的网络；
+
+	PXE（CentOS 6.6）:
+		dhcp:
+
+			subnet 10.0.10.0 netmask 255.255.255.0 {
+			  range 10.0.10.21 10.0.10.50;
+			  option routers 10.0.10.1;
+			  next-server 10.0.10.1;
+			  filename "pxelinux.0";
+			}
+
+		tftp:
+			# yum install syslinux
+			# cp /usr/share/syslinux/pxelinux.0 /var/lib/tftpboot
+
+			# mount /dev/cdrom /media/cdrom
+			# cp /media/cdrom/images/pxeboot/{vmlinuz,initrd.img} /var/lib/tftpboot
+			# cp /media/cdrom/isolinux/{boot.msg,vesamenu.c32,splash.jpg} /var/lib/tftpboot
+			# mkdir /var/lib/tftpboot/pxelinux.cfg
+			# cp /media/cdrom/isolinux/isolinux.cfg /var/lib/tftpboot/pxelinux.cfg/default
+
+
+		ftp OR http: 
+			输出安装树
+
+	Cobbler:
+		多安装树的PXE环境；是PXE的高级封装；
+
+		PXE: yum repository, (vmlinuz+initrd.img) Distribution
+			单个系统安装：
+				特定系统：(pxeboot) vmlinuz, initrd.img
+				特定系统安装源：yum repository
+
+		CentOS 5 yum repo, CentOS 6 yum repo
+		CentOS 5 pxeboot, CentOS 6 pxeboot
+
+		Profile: kickstart
+			CentOS 6 web
+				CentOS 6 pxeboot + CentOS 6 yum repo + kickstart_WEB
+			CentOS 6 database
+				CentOS 6 pxeboot + CentOS 6 yum repo + kickstart_DB
+			CentOS 5
+				CentOS 5 pxeboot + CentOS 5 yum repo
+
+		三个核心组件：
+			repository：
+				mirror
+				import
+			distribution
+			profile
+
+		安装：
+			fedora epel源
+
+			两个组件：
+				cobbler
+				cobbler-web： WEB GUI
+
+			# yum install cobbler cobbler-web pykickstart debmirror httpd syslinux
+			# yum install dhcp tftp-server
+
+			配置文件：/etc/cobbler/settings
+				server: 
+
+			# service cobblerd start
+
+			# cobbler check
+
+			注意：
+			(1) dhcp服务定义filename
+				filename "pxelinux.0"
+
+			(2) /etc/cobbler/settings
+				manage_dhcp: 0
+				manage_tftpd: 0
+
+			(3) 使用cobbler import可直接导致光盘中安装树，会自动生成相应的distro及profile
+				生成的profile会使用默认的ks文件/var/lib/cobbler/kickstarts/default.ks文件
+
+			(4) 可自定义kicsktart文件，而后新建profile
+
+			(5) cobbler_web 2.6中使用htdigest的认证方式，添加用户
+				htdigest /etc/cobbler/users.digest "Cobbler" cobbler
+
+
+		repository, distro, profile
+			先生成repository, 建议import方式进行；
+				cobbler import --path --name
+
+
+运维工具(2)
+	
+	OS Provisioning: PXE, Cobbler(repository, distritution, profile)
+		PXE: dhcp, tftp, (http, ftp)
+			dnsmasq: dhcp, dns
+	OS Config:
+		puppet, saltstack, func
+	Task Excute:
+		fabric, func, saltstack
+	Deployment:
+		fabric
+
+	运维工具分类：
+		agent: puppet, func
+		agentless: ansible, fabric
+			ssh service
+
+	ansible的核心组件：
+		ansible core
+		host iventory
+		core modules
+		custom modules
+		playbook (yaml, jinjia2)
+		connect plugin
+
+	ansible的特性：
+		基于Python语言实现，由Paramiko, PyYAML和Jinjia2三个关键模块；
+
+		部署简单, agentless
+		默认使用SSH协议；
+			(1) 基于密钥认证；
+			(2) 在inventory文件中指定账号和密码；
+		主从模式：
+			master: ansible, ssh client
+			slave: ssh server
+		支持自定义模块：支持各种编程语言
+		支持Playbook
+		基于“模块”完成各种“任务”
+
+	安装：依赖于epel源
+		配置文件：/etc/ansible/ansible.cfg
+		Invertory: /etc/ansible/hosts
+
+	如何查看模块帮助：
+		ansible-doc -l
+		ansible-doc -s MODULE_NAME
+
+	ansible命令应用基础：
+		语法: ansible <host-pattern> [-f forks] [-m module_name] [-a args]
+			-f forks：启动的并发线程数；
+			-m module_name: 要使用的模块；
+			-a args: 模块特有的参数；
+
+		常见模块：
+			command: 命令模块，默认模块，用于在远程执行命令；
+				ansible all -a 'date'
+
+			cron: 
+				state: 
+					present: 安装
+					absent: 移除
+
+				# ansible websrvs -m cron -a 'minute="*/10" job="/bin/echo hell" name="test cron job"'
+
+			user：
+				name=: 指明创建的用户的名字；
+				# ansible websrvs -m user -a 'name=mysql uid=306 system=yes group=mysql'
+
+			group: 
+				# ansible websrvs -m group -a 'name=mysql gid=306 system=yes'
+
+			copy：复制文件
+				src=: 定义本地源文件路径
+				dest=: 定义远程目标文件路径
+				content=: 取代src=，表示直接用此处指定的信息生成为目标文件内容；
+
+				# ansible all -m copy -a 'src=/etc/fstab dest=/tmp/fstab.ansbile owner=root mode=640'
+
+				# ansible all -m copy -a 'content="Hello Ansible\nHi MageEdu" dest=/tmp/test.ansible'
+
+			file: 设定文件属性
+				path=: 指定文件路径，可以使用name或dest来替换；
+
+				创建文件的符号链接：
+					src=: 指明源文件
+					path=: 指明符号链接文件路径 
+
+				# ansible all -m file -a 'path=/tmp/fstab.link src=/tmp/fstab.ansbile state=link'
+
+			ping：测试指定主机是否能连接；
+
+			service：指定运行状态；
+				enabled=: 是否开机自动启动，取值为true或者false；
+				name=: 服务名称
+				state=: 状态，取值有started, stopped, restarted; 
+
+			shell：在远程主机上运行命令
+				尤其是用到管道等功能的复杂命令；
+
+			script：将本地脚本复制到远程主机并运行之；
+				注意：要使用相对路径指定脚本
+
+			yum：安装程序包
+				name=: 指明要安装的程序包，可以带上版本号；
+				state=: present, latest表示安装，absent表示卸载；
+
+			setup: 收集远程主机的facts
+				每个被管理节点在接收并运行管理命令之前，会将自己主机相关信息，如操作系统版本、IP地址等报告给远程的ansbile主机；
+
+
+		Ansible中使用的YAML基础元素：
+			变量
+			Inventory
+			条件测试
+			迭代
+
+		playbook的组成结构：
+			Inventory
+			Modules
+			Ad Hoc Commands
+			Playbooks
+				Tasks：任务，即调用模块完成的某操作
+				Variables：变量
+				Templates：模板
+				Handlers：处理器，由某事件触发执行的操作
+				Roles：角色
+
+		基本结构
+			- host: websrvs
+			  remote_user:
+			  tasks: 
+			  - task1
+			  	module_name: module_args
+			  - task 2
+
+			简单示例1：
+			- hosts: websrvs
+			  remote_user: root
+			  tasks:
+			  - name: create nginx group
+			    group: name=nginx system=yes gid=208
+			  - name: create nginx user
+			    user: name=nginx uid=208 group=nginx system=yes
+
+			- hosts: dbsrvs
+			  remote_user: root
+			  tasks:
+			  - name: copy file to dbsrvs
+			    copy: src=/etc/inittab dest=/tmp/inittab.ans
+
+			简单示例2：
+
+			- hosts: websrvs
+			  remote_user: root
+			  tasks:
+			  - name: install httpd package
+			    yum: name=httpd state=latest
+			  - name: install configuration file for httpd
+			    copy: src=/root/conf/httpd.conf dest=/etc/httpd/conf/httpd.conf
+			  - name: start httpd service
+			    service: enabled=true name=httpd state=started
+
+		条件测试：
+			when: 
+
+			简单示例：
+			- hosts: all
+			  remote_user: root
+			  vars:
+			  - username: user10
+			  tasks:
+			  - name: create {{ username }} user
+			    user: name={{ username }}
+			    when: ansible_fqdn == "node2.magedu.com"
+
+		迭代：重复同类task时使用
+			调用：item
+			定义循环列表：with_items
+				- apache
+				- php
+				- mysql-server
+
+			注意：with_items中的列表值也可以是字典, 但引用时要使用item.KEY
+				- {name: apache, conf: conffiles/httpd.conf}
+				- {name: php, conf: conffiles/php.ini}
+				- {name: mysql-server, conf: conffiles/my.cnf}
+
+		tags: 在playbook可以为某个或某些任务定义一个“标签”，在执行此playbook时，通过为ansible-playbook命令使用--tags选项能实现仅运行指定的tasks而非所有的；
+		  - name: install configuration file for httpd
+		    template: src=/root/templates/httpd.conf.j2 dest=/etc/httpd/conf/httpd.conf
+		    tags:
+		    - conf
+
+		    特殊tags: always
+
+		roles:
+			(1) 目录名同角色名；
+			(2) 目录结构有固定格式：
+				files: 静态文件
+				templates: Jinjia2模板文件
+				tasks: 至少有main.yml文件，定义各tasks；
+				handlers：至少有一个main.yml文件，定义各handlers
+				vars: 至少有一个main.yml文件，定义变量
+				meta: 定义依赖关系等信息
+			(3) 
+				site.yml中定义playbook，额外也可以有其它的yml文件；
+
+			
+puppet：
+
+	OS Provisioning: PXE, Cobbler
+	OS Config: puppet, saltstack
+	task exec: fabric, func
+	Deployment: fabric
+
+	OS Config:
+		ansible: tasks (yaml)
+			- name: 
+			  module_name: module_arguments
+		目标状态：expected state
+		幂等性：
+
+	puppet: 开源的新一代的集中化配置管理工具，它通过自己专有的“声明语言”来定义目标状态，并且通过C/S模式的架构，达成目标；
+
+		Ruby语言研发；
+
+		Puppet Labs, Luke Kanies
+
+	运维工具：
+		agent: agent/master
+		agentless: ansible
+
+		puppet: agent/master
+			master: 
+			agent: 默认每30分钟
+
+			https: 互相验正彼此的证书；加密；
+				master: 证书，一般为自签，master可自行扮演CA的角色；
+				agent: 证书，生成CSR发送给master（CA）
+
+		IT基础设施自动化管理的整个生命周期：
+				provisioning
+				configuration
+				orchestration
+				reporting
+		    
+		    puppet的工作模型：
+		   		定义：使用puppet的声明语言定义基础配置信息；
+		   		模拟：agent端从master拿到自己相关的配置之后先做测试性的应用于本地；
+		   		强制：将配置应用于本机；
+		   		报告：向master报告应用结果状态；
+
+		   	puppet: 定义“目标状态”
+		   		配置语言层
+		   		事务层
+		   		资源抽象层
+		   			资源分为多种类型：例如用户、组、文件、程序包等；
+		   			属性及状态描述与实现方式分离：
+		   				定义时只需描述属性，而无须关心其实现方式
+		   			期望状态：present, absent等；
+
+		puppet的使用模式：
+			agent: 单机模式
+			agent/master：主从模式
+
+
+		Puppet的核心术语：
+			资源(resource)：
+			清单(manifest)：资源定义在的文件；
+				资源清单：定义资源
+				站点清单：定义主机及其调用的模块
+			模块(module)：manifest及其内部所定义的资源依赖到的其它数据，例如文件或模板等，按特定结构组织起来形式成目录结构即为“模块”；
+
+	单机模式：
+		程序包：
+			http://yum.puppetlabs.com/
+			http://docs.puppetlabs.com/guides/install_puppet/install_el.html
+
+			版本：0.24.x --> 0.25.x --> 2.6.x --> 2.7.x --> 3.x
+
+		获取所有可用资源类型：
+			puppet describe -l
+
+		获取某特定资源的使用帮助：
+			puppet describe [-s] resource_type
+
+		定义资源：保存于资源清单(manifest)中
+			Resource_TYPE {title:
+				attribute1	=>	value1,
+				attribute2	=> 	value2,
+				...
+			} 
+
+			注意：Resource_TYPE必须全部使用小写字母；同一类型中的资源的title不允许相同；
+
+		示例：
+			user {'mageedu':
+				uid	=> '700',
+				shell	=> '/bin/tcsh',
+				ensure	=> present,
+			}
+
+			每个资源的定义: 类型、title、属性；
+
+			puppet apply --test --noop --verbose --debug  file.pp
+
+		资源中的特殊属性：
+			Name/NameVar:
+				大多数的都有一个名为name的属性，其通常可默认引用资源的title为其值；
+			ensure：
+				指明资源的存在性及额外属性；
+			MetaParameters
+
+		常用的资源类型：
+			notify, cron, exec, service, file, package, group, user
+
+			(1) notify
+				message：通知的信息内容
+
+				notify {'warning':
+					message	=> "From warning notify resource.",
+				}
+
+			(2) cron
+				ensure: 目标状态
+				command: 命令
+				hour
+				minute
+				month
+				monthday
+				weekday
+				name: 名称
+				user: 接收此任务的用户
+				environment: 运行时的环境变量
+
+				cron {'message':
+					minute	=> '*/10',
+					command	=> '/bin/echo "puppet"',
+					name	=> 'echo something',
+					ensure	=> present,
+				}
+
+			(3) exec
+				command (NameVar)：要执行命令；必须幂等的；
+				creates：此属性指定的文件不存在时才执行此资源；
+				onlyif: 此属性指定的测试条件返回成功状态码时，才运行此资源指定的命令；
+				unless: 此属性指定的测试条件返回错误状态码时，才运行此资源指定的命令；
+				user: 以此属性指定的用户身份运行资源指定的命令；
+				group:
+				path: 命令的搜索路径合集；
+				cwd：在此属性指定的路径下运行此命令；
+				refresh: 定义如何refresh此资源；当此exec资源接收到其它资源的事件通知时的默认行为是再运行一次此资源，refresh属性就用于改变这种默认行为；
+				refreshonly：仅在收到refresh通知时才执行此exec资源指定的命令；
+				timeout: 命令运行超时时长；
+				tries: 尝试运行的次数；
+
+				exec {'test':
+					command	=> 'echo "hi from exec again" >> /tmp/hello.puppet',
+				 	path 	=> '/bin:/sbin:/usr/bin:/usr/sbin',
+					unless	=> 'test -f /tmp/hello.puppet',
+				}			
+
+				注意：如果不指定path属性，则命令必须为绝对路径，且shell内建命令可能无法运行；
+
+			(4) file
+				content：直接给定文件内容；
+				source: 复制此属性指定的文件为此file定义的文件的内容；
+				recurse: 如果source指定的路径为目录可递归传输整个目录；true or false；
+
+				checksum: 指定使用何种方式检查文件内容是否发生改变；
+				ctime:
+				mtime:
+				ensure: 文件存在与否及其文件类型
+					file, directory, link, present, absent
+				target: 当ensure为link时，指定链接的源文件；
+				force：强制运行与否；
+				owner: 属主
+				group: 属组
+				links：复制时如何处理链接文件，follow, ignore, manage; 
+				mode: 权限
+				path: NameVar，文件路径；
+
+
+				file {'/tmp/mydir':
+					ensure	=> directory,
+				}
+
+				file {'/tmp/mydir/test.txt':
+					content	=> 'hello from file resource',
+					ensure	=> file,
+				}
+
+				file {'/tmp/mydir/fstab.puppet':
+					source	=> '/etc/fstab',
+					ensure	=> file,
+				}
+
+				file {'/tmp/mydir/fstab.link':
+					target	=> '/tmp/mydir/fstab.puppet',
+					ensure	=> link,
+				}
+
+				file {'/tmp/pam.puppet':
+					source	=> '/etc/pam.d',
+					recurse	=> true,
+					ensure	=> directory,
+				}
+
+			(5) group
+				name: 组名，NameVar
+				gid: GID
+				system: 是否为系统组；
+
+				group {'mygrp':
+					gid	=> 2000,
+					system	=> false,
+				}	
+				
+			(6) user
+				comment：注释 
+				ensure:
+				expiry: 过期时间
+				gid: 基本组
+				groups: 附加组
+				managehome: 是否让家目录具有“可管理性”；
+				home: 家目录路径
+				shell: 默认shell；
+				system: 是否为系统用户；
+				uid: UID
+				name: NameVar，用户名；
+				password：密码
+				password_max_age:
+				password_min_age：
+
+				group {'mysql':
+					ensure	=> present,
+					system	=> true,
+					gid	=> 306,
+				}
+
+				group {'dbusers':
+					ensure	=> present,
+					gid	=> 3306,
+				}
+
+				user {'mysql':
+					ensure	=> present,
+					uid	=> 306,
+					gid	=> 306,
+					groups	=> 'dbusers',
+					system	=> true,
+				}	
+
+			(7) package
+				ensure: present, absent, latest, installed或版本号；
+				name: 程序包名，NameVar；
+				source：程序包来源；
+				provider: 指定要使用包管理器；
+
+				package{'zsh':
+					ensure	=> installed,
+				}
+
+				package{'nginx':
+					ensure	=> installed,
+					provider => rpm,
+					source	=> '/tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm',
+				}
+
+			(8) service
+				ensure：running, true; stopped, false；
+				enable: 是否开机自动启动；
+				hasrestart: 告诉puppet服务脚本是否运行使用“restart”参数；
+				hasstatus：告诉puppet服务脚本是否运行使用“status”参数；
+				name: 脚本名称；
+				path: 脚本查找路径
+				pattern: 指明搜索服务相关的进程的模式；用于当脚本不支持使用restart/status参数时帮助判定服务是否运行；
+				restart：手动指定用于服务“重启”的命令；
+				start:
+				stop:
+				status:
+
+				package{'nginx':
+					ensure	=> installed,
+					provider => rpm,
+					source	=> '/tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm',
+				}
+
+				file {'/etc/nginx/conf.d/default.conf':
+					ensure	=> file,
+					source	=> '/tmp/default.conf',
+					notify	=> Service['nginx'],
+				}
+
+				file {'/etc/nginx/nginx.conf':
+					ensure	=> file,
+					source	=> '/tmp/nginx.conf',
+					notify	=> Service['nginx'],
+				}
+
+				service{'nginx':
+					ensure	=> running,
+					enable	=> true,
+					require	=> Package['nginx'],
+					restart	=> '/etc/rc.d/init.d/nginx reload',
+				}			
+
+
+		资源的第三种特殊属性：Metaparameters
+			定义资源间的依赖关系：
+				before：当前资源必须在before属性指定的资源运行之前先运行；
+				require：当前资源必须在require属性指定的资源运行之后再运行；
+			定义资源间的依赖关系及触发关系：
+				notify：当前资源必须在before属性指定的资源运行之前先运行，而且，一旦此资源发生了改变，会通知nofity属性所引用的资源；
+				subscribe：当前资源必须在subscribe属性指定的资源运行之后再运行，而且，一旦subscribe指定的资源发生了改变，会通知当前资源；
+
+			注意：此四个参数均以其它资源为其值，通过“资源引用”来实现；
+				资源引用的方式：Type['title']，类型首字母必须大写；
+
+				group {'mysql':
+				        ensure  => present,
+				        system  => true,
+				        gid     => 306,
+				        before  => User['mysql'],
+				}
+
+				group {'dbusers':
+				        ensure  => present,
+				        gid     => 3306,
+				        before  => User['mysql'],
+				}
+
+				user {'mysql':
+				        ensure  => present,
+				        uid     => 306,
+				        gid     => 306,
+				        groups  => 'dbusers',
+				        system  => true,
+				}
+
+
+回顾：
+	工作模式：
+		agent：
+			本机定义资源清单文件，使用puppet apply应用至本机
+		agent/master:
+			XMLPRC over HTTPS
+
+	核心概念：资源、清单(资源、站点)
+
+	声明语言：资源声明
+		type {'title':
+			attribute 	=> value,
+		}
+
+		puppet describe -l, puppet describe [-s] type
+
+		常用类型：notify, cron, exec, file, group, user, package, service
+
+		Metaparamter:
+			次序：before, require
+
+			次序及通知：notify, subscribe
+
+			资源引用：Type['title']
+
+			type {'title':
+				...
+				notify|subscribe|before|require => Type['title'] 
+			}
+
+			[Type['title'],Type['title']]
+
+
+puppet(2)
+
+	Metaparamters:
+		多个彼此间均存在先后次序的资源，可使用“->”，定义为次序链的形式：
+			Package['nginx'] -> File['/etc/nginx/conf.d/default.conf'] -> Service['nginx']
+
+		多个彼此间均存在先后次序的资源，可使用“~>”，定义为通知链的形式：
+			Package['nginx'] ~> File['/etc/nginx/conf.d/default.conf'] ~> Service['nginx']
+
+			package{'nginx':
+				ensure	=> installed,
+				provider => rpm,
+				source	=> '/tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm',
+			} ->
+
+			file {'/etc/nginx/conf.d/default.conf':
+				ensure	=> file,
+				source	=> '/tmp/default.conf',
+			} ~>
+
+			service{'nginx':
+				ensure	=> running,
+				enable	=> true,
+				require	=> Package['nginx'],
+				restart	=> '/etc/rc.d/init.d/nginx reload',
+			}
+
+	puppet变量及变量作用域：
+
+		变量名均应该以$开头，赋值符号为=；
+			任何非正则表达式类型的数据都可直接赋值给变量名；
+
+		数据类型：
+			布尔型：true以及false；
+			undef：从未被声明过的变量的值的类型；
+			字符型：非结构化文本字符串；引用可有可无，单引号为强引用，双引号为弱引用；
+			数值型：整数或浮点数；默认为字符型，只有在特定上下文才被当作数值；
+			数组：在中括号[]中以逗号分隔的item列表，形如[item1,item2,...,]，其item可以为任意可用的数据类型，包括数组及hash等；索引从0开始计数，也可以负数；例如：[Package['nginx'],File['nginx.conf'],File['default.conf'],]；
+			hash：定义在{}中，以逗号分隔的"key => value"列表即为hash类型数据；其中的key为字符类型，value可以puppet支持的任意数据类型；引用时，其索引为key；
+
+			正则表达式：
+				语法结构：
+					/(?<ENABLED OPTION>:<SUBPATTERN>)/
+					/(?-<DISABLED OPTION>:<SUBPATTERN>)/
+
+						OPTION：
+							i: 忽略字符大小写
+							m: 把点号当换行符使用
+							x：忽略模式中的空白字符和注释
+
+							惯常用法：(?i-mx:PATTERN)
+
+						$webpackage=$operatingsystem? {
+						        /(?i-mx:ubuntu|debian)/ => 'apache2',
+						        /(?i-mx:fedora|redhat|centos)/  => 'httpd',
+						}	
+						
+		puppet表达式：
+			比较操作符：==, !=, <, <=, >, >=, =~, !~, in
+			逻辑运算符：and, or, !
+			算术操作符：+, -, *, /, >>, <<
+
+		作用域：
+			即变量生效的代码范围；
+			在puppet中，scope可用于限定变量及资源默认属性的作用范围，但不能用于限定资源名称及资源引用的生效范围	
+
+			作用域的分类：
+				top scope：顶级作用域，生效范围为全局
+				node scope: 节点作用域，生效范围为单个节点
+				class scope：
+					parent scope
+					child scope	
+
+			引用非当前作用域可访问变量，必须使用FQN格式的进行：
+				$::c1::c2::webpackage
+
+		puppet中可以使用的变量的种类：
+			自定义变量：$webpackage
+			facter变量：“facter -p”命令执行结果中显示出的变量均可直接引用；
+			内置变量：
+				客户端内置：
+					$clientcert
+					$clientversion
+				服务器端内置：	
+					$servername
+					$serverip
+					$serverversion
+					$module_name
+
+		变量的追加赋值：+=
+			$users = ['user1','user2',]
+
+			$users += ['user3',]
+
+			注意：支持追加赋值的数据类型：
+				字符串：字符串连接
+				数组：数组合并
+				hash：hash合并
+
+	puppet的条件判断：
+		条件语句：if, case, selector, unless
+
+		(1) if语句
+
+			if CONDITION {
+				...
+			}
+
+			if CONDITION {
+				...
+			} else {
+				...
+			}
+
+			if CONDITION {
+				...
+			} elsif CONDITION {
+				...
+			}
+			...
+			else {
+				...
+			}
+
+			可用的CONDITION：
+				变量
+				表达式
+				有返回值的函数
+
+			if $operatingsystem =~ /^(?i-mx:(Ubuntu|RedHat))/ {
+			        notice("Welcome to $1 linux distribution.")
+			} else {
+			        notice("Welcome to unkown world.")
+			}
+
+		(2) case
+			语法结构：
+				case CONTROL_EXPRESSION {
+					case1: {}
+					case2, case3: {}
+					default: {}
+				}
+
+				CONTROL_EXPRESSION:	
+					变量、表达式、有返回值的函数
+
+				各case的可用数据类型：
+					字符串（引用）、变量、有单个返回值的函数、正则表达式模式或default; 
+
+					case $operatingsystem {
+						'CentOS','Redhat','Fedora': { notice("Welcome to RedHat OS Family.") }
+						/^(i-mx:(ubuntu|debian))/: { notice("Welcome to $1 Linux distribution.") }
+						default: { notice("Alien.") }
+					}	
+					
+		(3) selector
+			类似于case，但不同于case匹配到某分支后执行相应的代码段的是，selector在匹配到某分支后直接返回一个值；
+
+			语法结构：
+
+			selector CONTROL_VARIABLES ? {
+				case1 	=> value1,
+				case2	=> value2,
+				...
+				default => valueN,
+			}
+
+			CONTROL_VARIABLES: 变量或有返回值的函数；
+			各case的可用数据类型：
+				字符串（引用）、变量、有单个返回值的函数、正则表达式模式或default; 
+
+				注意：selector的case不能使用列表；
+
+			各case的value可用的数据类型：
+				除了hash以外的直接值、变量、能调用返回值的函数或其它的selector；
+
+	puppet中的class：
+
+		用于公共目的的一组资源，即命名的代码块；创建后可以在puppet全局进行调用；类可以被继承；
+
+		语法格式：
+			class name {
+				... puppet code ...
+			}
+
+			定义过的类只有被调用(声明)才会执行；
+
+				class nginxsrv {
+				    package{'nginx':
+					ensure	=> installed,
+					provider => rpm,
+					source	=> '/tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm',
+				    } ->
+
+				    file {'/etc/nginx/conf.d/default.conf':
+					ensure	=> file,
+					source	=> '/tmp/default.conf',
+				    } ~>
+
+				    service{'nginx':
+					ensure	=> running,
+					enable	=> true,
+					require	=> Package['nginx'],
+					restart	=> '/etc/rc.d/init.d/nginx reload',
+				    } 
+				}
+
+				include nginxsrv
+
+			注意：(1) 类名可以包含小写字母、数字和下划线，但只能小写字母开头；
+				  (2) 类会引入新的变量作用域；
+
+		类的声明方法：
+			(1) 使用include关键字；
+				include base::subclass
+				include class1, class2, ...
+			(2) 使用require关键字；
+			(3) 使用类似资源声明的方式；
+				(a) class {'class_name':}
+				(b) class {'class_name':
+						argu1	=> value1,
+						argu2	=> value2,
+						...
+					}
+
+		类继承：
+			主要目标在于继承已有类的，并在其基础之上可以新增额外puppet代码；
+			还可以实现覆盖资源属性、追加资源属性值；
+
+			class base {
+				...puppet code...
+			}
+
+			class base::subclass_name inherits base {
+				...puppet code...
+			}
+
+			注意，类继承场景中：
+				(1) 声明子类时，其父类会被自动先进行声明；
+				(2) 基类即成为子类的父作用域，基于类定义的变量以及属性的默认值会被子类复制一份；
+				(3) 子类会覆盖基类同一资源相同属性的值；
+
+				class nginx {
+				        package{'nginx':
+				                ensure  => present,
+				                provider => rpm,
+				                source  => '/tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm',
+				        }
+				}
+
+				class nginx::websrv inherits nginx {
+
+				        file {'/etc/nginx/conf.d/default.conf':
+				                ensure  => file,
+				                source  => '/tmp/default.conf',
+				                require => Package['nginx'],
+				        }
+
+				        service {'nginx':
+				                ensure  => running,
+				                enable  => true,
+				                subscribe => File['/etc/nginx/conf.d/default.conf'],
+				        }
+				}
+
+				include nginx::websrv
+
+			注意：子类可以覆盖父类资源的属性值：通过引用父类中定义的资源，并为其某属性定义新值实现，在子类中使用类似如下格式：
+
+				Type['title'] {
+					attribute1 	=> value1,
+					attribute2	=> value2,
+					...
+				}
+
+				示例：
+				class nginx {
+				        package{'nginx':
+				                ensure  => present,
+				                provider => rpm,
+				                source  => '/tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm',
+				        }
+				}
+
+				class nginx::websrv inherits nginx {
+				        Package['nginx'] {
+				                provider => yum,
+				        }
+
+				        file {'/etc/nginx/conf.d/default.conf':
+				                ensure  => file,
+				                source  => '/tmp/default.conf',
+				                require => Package['nginx'],
+				        }
+
+				        service {'nginx':
+				                ensure  => running,
+				                enable  => true,
+				                subscribe => File['/etc/nginx/conf.d/default.conf'],
+				        }
+				}
+
+				include nginx::websrv
+
+			注意：也可以在子类中引用父类中的资源，通过为某属性使用“+>”为其追加新值
+
+				class nginx {
+				        package{'nginx':
+				                ensure  => present,
+				                provider => rpm,
+				                source  => '/tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm',
+				        }
+
+				        file {'/etc/nginx/conf.d/default.conf':
+				                ensure  => file,
+				                source  => '/tmp/default.conf',
+				                require => Package['nginx'],
+				        }
+
+				        service {'nginx':
+				                ensure  => running,
+				                enable  => true,
+				                subscribe => File['/etc/nginx/conf.d/default.conf'],
+				        }
+				}
+
+				class nginx::websrv inherits nginx {
+				        file {'/etc/nginx/nginx.conf':
+				                ensure  => file,
+				                source  => '/tmp/nginx.conf',
+				                require => Package['nginx'],
+				        }
+
+				        Service['nginx'] {
+				                #subscribe => [File['/etc/nginx/conf.d/default.conf'],File['/etc/nginx/nginx.conf']],
+				                subscribe +> File['/etc/nginx/nginx.conf'],
+				        }
+				}
+
+				include nginx::websrv
+
+		参接受参数的类：
+			class class_name($argu1='value1',...) {
+				...puppet code...
+			}
+
+			class mysql($conf='/etc/my.cnf') {
+			        package{'mysql-server':
+			                ensure  => present,
+			        }
+
+			        file{"$conf":
+			                source  => '/tmp/my.cnf',
+			                ensure  => file,
+			        }
+			}
+
+			class {'mysql':
+			        conf    => '/etc/mysql/my.cnf',
+			}			
+
+	puppet中的template：
+
+		模板：基于ERB(Embedded RuBy)模板语言，在静态文件中使用变量等编程元素生成适用于多种不同环境的文本文件；
+			ERB: 用于在文本文件中内嵌ruby代码，原来的文本信息不会被改动，而ruby代码则会被执行，且执行结果作为新内容替换在ruby代码所在处；
+
+		<%= Ruby Expression %>：替换为表达式值；
+		<% Ruby code %>：仅执行其中的代码，不执行任何替换；
+		<%# comment %>：注释信息；
+		<%% 或 %%>：转义符，分别用于输入<%和%>；
+		<%- Ruby code %>：忽略空白字符；
+		<% Ruby code -%>: 忽略空白行；
+
+		在模板中可以调用puppet中的任意变量，但变量名要以@开头；
+
+		迭代：
+			<% @ArrayName.echo do | Varaible_Name | -%>
+				Some Text with <%= Varialbe_Name %>
+			<% end %>
+
+		注意：模板语言中对变量算术运算的方法：
+			<%= @processorcount.to_i - 2 %>
+			<%= Integer(@processorcount) - 2 %> 
+
+		示例：
+			package{'nginx':
+				ensure	=> installed,
+				provider => rpm,
+				source	=> '/tmp/nginx-1.6.2-1.el6.ngx.x86_64.rpm',
+			} ->
+
+			file {'/etc/nginx/nginx.conf':
+				ensure	=> file,
+				content	=> template('/tmp/nginx.conf.erb'),
+			} ~>
+
+			service{'nginx':
+				ensure	=> running,
+				enable	=> true,
+				require	=> Package['nginx'],
+				restart	=> '/etc/rc.d/init.d/nginx reload',
+			}
+
+	puppet中的模块：
+
+		模块由puppet代码及代码中定义资源依赖的文件及模板等按特定目录组织在一起；
+
+		模块实际上就是一个按约定的、预定义的结构存放了多个文件或子目录的目录，目录里的这些文件或子目录必须遵循其命名规范
+
+		模块结构：
+			module_name/
+				manifests/
+					init.pp：至少包含一个与当前模块名称同名的类；
+				files/：静态文件，在file类型的资源定义中通过source属性指定的源文件；
+					访问路径：puppet:///modules/module_name/file_name；
+						假设：nginx模块的files目录下有一个nginx.conf文件：
+							source 	=> puppet:///modules/nginx/nginx.conf
+				templates/: 模板文件，在file类型的资源定义中通过content => template('ERB_FILE')引用的模板文件
+					访问路径：tempate('module_name/template_file_name')
+						假设：nginx模块的templates目录下有一个nginx.conf.erb文件：
+							content => template('nginx/nginx.conf.erb')		
+				lib: 插件目录
+				tests：当前模块的使用帮助及示例文件；
+				spec：类似于tests目录，用于存储lib目录中的插件的帮助文档；
+
+							
+回顾：
+	puppet：
+		资源、清单(资源、站点)、Catalog
+
+		模式：
+			agent: puppet apply
+			agent/master: 每隔30分钟
+
+		资源：依赖关系，通知关系；
+		类：命名代码块，被继承；接受参数；
+			class class_name {
+				...puppet code...
+			}
+
+			class class_name::subclass_name inherits class_name {
+				...puppet code...
+			}
+
+			声明方式：
+				include class_name, ...
+				class {'class_name':
+					argu1	=> value1,
+					...
+				}
+
+		资源定义中可能会依赖：静态文件、模板文件
+		模块：
+			modules_name/
+				manifests/
+					init.pp: 至少包含一个与模块名同名的类；
+				files/: puppet:///modules/module_name/file_name
+				templates/: template('module_name/template_file_name')
+				lib/
+				tests/
+				spec/
+
+			puppet module list
+
+				search KEYWORD
+					puppet Forge
+				install module_name
+
+		模板文件：ERB
+			<%= @variable_name %>
+			<%= @variable_name.to_i - 1 %>
+
+
+puppet(3):
+	
+	agent/master:
+
+		master: 8140/tcp
+		agent: 默认每隔30分钟向master发送hostname及facts，并请求自己相关的catalog；
+
+		生成完成配置的命令：
+			puppet master --genconfig 
+			puppet agent --genconfig
+
+			保存至文件中，需要使用输出重定向；
+
+			master:
+				puppet master --genconfig > /etc/puppet/puppet.conf
+					rundir = /var/run/puppet
+					pidfile = /var/run/puppet/master.pid
+
+				puppet master --verbose --no-daemonize
+				service puppetmaster start
+
+			agent:
+				puppet agent --server=MASTER_HOSTNAME --test --noop --no-daemonize --verbose --debug
+
+			master:
+				puppet cert list
+				puppet cert sign [--all] [node_name]
+
+			注意：
+				(1) 节点时间同步；
+				(2) package类型的资源其provider为rpm可能会由于依赖关系出错；
+				(3) 
+
+
+		site.pp: 站点清单 /etc/puppet/manifests/
+
+			定义节点的方式：
+
+			(1) 直接使用主机名
+				node "node_name" {
+					...
+				}
+
+			(2) 把功能相同的主机的主机名使用统一格式进行命名，而后使用正则表达的模式归类在一起：
+				node /^web[0-9]+\.magedu\.com/ {
+					声明类
+				}
+
+				node /node[23]\.magedu\.com/ {
+				        include nginx
+				        include haproxy
+				}	
+				
+			(3) 节点还可被继承
+				node 'node_name' inherits base_node_name {
+					...
+				}
+
+			主机命名格式建议：
+				role-isp-idc-ip.domain.tld
+				例如：haproxy-unicom-bj-172.16.100.7.magedu.com
+
+
+	puppet的配置文件：
+		puppet.conf：主配置文件，用于设置相关的参数、文件配置路径、认证文件等等；
+		主要存在的配置段：
+			[main]
+			[master]
+			[agent]
+
+			配置生成命令：
+				[master]
+					puppet master --genconfig > /etc/puppet/puppet.conf
+				[agent]
+					puppet agent --genconfig >> /etc/puppet/puppet.conf
+
+			各参数的参考手册可使用如下命令获取：
+				puppet doc --reference configuration
+
+			显示配置文件中指定参数的值：
+				puppet master --configprint PARAMETER
+				puppet agent --configprint PARAMETER
+
+			[master]一个特殊配置参数：
+				autosign = /etc/puppet/autosign.conf
+
+				指明证书请求自动签署配置文件路径；
+
+		fileserver.conf：
+			访问模块中提供的静态文件：puppet:///modules/module_name/file_name
+
+			配置agent是否有权限访问master之上的指定路径下的文件； puppet:///modules/<module name>/<file name>已经被自动授权；
+
+		auth.conf：
+			主要用于对Puppet的Restful风格API进行定义ACL
+
+			https://master:8140/{environment}/{resource}/{key}
+
+			path ~ regex             # alternately, regex match
+			[environment envlist]
+			[method methodlist]
+			[auth[enthicated] {yes|no|on|off|any}]
+			allow [host|backreference|*|regex]
+			deny [host|backreference|*|regex]
+			allow_ip [ip|cidr|ip_wildcard|*]
+			deny_ip [ip|cidr|ip_wildcard|*]
+
+		autosign.conf：
+			用于签署证书；每行一个主机名，或主机的通配信息；
+			web1.mageedu.com
+			*.magedu.com
+
+	puppet的多环境(environment)配置：
+		[master]
+		environment = dev, test, prod
+
+		[dev]
+		manifest = /etc/puppet/manifests/dev/site.pp
+		modulepath = /etc/puppet/modules/dev
+		fileserverconfig = /etc/puppet/fileserver.dev.conf
+
+		[test]
+		manifest = /etc/puppet/manifests/test/site.pp
+		modulepath = /etc/puppet/modules/test
+		fileserverconfig = /etc/puppet/fileserver.test.conf
+
+		[prod]
+		manifest = /etc/puppet/manifests/prod/site.pp
+		modulepath = /etc/puppet/modules/prod
+		fileserverconfig = /etc/puppet/fileserver.prod.conf
+
+		auth.conf
+			path /
+			auth any
+			environment test
+			allow localhost, *.test.magedu.com
+
+		客户端配置：
+			[agent]
+			environment = dev
+
+		注意：必要时，可以使用版本管理系统：cvs, svn, git
+
+	puppet的tag功能：
+		标签的用途：
+			收集资源
+			分析报告
+			限制catalog的运行
+
+		标签命名格式：只能由小写字母、数字、下划线、冒号和连字符组成；
+
+		一个资源可有任意数量的标签；
+
+		puppet的标签定义方式有两种：
+			自动分配：
+				资源：
+					title
+					资源所属类型
+					所在容器的类型
+					所在容器的title
+				容器：
+					title
+					容器的类型
+
+			自定义：
+				使用Metaparameters中的tag为资源添加自定义标签
+
+					tag => 'nginxpackage'
+
+				对容器自定义标签，则要使用tag函数；
+					class nginx {
+						tag('nginxsrv')
+						...puppet code...
+					}
+
+			判断容器或资源是否拥有标签：tagged函数
+				if tagged('nginxsrv') {
+					notify("")
+				}
+
+		简单示例：
+
+			package {'memcached':
+				ensure	=> present,
+			} -> 
+
+			file {'memcached':
+				path	=> '/etc/sysconfig/memcached',
+				source	=> '/tmp/memcached',
+				ensure	=> file,
+				tag	=> 'memcachedconf',
+			} ~>
+
+			service {'memcached':
+				ensure	=> running,
+				enable	=> true,
+			}
+
+			仅运行清单中的指定的标签：
+			# puppet apply --tags memcachedconf --verbose 
+
+	puppet的kick机制：
+		在master推送指定的配置至agent；
+
+		配置前提：agent监听端口，8139/tcp
+
+		puppet客户端默认每30分钟跟服务器通讯一次，但是有时，我们希望服务端能给客户端紧急推送一些任务，于是就有了puppet kick（puppet 2.6以前叫puppetrun）。
+		 
+		编辑客户端/etc/puppet/puppet.conf
+		在[agent]后面添加   
+		listen = true  //这个是让puppet监听8139端口 
+
+		在agent端，编辑或新建文件/etc/puppet/namespaceauth.conf，包含下面内容
+		[puppetrunner] 
+		allow *.magedu.com 
+		 
+		在agent端，编辑文件auth.conf
+		path /run 
+		method save 
+		allow puppet.magedu.com    
+		# puppet master
+		 
+		# this one is not stricly necessary, but it has the merit 
+		# to show the default policy which is deny everything else 
+		path / 
+		auth any 
+		 
+		推送方法，在服务端运行命令
+		puppet kick -p 10 –host 客户端 
+
+
+	puppet如何进行扩展：
+		Ruby的Web Server: WEBRick
+		
+		apache + passenger
+		nginx + passenger
+
+	puppet dashboard的应用：
+		Web GUI
+
+	
+
+监控：
+	传感器：
+
+	数据采集 --> 数据存储 --> 数据展示
+	报警：采集到的数据超出阈值
+
+		时间序列数据
+
+
+
+	开源监控工具：
+
+	SNMP：Simple Network Management Protocol
+
+	SNMP的工作模式：
+		NMS向agent采集数据
+		agent向NMS报告数据
+		NMS请求agent修改配置
+
+	SNMP的组件：
+		MIB：management information base
+		SMI：MIB表示符号
+		SNMP协议
+
+	SNMP协议的版本：
+		v1, v2, v3
+		v2c: NMS --> agent 
+			mageedu.com
+		v3: 认证、加密、解密
+
+	Linux: net-snmp程序包
+
+	NMS可发起操作：
+		Get, GetNext, Set, Trap
+
+		agent: Response
+
+		UDP
+			NMS: 161
+			agent: 162
+
+	分布式监控
+
+	著名的开源监控工具：zabbix, zennos, opennms, cacti, nagios(icinga), ganglia
+
+	监控功能的实现：
+		agent
+		ssh
+		SNMP
+		IPMI
+
+	zabbix: 有专用agent的监控工具
+		监控主机：
+			Linux、Windows、FreeBSD
+		网络设备：
+			SNMP, SSH(并非所有)
+
+
+	可监控对象：
+		设备/软件
+			设备：服务器、路由器、交换机、IO系统
+			软件：OS、网络、应用程序
+		偶发性小故障：
+			主机down机、服务不可用、主机不可达
+		严重故障：
+		主机性能指标
+		趋势：时间序列数据
+
+	数据存储：
+		cacti: rrd (round robin database)
+		zabbix: mysql, pgsql
+
+	zabbix架构中的组件：
+		zabbix-server: C语言
+		OS: zabbix-agent: C语言
+		zabbix-web：GUI，用于实现zabbix设定和展示
+		zabbix-proxy: 分布式监控环境中的专用组件
+		
+
+		zabbix-database: MySQL, PGSQL(postgreSQL)、Oracle、DB2、SQLite
+
+
+	zabbix产生的数据主要由四部分组成：
+		配置数据
+		历史数据：50Bytes
+		历史趋势数据: 128Bytes
+		事件数据: 130Bytes
+
+
+
+
+
+回顾：
+	zabbix组件：
+		zabbix-server
+		zabbix-database
+		zabbix-web
+		zabbix-agent
+		zabbix-proxy
+	zabbix逻辑组件：
+		主机组、主机
+		item（监控项）、appliction（应用）
+		graph（图形）
+		trigger（触发器）
+			event（事件）
+		action
+			notice
+			command
+		media
+		users(meida)
+	监控系统：
+		数据采集、数据存储、报警、数据可视化
+	zabbix:
+		database --> zabbix-server （zabbix_server.conf） --> zabbix-web(LAMP) --> http://zabbix-web-server/zabbix
+		zabbix-agent （zabbix-agent）
+
+	添加主机
+
+	agent: 161
+	nms: 162 (trap)
+	
+	历史数据：采样生成的数据
+	历史趋势数据：每小时的最大值、最小值、平均值、统计
+
+	As is: 不做任何处理
+	Delta(speed per second):   (value - prev_value)/(time - prev_time)
+		10: 12000, 20: 13000
+	Delta(simple change)：(value - prev_value)
+
+	Trigger:
+		名称中可以使用宏：
+			{HOST.HOST}, {HOST.NAME}, {HOST.IP}, {HOST.CONN}, {HOST.DNS}
+
+	Action有两类：
+		send message
+		command
+
+	由zabbix监控某关注的指标：
+		host group --> host --> item (存储于MySQL)--> graph (zabbix-web) --> trigger(触发器) --> action(conditon+operation)
+		application：把功能相近的一组item归类在一起统一进行管理组件；
+
+	Zabbix完整的监控配置流程大体上由如下步骤组成：
+		Host group --> Hosts --> Applications --> Items --> Triggers --> Events --> Actions --> User groups --> Users --> Medias
+
+		graph, screen
+
+		依赖关系：
+			Host --> Item --> Trigger --> Action --> Notice, Command
+
+		添加主机到zabbix server：
+			discovery, auto_registrion
+			low level discovery
+
+		模板：
+			template：
+				item, application, trigger, graph, action
+
+	主机组：
+		机器用途、系统版本、应用程序、地理位置、业务单元
+
+	Item：
+		默认的Items有多种类型：
+			Zabbix-agent：
+				工作模式：passive, active
+
+			网卡流量相关：
+				net.if.in[if,<mode>]
+					if: 接口，如eht0
+					mode: bytes, packets, errors, dropped
+				net.if.out[if,<mode>]
+				net.if.total[if.<mode>]
+
+			端口相关：
+				net.tcp.listen[port]
+				net.tcp.port[<ip>,port]
+				net.tcp.service[service,<ip>,<port>]
+				net.udp.listen[port]
+
+			进程相关：
+				kernel.maxfiles
+				kernel.maxproc
+
+			CPU相关：
+				system.cpu.intr
+				system.cpu.load[<cpu>,<mode>]
+				system.cpu.num[<type>]
+				system.cpu.switches
+				system.cpu.util[<cpu>,<type>,<mode>]
+
+			磁盘IO或文件系统相关：
+				vfs.dev.read[<device>,<type>,<mode>]
+				vfs.dev.write[<device>,<type>,<mode>]
+				vfs.fs.inode[fs,<mode>]
+
+		用户可自定义item：
+			关键：选取一个惟一的key；
+			命令：收集数据的命令或脚本；
+
+		Trigger:
+			状态：
+				OK
+				PROBLEM：有事件发生；
+
+			zabbix server每次接收到items的新数据时，就会对Item的当前采样值进行判断，即与trigger的表达式进行比较；
+
+			一个trigger只能属于一个Item, 但一个Item可以有多个trigger；
+
+			Severity：
+				Not classified: 未知级别，灰色；
+				Information: 一般信息，亮绿；
+				Warning：警告信息，黄色；
+				Average: 一般故障，橙色；
+				High：高级别故障，红色；
+				Disater：致使故障，亮红；
+
+		Action：
+			触发条件一般为事件：
+				Trigger events: OK --> PROBLEM
+				Discovery events: zabbix的network discovery工作时发现主机；
+				Auto registration events：主动模式的agent注册时产生的事件；
+				Internal events：Item变成不再被支持，或Trigger变成未知状态；
+
+		Operations的功能：
+			动作：
+				send message
+				Remote command
+
+			配置send message：
+				(1) 定义好Media；
+				(2) 定义好用户；
+				(3) 配置要发送的信息；
+
+回顾和总结：zabbix的基本应用
+
+	Host group --> Host --> Application --> Item --> Trigger (OK-->PROBLEM, trigger event) --> Action (Conditon+Operation(Send Message, Remote Command)) 
+
+	Send Message：
+		Media:
+			Email、SMS、Jabber、Script、EZ Texting
+
+			给出具体实现：
+		User groups --> User (Media) 
+
+		示例中：node2.magedu.com --> Traffic --> Inbound traffic, Outbound traffic --> trigger (inboud)
+
+	Zabbix常用术语：
+		Item Key
+		Escalation
+		Template
+		Web Scennario
+
+	Zabbix服务器进程：
+		housekeeper, alter, discoverer, httppoller, Poller, pinger, db_config_syncer, timer, escaltor
+
+zabbix(3)
+
+	Item key:
+		命名要求：只能使用字母、数字、下划线、点号、连接符
+		接受参数；system.cpu.load[<cpu>,<mode>], net.if.inbound[if,<mode>]
+
+			注意：每个key背后都应该有一个命令或脚本来负现实现数据收集；此命令或脚本可调用传递给key的参数，调用方式为$1, $2,...
+
+			官方文档：https://www.zabbix.com/documentation/2.4/manual/config/items/itemtypes/zabbix_agent
+
+		在zabbix中定义item时调用某key，还需额外定义数据采集频率、历史数据的保存时长等；
+
+	Trigger：
+		触发器表达式：{<Server>:<key>.<function>(<parameter>)}<operator><constant>
+
+			{node2.magedu.com:net.if.in[eth0,bytes].last(#1)}>1200
+
+		<function>：评估采集到的数据是否在合理范围内时所使用的函数；其评估过程可以根据采集到的数据、当前时间或其它因素；
+			avg, count, change, date, dayofweek, dayofmonth, delta, diff, iregexp, regexp, last, max, min, nodata, now, prev, str, strlen, sum
+
+				regexp：检查最后一次采样的数据是否能够被指定的模式所匹配；1表示匹配，0表示不匹配；
+				now：返回自Unix元年至此刻经历的秒数；
+				prev: 倒数第二个采样值；
+				str: 从最后一次的采样中查找此处指定的子串；
+				strlen：
+
+		<operator>:
+			>, <, =, #(不等于)
+			/, *, -, +	
+			&, |
+
+		触发器间有依赖关系；
+
+	Action：
+		message
+		condition
+			event：
+				trigger
+				disovery:
+					Service Up, Service Down, Host up, Host Down, Service Discovered, Service Lost, Host Discovered, Host Lost
+				auto_registration
+				lld
+		operation
+			send message
+				Media Type
+					Email, SMS, Jabber, Script, EZ Texting
+				User
+			remote command
+				(1) 给zabbix定义sudo规则；
+					zabbix ALL=(ALL) ALL
+				(2) 不支持active模式的agent；
+				(3) 不支持代理模式；
+				(4) 命令长度不得超过255个字符；
+				(5) 可以使用宏；
+				(6) zabbix-server仅执行命令，而不关心命令是否执行成功；
+
+				前提：zabbix-agent要配置为支持执行远程命令：
+					EnableRemoteCommands=1
+
+				注意
+					(1) 如果用到以其它用户身份执行命令的话，那么命令本身要以sudo方式运行：
+						sudo /etc/rc.d/init.d/httpd restart
+					(2) 在各agent上的sudoers文件，要注释如下行:
+						Defaults    requiretty
+
+			Script：Alert Script
+				放置于特定目录中：AlertScriptsPath=/usr/lib/zabbix/alertscripts
+					zabbix_server.conf配置文件中的参数；
+
+				脚本中可使用$1, $2, $3来调用 action 中的 邮件的收件人, Default Subject, Default Message；
+
+				注意：新放入此目录中的脚本，只有重启zabbix-server方能被使用；
+
+	可视化：
+		graph, screen, slide shows, map
+
+	宏：
+		两类：
+			内建：{MACRO_NAME}
+			自定义：{$MACRO_NAME}
+
+		可以三个级别使用：
+			Global, Template, Host
+
+			优先级：Host --> Template --> Global
+				在某级别找到后将直接使用；
+
+	模板：一系列配置的集合，此些配置可通过“链接”的方式应用于指定的主机；
+		application, item, trigger, graph, screen, discovery, web
+
+	维护时间：
+		Configuration --> Maintance
+
+	User Parameters：
+		zabbix 内置了许多item key：
+		实现用户自定义item key, 实现特有数据指标监控；
+
+		语法:
+			UserParameter=<key>,<command>
+
+		示例：
+			UserParameter=os.memory.used, free -m | awk '/^Mem/{print $3}'
+			UserParameter=os.memory.total, free -m | awk '/^Mem/{print $2}'
+
+
+			UserParameter=Mysql.dml[*], /usr/local/mysql/bin/mysql -h$1 -u$2 -p$3 -e 'SHOW GLOBAL STATUS' | awk '/Com_$4\>/{print $$2}'
+
+
+zabbix(4)
+
+	zabbix提供网络发现功能：network discovery
+		HTTP、ICMP、SSH、LDAP、TCP、SNMP、Telnet、Zabbix_agent扫描指定网络内的主机；
+
+		一旦主机被发现，如果对其进行操作，将由action来决定；
+
+		LLD: Low Level Discovery
+
+		此二者的功能：
+			自动添加或移除主机、将主机链接至模板或删除链接、添加监控项、将主机添加至分组、定义触发器、执行远程脚本；
+
+		网络发现有两个步骤：
+			discovery --> action
+
+			发现中的事件：
+				Service Discovered, Service Lost, Service Up, Service Down
+				Host Discovered, Host List, Host Up, Host Down
+
+			actions:
+				Sending notifications
+				Adding/removing hosts
+				Enabling/disabling hosts
+				Adding hosts to a group
+				Removing hosts from a group
+				Linking hosts to/unlinking from a template
+				Executing remote scripts	
+				
+	auto_registation：
+		Active Agent Auto-Registration
+
+		HostMetadata
+
+		支持使用agent(active)类型的item key；
+
+		配置过程：
+			(1) 定义agent端：
+				ServerActive=
+				Server=
+				Hostname=
+				ListenIP= 设置为本机某特定IP；
+				ListenPort=
+				HostMetadata=
+
+				HostMetadataItem=item key, 一般使用system.uname
+
+			(2) 配置action, 要求其事件来源为auto-registation
+
+	LLD: Low Level Discovery
+		自动发现特定变量的名称；
+			#IFNAME, #FSNAME,
+		添加针对对变量的Items；
+
+		返回值为JSON
+
+	zabbix的监控方式：
+		zabbix-web所能够显示的且可指定为监控接口类型的监控方式：
+			Agent
+				passive
+				active
+			SNMP: Simple Network Management Protocol
+				MIB, SMI, SNMP (v1, v2c, v3)
+			IPMI:
+				智慧平台管理接口（Intelligent Platform Management Interface）原本是一种Intel架构的企业系统的周边设备所采用的一种工业标准。IPMI亦是一个开放的免费标准，使用者无需支付额外的费用即可使用此标准。
+			JMX：Java Management Extensions，用于通过Java自己的接口对java程序进行监控；
+				zabbix-java-gateway用于获取监控数据；
+
+
+		SNMP监控方式：
+			操作：Get, GetNext, Set, Response, Trap
+			MIB: 是被管理对象的集合，而且还额外定义了被管理对象的名称、访问权限、数据类型等属性；
+			MIB视图：MIB的子集
+			授权：将某MIB视图与某Community绑定来实现；
+			OID：Object ID, 1.3.6.1.2.1
+				1: system
+				2: interface
+				4: ip
+				6: tcp
+				7: udp
+
+
+		JMX监控方式：
+			(1) 安装zabbix-java-gateway；
+				配置文件：/etc/zabbix/zabbix_java_gateway.conf
+					Listen_IP=
+					Listen_PORT=10052
+
+				zabbix server的配置文件/etc/zabbix/zabbix_server.conf
+					JavaGateWay=
+					JavaGateWayPort=10052
+			(2) Java应用程序开户JMX接口：
+				java -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=10053 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false 
+
+			监控Tomcat
+				export CATALINA_OPTS="$CATALINA_OPTS -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=10053 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
+
+	zabbix database需要用到的空间：
+		60000/60 = 1000条
+
+		历史数据=天数X每秒钟处理的数据量X24X3600X50Bytes
+			90X1000X86400X50Bytes
+
+		趋势数据：
+			每一个趋势128Bytes, 
+				大小=天数X监控项X24X128Bytes
+
+		事件数据：
+			每个占据130Bytes
+				大小：天数X86400X130
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+item types是由zabbix提供的各种类型的检查器，大致就是Zabbix agent, Simple checks, SNMP, Zabbix internal, IPMI, JMX monitoring等等；从意义层面来理解，其实item types是用于指明item的数据来源的渠道。
+
+
+从zabbix 2.0开始一台主机可以定义多个接口，什么是接口？agent、jmx、impi、snmp这些都是接口。假如你需要检查他的硬件那你需要配置impi，如果你还需要检测他的mysql、nginx之类的，你需要agent，监控什么类型的item，你需要配置什么类型的接口。如果你配置来多个接口，当需要检查一个tiem，zabbix会依次（Agent→SNMP→JMX→IPMI）调用接口，直到找到合适的接口为止。
+
+
+zabbix 2.4 的Media Types：
+	Email：使用sendmail发送邮件；
+	SMS：基于短信网关进行；
+	Jabber：Jabber有第三方插件，能让Jabber用户和MSN、YahooMessager、ICQ等IM用户相互通讯。因为Google遵从Jabber协议，并且Google已经将Gtalk的服务器开放给了其它的Jabber服务器。所以PSI、Giam等Jabber客户端软件支持GTalk用户登陆；
+	Ez Texting：给用户手机发短信，不过只在特定地区有用，例如美国或加拿大；
+	Script：自定义脚本，把信息传递给脚本，在脚本里使用邮件或通过短信网关发送告警信息等；
+
+	使用Media的方式：先定义“Media”，而后在“User”的相关配置时使用此“Media”即可；
+
+	Script的使用方式：
+		在server端的配置文件中的AlertScriptsPath指令所指向的目录中创建脚本即可。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

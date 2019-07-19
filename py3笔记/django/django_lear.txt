@@ -1,0 +1,242 @@
+url(r'^(?P<ceshi_id>[0-9+])/$',Index,name='ceshi') 
+ceshi_id会传给Index.get(request,ceshi_id)
+name 表示对viwes进行了命名
+#################################################
+Calendar.js  input时间选择
+from django.shortcuts import render,get_object_or404
+q=get_object_or404(Question,id=100);是否404
+from django.template import Template,Context
+t=loader.get_template('./index.html') #取出模板，主要用于非默认模板文件中的模板。
+t=Template('My name is {{name}}')
+c=Context({'name':'wangqinfeng'})
+t.render(c)
+.的作用
+{{person.name}}#name可能是方法，key,属性，.0,01列表/元组
+{% for i in list%}
+	<li>{{i}}</li>
+{%endfor%}
+过滤器：
+	数据格式化。
+	{{name|length}} 输出为传进的name长度。
+	{{now|date:"F j,Y"}}  时间格式化。now=timezone.now()
+####################################################
+staict静态文件。
+公用的templates或static
+TEMPLATES={ #BASE_DIR 项目目录。
+	'DIRS':[os.path.join(BASE_DIR,'templates')],
+	'APP_DIRS':True
+}
+STATIC_URL='static'
+STARICFILES_DIRS=[
+	os.path.join(BASE_DIR,'static')	
+]
+公共先在DIRS找,未找到再去公用里去找。
+去除templates,static硬编码：
+	{% csrf_token %} #跨站功击
+	{{forloop.counter}} #for徇环的第几个
+	{% load static %} #加载static标签。
+	<img src={% static 'django.png' %} #不用再写成src='apps/django.png'
+	<li><a href={% url 'detail' question.id%}>我是值</a></li>
+		{%  url value1 value2%} #url拼接	value1是urls中设定的url(name='detail' value2是viwe传进来的值。)类os.path.join
+url 反解析：在试图中取出url
+	from django.shortcuts import reverse
+	reveser(url_name,args,kwargs) 
+	reverse('detail',kwargs={'question_id:13'}) 返回'/polls/13/'
+	reverse('detail',args='13') 返回'/polls/13/'
+url命名空间
+	polls/urls.py
+	app_name='polls'
+	views.py
+	from.django.shortcuts import reverse
+	reverse('polls:detail',args=(123,))#为了在视图中区分多项目时url同名问题
+	模版中取url:｛% url 'polls:detail' question.id %｝	
+##################################################
+models.Model
+models.ForeignKey(user,ondelete=models.CASCADE) #ondelete要求删除外键删除时候的操作
+models.CASCADE 删除时删除外键对应的数据。
+python manage.py makemigrations 将当前表结构生成文件。
+python manage.py sqlmigrate app_name 0001_initial #查看生成的文件。
+python manage.py migrate 用生成的文件创建数据库表。
+django.utils import timezone
+class Question(model.Model)
+	question_text=models.CharField(max_length=200)
+	pub_date=models.DateTimeField('date published')
+	def __str__(self):
+		return self.question_text
+	def shijian_panduan(self)
+#调用此方法返回查询的结果是不是一天内插入的。
+		return self.pub_date>=timezone.now()-timezone.timedalta(days-1)	
+timezone.now() 返回utc时间相对datetime.datetime.now()带有时区。
+q=Question.objects.create(question_text='what is
+fengzi',pub_date=timezone.now())
+q.save()
+q.order_by() 排序
+q.distinct()去重
+Entry.objects.defer("password") 排除
+Entry.objects.only('password')
+Engry.object.all()全部。
+Engry.objects.using('onesdfsdf')指定数据库。
+user,password=Person.objects.get_or_create(
+	user='fengzi',password='fengzi')#有则返回没则添加。
+user,password=Person.objects.update_or_create()更新，没有添加
+Entry.objects.bulk_create() 匹配添加。参数是列表
+	例：Entry.objects.bulk_create(
+		Entry(user='fengzi')
+		Entry(password='fegnzi')
+	)	
+q=Question.objects.filter(user='fengzi')
+q=Question.objects.get(user='fengzi') #Question为数据表类。
+			__gt 大于
+
+q.shijian_panduan() #返回True｜Flus
+q=Question.objects.order_by('-pub_date')[:5] 倒序返回最后五个
+q.delete()
+q.save()
+外键反查。
+q.choice_set.all()
+devdocs.io
+事务：
+from django.db import transaction
+@transaction.non_atomic_requests #不使用事务
+def my_view(requset):
+	do_stuff()
+@transaction.atomic #开启事务一致。
+def viewfunc(request):
+	do_stuff()
+自定义管理器：	
+#####################################################
+form处理：
+	<form action="{% url 'polls:detail  question.id' %}" method='post'>
+		{% csrf_token %}
+	</form>
+
+#写中间间：
+from django.utils.deprecation import MiddlewareMixin
+ Class MultipleProxyMiddleware(MiddlewareMixin):
+	def process_request(self,request):# 
+		pass
+https://docs.djangoproject.com/en/1.10/ref/request-response/
+# request常用属性。
+httprequest.session 
+HttpRequest.site  或RequestSit get_current_site 返回浏览器地址。
+HttpRequest.user  是否认证过
+request.get_full_path()  返回完整请求
+HttpRequest.is_secure()　是否是一个Http请求。
+HttpRequest.is_ajax()   是否是ａｊａｘ（）请求。
+#response 常用属性。
+q=HttpResponse()
+q['Age']=120   返回头设置。
+q.content 
+q.streaming 流式数据。
+######django_csv
+import csv
+from django.http import HttpResponse
+def some_view(request):
+	response=HttpResponse(content_type='text/csv')
+	response['Content-Disposition']='attachment;filename='ceshi.csv'
+
+	writer=csv.writer(response)
+	writer.writerow(['A','B','C'])
+	writer.writerow('a','b','c')
+	return response
+######django  文件上传。
+from django.shortcuts import render
+from django.http import HttpResponse
+request.FILES.get('file',None)
+#####template进阶：
+获取和渲染模版：
+	django.template.loader.get_template(template_name,using=None)
+获取模板名字。
+	django.shortcuts.render() 渲染模板。
+	Template.render(context=None;request=None) # 返回一个模板。
+	django.template.loader.render_to_string(template_name,context=None,request=None,using=None)
+	返回模板字符。
+	Context #参数。
+Context上下文处理器：
+	setting.py TEMPLATES>'context_processors'
+	比如有些模板标签可以直接使用。
+	djago.contrid.auth.context_processors.auth 用户模板处理器。
+		user 	{{user}} #如果登录返回用户名，没有返回匿名。
+		perms	{{perms}} #
+	django.template.context_processors.debug debug模板处理器。
+		debug 改为True {%debug%}
+		sql_query 反回sql用的时间列表。
+	django.template_context_processors.media
+		MEDIA_URL 变量
+	django.template_context_processors.static	
+		static
+	django.template.context_processors.csrf	
+		request
+	自建处理器。
+		接受一个reques反回一个字典，的函数。
+#过滤器：
+	{% autoescape on%} {{body}} {% endautoescape %}
+	#是否转义。更改字符串。
+	{%csrf_token%} 
+	#跨站功击。
+	{% cycle 'row1' 'row2' %}徇环。输出类遍历列表。
+	{%filter%} 
+		{%filter force_escape|lower%}
+			TTTsdfsdfasdfadsf
+			#会作为被处理对象，比如要用一个过滤器处理一串字符串。
+		{%endfilter%}
+
+	{% now "jS F Y H:i" %} 时间格式化。		
+	{% url 'ceshi' arg1=a,arg2=b%} url反解为http:///w
+	{% with ceshi='adfadf'%} 变量赋值
+自定义过滤器：
+	polls/templatetags/mytages.py
+	form django import template
+	register=template.Library() 实例化注测器
+
+	@register.filter(name='Lower') #过滤器的名子叫Lower
+	def lower(text):
+		return text.lower()
+
+	@register.filter #此种写法过滤器的名字就是函数的名字。
+	def question_choice_count(question):
+		return question.choice_set.count()
+#模版扩展extends,包含include
+	{% include 'defiate.html'%} 包进来。
+	{% extends 'base.html'%} 继承过来，修改可修改的例{% block
+	content%}sdf{% endblock %}
+#ModelForm
+from django.forms import ModelForm
+class User_input(ModelForm)
+	class Meta:  元类重写
+		model=User  指定表
+		fields=['name','password','group_id'] 指定显示的字段。
+		labels={
+			'name':'Writer'
+			}
+		widgets={ #对应form里的类型，这里会么input text改为文本框。
+			'name':Textarea(attrs={'cols':80,'rows':20})
+			}	
+		help_texts={
+			'name':_('Some useful help text.'),
+		}	
+		error_messages={重定错误信息。
+			'name':{
+				'max_length':_("This writer`s name is too long ")
+			}
+		def clean_name(self) #clean_字段用于对传入字段的值处理，	
+			{ 
+			if len(name)<20:
+				raise ValidationError('长度错误')
+			return name	
+			}
+		def clean(self) #全部的字段处理。
+			{
+			cleaned_data=super(User_input,self).clean()
+			name=cleaned_data.get('name')
+			if name==''
+				raise ValidationError('不可为空')
+			}
+		}
+支持：.save() 写入库。
+	.is_valid() 是否合法的。
+	.as_p()
+	一对多时可以支持列表。
+	from.save_m2m()保存关系
+		
+	

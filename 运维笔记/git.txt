@@ -1,0 +1,58 @@
+git init  /home/git #初始化仓库目录.
+	--bare 指定.git的目录
+git config --global user.name "centos"
+git config --global user.email "360065954@qq.com" #添加你的联系方式
+git add 方件名#添加文件至git的暂存区。
+git commit -m "wrote a readme file" #把文件上传到git分支区。
+		-m:描述信息
+git status #查看git是否有文件修改
+git diff 文件名，查看未执行过add文件修改了哪些地方。
+git reset HEAD filename#把add过的文件撤销至工作区。
+git checkout -- filename#文件丢弃工作区的修改。比如用vim修改一个文件没有执行add时执行此操作恢复至未修改时。
+git rm filename #确定删除文件。或都git checkout -- filename 恢复至没删除时
+git log #查看提交的日志。
+	--pretty=oneline
+git reflog #查看历史日志
+git reset --hard HEAD^#回滚至上版本。HEAD~10回滚至上10的版本。也可以是ID号
+git clone git@127.0.0.1:/home/git/new.git #克隆项目。
+#####################################################################################
+使用gitHUB
+创建秘钥对：ssh-keygen -t rsa -C "wangqinfeng511@163.com"
+在github 添加自己的公钥。
+创建项目。
+与本地仓库作关联
+	git remote add origin https://github.com/wangqinfeng511/python.git
+删除远程用户名：
+	git remote  rm origin
+更新至github:
+	git push -u origin master 以后：git origin master
+
+##################################################################
+ linux下https需要秘码的问题：
+1、	touch ~/.git-credentials
+	vim ~/.git-credentials
+2、添加：https://{githubusername}:{passwd}@github.com
+3、git config --global credential.helper store
+4、查看~/.gitconfig文件变化
+##################################################################
+创建分支并切换至分支：
+	git checkout -b dev
+		-b表示：分支不存在则创建。
+查看分支：
+	git branch
+切换分支：
+	git checkout dev
+合并分支：
+	切换至主支。
+	git merge dev #dev为分支名
+删除分支dev
+	git branch -d dev
+#################################################################
+创建私有库：
+	添加git用户，并设轩bash为git-shell
+初始化仓库：
+	git init --bare sample.git #实例化一个仓库。
+客户端的公钥添加至服务端。
+克隆仓库至本地：
+	git clone git@server:/srv/sample.git
+

@@ -1,0 +1,33 @@
+yum install dhcp
+		tftp-server
+yum install cobbler
+		cobbler-web
+		pykickstart
+		system-config-kickstart 制作kc文件的工具
+		python
+cobble sync 同步
+#vim /etc/cobbler/settings
+	server: '192.168.2.112'        #cobbler服务器地址
+	next_server: '192.168.2.112'   
+	manage_dhcp: 1
+# vi /etc/xinetd.d/tftp
+	[code]
+	disable = no                #默认开启tftp
+	[/code]
+# vi /etc/cobbler/dhcp.template 改为相应的网段和ip
+subnet 192.168.2.0 netmask 255.255.255.0 {
+     option routers             192.168.2.5;
+     option domain-name-servers 192.168.2.1;
+     option subnet-mask         255.255.255.0;
+     range dynamic-bootp        192.168.2.100 192.168.2.254;
+     filename                   "/pxelinux.0";
+     default-lease-time         21600;
+     max-lease-time             43200;
+     next-server                $next_server;
+}
+
+五、导入CentOS 光盘映像文件
+# mkdir /home/CentOS
+# mount /home/src/CentOS-5.2-i386-bin-DVD.iso /home/CentOS/ -o loop
+# cobbler import --mirror=/home/CentOS --name=CentOS-5.2
+# cobbler sync    应用配置模板

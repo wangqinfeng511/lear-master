@@ -1,0 +1,55 @@
+安装jdk
+一、rpm -ivh jdk-8u65-linux-x64.rpm 
+二、下载tomcat。解压并移至/usr/local/tomcat/
+三、vim /etc/profile.d/java.sh
+	JAVA_HOME_USR="/usr/java/latest/bin"
+  	   PATH=$JAVA_HOME_USR:$PATH
+     	   export PATH
+四、vim /etc/profile.d/tomcat.sh
+  	 TOMCAT_DIR="/usr/local/tomcat/bin"
+   		PATH=$TOMCAT_DIR:$PATH
+		#   echo $PATH
+  		 export PATH
+五、添加tomcat_web资源：
+	1.mkdir /usr/local/tomcat/webapps/ROOT1(路径名)
+	2.mkdir ROOT/{WEB-INF,classes,lib,META-INF}	
+六、在ROOT1添加页面index.jsp。
+	touch index.jsp
+	vim index.jsp
+		<%@ page language="java"%> #指定编程语言。
+		<%@ import="java.util.*"%> #导入类。
+		<head>
+			<title> JSP test page </title>
+		</head>
+		<body>
+			<%out.println("hello word!")%>
+		</body>
+七、启动tomcat：catalina.sh start
+八、配置tomcat的页面配置用户：
+	vim /usr/local/tomcat/conf/tomcat-users.xml
+	<role rolename="admin-gui"/>
+	<role rolename="manager-gui"/>	
+	<user username="tomcatset" password="fengzi" roles="admin-gui,manager-gui"/>
+	
+	注释：
+	启用admin-gui 
+	启用 manager－gui
+################################################################################
+Engine引擎组件：
+Host组件：
+	属性：
+		appbase :虚拟主机目录。
+		autoDeploy:启动tomcat时自动部署
+		unpackWARs:启动tomcat时自动部署war压缩文件。
+Alias组件：命令别名
+Context组件：容器定义
+	属性：
+		docBase:web项目的绝对路径。
+		path	:相对于tomcat的web根目录而言。
+		reloadable:是否允许重新加载web相关的类。默认为false;
+#########################################################################
+tomcat与apche结合。可使用ajp协议，与nginx结合只能使用http
+apche
+	proxy pass ajp://192.168.1.113:8005
+	
+	

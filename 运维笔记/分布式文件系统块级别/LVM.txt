@@ -1,0 +1,13 @@
+查看pv
+	pvdisplay|pvdisplay /dev/sda1(此设备为8e)
+创建：pv
+	pvcreat /dev/sda1
+创建vg：添加pv
+	vgcreate
+		-s：指明vg大小
+		-t: 测试
+例：创建并添加pv
+	vgcreat myvg /dev/sda1
+扩展：
+	lvcreate -L 10G -n clv cvg
+

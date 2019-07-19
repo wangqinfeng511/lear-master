@@ -1,0 +1,13 @@
+mysqld --skip-grant-tables &
+set global read_only=1;
+flush privileges;
+grant all on *.* to 'root'@'localhost' identified by 'fengzi';
+忘了root秘码也可用此方法
+########################################################################
+不可行！
+bash>mysql_secure_installation
+y
+0
+Change the password for root ?  y
+Do you wish to continue with the password provided? y 
+yyyyy

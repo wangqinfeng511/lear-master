@@ -1,0 +1,62 @@
+corosync-1.4.7-2.el6.x86_64		#
+pacemaker-1.1.12-8.el6_7.2.x86_64	#组
+crmsh-2.1-1.6.x86_64			#
+#######################################
+configure:
+	定义资源，
+	primitlve	#定义一个普通资源
+	group		#定义一个组资源
+	ms		#定义一个主从资源
+	location	#位置约束
+	order		#顺序约束
+	colocation	#排列约束
+	show		#查看
+property:
+	全局配置：
+		例：no-quorum-policy=ignore	#不拥有法定票数时，策略方法。
+		 	stonith-enabled=false
+		    default-resource-stickiness=50	#资源黏性值。
+##############################################################################
+crm RS1 standby	#RS1节点下线。 crm ->node界面：  standby RS1
+crm RS1	online	#RS1节点上线。			online RS2
+############################################################################
+定义组：
+	group 组名 资源1 资源2
+	edit	#编辑配置文件。
+	delete	#删除资源。
+		--force	强制删除。
+############################################################################
+排列约束：
+	colocation 约束名 inf: 资源1 资源2	#资源2要跟资源1再一起。
+顺序约束：
+	order 	约束名	 Mandatory:	先资源，后资源
+		例：order feng Mandatory: webip  webservice
+位置约束：
+	location 约束名 资源名 rule 50: #uname eq 节点名
+				 吸引值。名子	等于 节点名
+
+	
+———————————————————————————————————————
+——————————————————例子———————————————————
+———————————————————————————————————————
+添加一个IP资源
+configure界面:
+primitive webip ocf:heartbeat:IPaddr params ip=192.168.1.122 nic=eth0 cidr_netmask=24 op monitor interval=10s timeout=40s
+###############################################
+primitive webservice lsb:httpd
+解解解解解解解解解解解解解解解解解解解解解解解解解：
+primitive:普通资源
+webip:	资源名
+ocf:heartbeat:IPaddr #ocf:heartbeat类脚本下IPadd资源。
+params 	 #参数 ip
+nic	#绑定接口
+cidr_netmask #子网掩码
+interval	#多长时间监控一次
+timeout		#超过多少秒超时
+############################################
+verify		#查看是否有错误
+commit		#提交定入XML
+#IP addr show 	#查看网卡别名。
+
+
+

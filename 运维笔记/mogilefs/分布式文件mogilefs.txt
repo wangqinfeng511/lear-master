@@ -1,0 +1,61 @@
+database节点
+vim /etc/mysql/my.cnf >skip_name_resolve=on跳过名称解析
+grant all on *.*  to 'root'@'%' identified by 'fengzi' with grant option;
+
+flush privileges;
+################################################################################
+tracker节点创建数据库。
+mogdbsetup --dbhost=192.168.2.113  --dbrootuser=root --dbrootpass=fengzi  --dbname=mogdb --dbuser=moguser --dbpass=fengzi --yes
+****************************************************************************
+mogilefs.conf配置：
+daemonize = 1
+pidfile = /var/run/mogilefsd/mogilefsd.pid
+db_dsn = DBI:mysql:mogdb:host=192.168.2.113 #刚才创建的数据库名，和地址。
+db_user = moguser		#刚创建数据库创建生成数据名。
+db_pass = fengzi		
+listen = 0.0.0.0:7001		#绑定的服务端口
+conf_port = 7001
+query_jobs = 10			#并发响应数。
+delete_jobs = 1			#删除并发数
+replicate_jobs = 5		#复制并发数
+reaper_jobs = 1			#发生错误请求时，扔回请求队列
+***************************************************************************
+
+service  mogilefsd 
+################################################################################
+storage节点
+ yum install perl-IO-AIO	#没有此文件mogstored启不来端口7500；
+	mogstored.conf配置：
+		maxconns = 10000 #并发数
+		httplisten = 0.0.0.0:7500
+		mgmtlisten = 0.0.0.0:7501
+		docroot = /home
+		实际地址：/home/dev1
+ 
+root# 	useradd -r mogilefs
+	chown mogilefs.mogilefs /home/dev1/
+依赖于：	MogileFS-Server.noarch 0:2.46-2.el6〉 MogileFS-Server-mogilefsd.noarch 0:2.46-2.el6
+###############################################################################
+mogstats统计工具：
+	mogstats  --db_dsn="DBI:mysql:mogdb:host=192.168.2.113" --db_user="moguser" --db_pass="fengzi" --status=all;
+	查看mysql下的mogdb数据库。
+mogadm 管理工具：
+	check :查看状态
+	host :添加主机：
+		mogadm  --trackers=192.168.2.113:7001 host add RS2 --ip=192.168.2.113 --status=alive
+			tracke节点的地址：端口		添加主机 主机名  storage节点地址  状态＝上线
+	device:添加storage节点的存储设备
+		
+		mogadm  --trackers=192.168.2.113:7001 device add RS2 1
+							    RS2主机名  1=/home/dev1
+主机下线	mogadm --trackers=192.168.2.113:7001  host mark RS1 down
+		mogadm  --trackers=192.168.2.113:7001 domain add img(文件夹名) 添加文件夹。domain
+		mogadm  --trackers=192.168.2.113:7001 class add img nc1 --mindevcount=2 添加子文件夹，并复制2份 class
+		
+	service mogstored start
+#########################################################################################################
+上传文件。
+	mogupload --tracker=192.168.2.113:7001 --domain='img' --key=file --file='/etc/mogilefs/mogstored.conf'
+获取文件URL：
+	mogfileinfo  --tracker=192.168.2.113:7001 --domain='img' --key='file'
+	

@@ -1,0 +1,187 @@
+iptables/netfilter
+iptables:规则管理工具
+netfilter:防火墙
+########################################################################################################################################################
+TCP连接过程：
+客户端：发起同步请求syn位
+服务器端：服务端申请连接请求位syn,ack发至客户端。
+客户端：客户端发送ack至服务端。
+tcp通信状态：
+	closed,listen,syn_sent,syn_rcvd,estab lished,fin_wait_1,fin_wait_2,close_wait,last_ack,time_wait
+########################################################################################################################################################
+
+四表：
+	raw
+	mangle将报文拆分，修改
+	nat  地址转换
+	filter 过滤
+五链：
+	INPUT:到本机内部
+	OUTPUT:由本机发出
+	FORWARD：本机转发
+	PREROUTING：进入路由功能转发前
+	POSTROUTING：路由功能发生之后，离开本机之前
+功能的优先级：
+	raw-->mangle-->nat-->filter
+########################################################################################################################################################
+iptables:
+链：
+	-F: flush 清空指定表|链上的所有规则。省略时清空表的所有链！
+	-N：new新建一个用户自定义的链，自定义链只能作为默认的跳转对象，即在默认链通过引用来生效自定义链
+	-X：drop删除用户自定义的空链，内置和非空链不可删除。
+	-Z：zero将规则的计数器置0，每个链上的每条规则都有两个计数器，一个用户记录被当前规则所匹配到的报文个数，另一个用户被当前规则所匹配到的报文大小之和！
+	-P：policy设置链的默认处理机制。
+	-E：rename重命名自定义链
+规则：	
+	-A：append追加一条规则。
+	-I：insert在指定位置插入一条规则。
+	-D：delete删除指的规则。
+		iptables -D  INPUT 1
+	-R：replace替换指定的规则。
+查看：
+	-L:list列出指定链上的所有规则。
+		-n:numeric以数字格式显示地址和端口号。
+	-V：verloose详细格式，显示规则的详细信息，包括计数器等。
+	-VV：
+	-VVV：
+	--line-number:显示规则编号。
+		iptables -L -n --line-number -v
+匹配条件：
+	-s,--src,--soure:检查文中的源地址。
+	-d,--dst,--destination:检查报文中的目标IP地址
+	-i,--in-interface:数据报文的流入接口。
+	-p:指定匹配协议。
+	-m:模块引用。
+动作：
+	-j:jump跳转目标。
+	ACCEPT:接受
+	DROP	：丢弃
+	REJECT:拒绝
+######################################################################################################################################################
+iptables 查看：
+iptables -L -n --line-numbers -V
+输出：
+	pkts:被规则所匹配到的包个数。
+	bytes:被规则所匹配到的所有包大小之和。
+	target:处理目标（目标可以为用户自定义的链）。
+	prot:协议{tcp,udp,icmp}端口
+	opt:可选项
+	in:数据包流入接口
+	out:数据包流出接口
+	source:源地址
+	destination:目标地址。
+######################################################################################################################################################
+例：
+	iptables -t filter -A INPUT -s 192.168.1.105 -d 192.168.1.107 -j ACCEPT
+		#filter表插入INPUT链规则，源ip 到 目标IP 全部接收
+	iptables -t filter -R INPUT 1 -s 192.168.1.105 -d 192.168.1.107 -p tcp -j ACCEPT
+######################################################################################################################################################
+引用模块：
+	tcp模块：
+		--dport 目标端口。
+		--sport 源端口
+		--tcp-flags ：TCP标志位
+		--syn:匹配标志位。
+				#注syn,ack,fin为tcp帧的标志位，并且syn必须为，
+			例：--tcp-flags syn,ack,fin  syn 
+	udp模块：
+		-sport:源端口
+		-dport:目标端口。
+	icmp模块：
+		--icmp-types
+			8:ping 命令的响应
+			0:ping 命令的请求。
+	multiport扩展：
+			以离散定义多端口匹配，最多15个
+		--source-ports：源端口号
+		--destination-ports:目标端口
+		--port :收发端口同时
+			例：iptables -A INPUT -p tcp  -m multiport --destination-ports 22,80,443 -j ACCEPT
+	iprange扩展：
+		指定连续的ip地址非整个网络
+		--src-range ：源IP地址
+		--dst-range:目标IP地址
+			例：iptabels -d 192.168.1.107 -p tcp --dport 23 -m iprange --src-range 192.168.1.1-192.168.1.100 -j ACCEPT
+					#192.168.1.1-192.168.1.100 可以访问 192.168.1.107 的23号端口。
+	string扩展：
+		检查报文中出现的字符串，与给定的字符串作匹配。
+		--algo{kmp|bm}:指定匹配算法。
+		--string " " :指定字符串
+		--hex-string " ":指定十六进制（输入转码后的十六进制码）
+	time扩展：
+		基于时间区间作访问控制。
+		--datestart: 从什么日期开始
+		--datestop: 从什么时间结束
+		--timestart: 从什么时间开始
+		--timestop: 从什么时间结束
+		--weekdays：按周期指匹配
+			date格式：YYYY[-MM][-DD][hh][:mm[:ss]]
+	connlimit扩展：
+		基于连接数限制：对每个IP能够发起的并发连接数作限制：
+		--connlimit-above :限制最大连接数。
+	limit扩展：
+		发报速率限制：
+		--limit:每秒|每分|每时|每天 发报速率
+				30/minute每分钟30包
+		--limit-burst :突发速率。
+			
+
+############################################################################################################################
+连接追踪：
+	connection template:连接追踪模版，记录各连接状态。
+		四种状态：
+			NEW :新建的连接状态。（由客户端发起）
+			ESTABLISHED:新建连接后，通信状态。
+			RELATED:通过连接后，被告动连接（如ftp的命令用的是非功过22号端口，但通信时返回随机端口，如不使用ftp不可用）
+			INVALIED:无法识别的状态。
+
+	state扩展：
+		--state 状态检查：
+			例：iptables -I INPUT 1 -d 192.168.1.107 -p tcp  ---dports 22,80 -m state --state NEW ，ESTABLISHED -j ACCEPT
+						到192.168.1.107 的tcp协议的22号和80号端口，作状态检查，新建连接和连接后通信状态，放行。
+			开启ICMP协议放行：
+			  iptables -A INPUT -d 192.168.1.107 -p icmp --icmp-type 8 -m state --state NEW ,ESTABLISHED -j ACCEPT
+			 开启output
+
+			  查看最大追踪数：
+			  	cat /proc/sys/net/nf_conntrack_max
+			 当前追踪的所有连接：
+			 	/proc/sys/net/netfilter
+		ftp追踪模块加载：
+				cat /etc/sysconfig/iptables-config(查看iptables需要的模块，主要是ip_nat_ftp模块，属于内核模块)
+					lsmod | grep ftp 
+					modprobe ip_nat_ftp
+			#	ll /lib/modules/内核/*ftp
+			#modprobe nf_conntrack_ftp
+如何保存及重载规则：
+	service iptables save
+		保存至：/etc/sysconfig/iptables
+	手动备份：
+		iptables_save >路径
+	检查开机启动：
+		chkconfig --list iptables
+
+#################################################################################################################################
+NAT地址转换：
+	源地址转换：SNAT
+	目标地址转换：DNAT
+	端口地址转换：PNAT
+	全地址转换：FULLNAT
+   NAT表相对应链：PREROUTING,OUTPUT,POSTROUTING
+   	SNAT:OUTPUT,POSTROUTING路由器转发之后。
+	DNST:PREROUTING目标地址转换路由之前。
+	PNAT:
+		--to-source IP
+		--to-destination IP[:PORT]
+查看nat转发表:iptables  -L -n --line-number -t nat
+删除nat转发表:iptables -D -t nat -D PREROUTING 1
+	1、添加源地址转换：
+		源地址转换：iptables -t nat -A POSTROUTING  -s 192.168.10.107/24 SNAT -to-source 192.168.1.107 用于内网访外网
+		目标地址端口转换：iptables -t nat -A PREROUTING -d NAT服务器地址 -j DNAT --to-destination 192.168.0.100:8080
+	2、打开地址转换：
+		cat /proc/sys/net/ipv4/ip_forword
+	3、抓包：
+		tcpdump -i eth0 -nn(不解析地址) icmp（协议）
+	4、MASQUERADE地址伪装，主要用于DCHP获取的外网地址
+		例：
+		iptables -t nat -A POSTROUTING -s 192.168.10.107/24(源地址) SNAT -j  MASQUERADE

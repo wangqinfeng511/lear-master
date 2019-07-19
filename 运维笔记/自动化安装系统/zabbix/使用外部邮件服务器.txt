@@ -1,0 +1,59 @@
+wget http://jaist.dl.sourceforge.net/project/msmtp/msmtp/1.4.32/msmtp-1.4.32.tar.bz2
+tar jxvf msmtp-1.4.32.tar.bz2
+cd msmtp-1.4.32
+mkdir -p /webserver/msmtp/etc
+./configure --prefix=/webserver/msmtp --sysconfdir=/webserver/msmtp/etc
+make && make install
+
+
+vim /webserver/msmtp/etc/msmtprc
+account default
+host smtp.163.com
+port 25
+from wangqinfeng511@163.com
+auth login
+tls off
+user wangqinfeng511@163.com
+password 7667511
+logfile /var/log/mmlog
+
+修改：
+ /etc/mail.rc
+添加
+set sendmail="/usr/local/msmtp/bin/msmtp"
+
+
+
+
+script name：脚本名称（需要先定义AlertScriptsPath(/etc/zabbix.conf),mail.sh放在这个目录下,写绝路路径没用）
+
+
+
+
+! /bin/sh 
+#   DEBUG=1 
+ #  if [ $DEBUG -gt 0 ] 
+  # then 
+   #         exec 2>>/var/log/zext_msmtp.log 
+            set -x 
+    #fi 
+
+    FROM='wangqinfeng511@163.com' 
+    MSMTP_ACCOUNT='zabbix' 
+    # Parameters (as passed by Zabbix): 
+    #  $1 : Recipient 
+    #  $2 : Subject 
+    #  $3 : Message 
+    recipient=$1 
+    subject=$2 
+    message=$3 
+    date=`date --rfc-2822` 
+#    sed 's/$/\r/'
+ #<<EOF  /usr/bin/msmtp --account $MSMTP_ACCOUNT $recipient 
+  <<EOF /usr/bin/msmtp wangqinfeng511@163.com
+    To: $recipient 
+    Subject: $subject 
+    Date: $date 
+    $message
+
+

@@ -1,0 +1,9 @@
+一、用ssh-keygen创建私钥和公钥
+	ssh-keygen -t rsa
+			使有rsa算法
+二、复制公钥到主机的.ssh/目录下
+	scp id_rsa.pub root@192.168.1.103:~/.ssh/authorized_keys
+三、切换至192.168.1.103执行
+	cd ~/.ssh/
+	mv ./id_rsa.pub ./authorized_keys
+四、设置authorized_keys权限为600

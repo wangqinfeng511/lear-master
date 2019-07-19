@@ -1,0 +1,83 @@
+wget http://python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2
+3、解压和安装
+tar -jxvf Python-2.7.3.tar.bz2
+#进入解压后的目录
+cd Python-2.7.3
+#编译和安装
+./configure
+make
+make install
+
+4.查看是否装成功
+/usr/local/bin/python2.7 -V
+#如果出现如下信息代表安装成功
+Python 2.7.3
+5、建立软链接
+#正常情况下即使python2.7安装成功后，系统默认指向的python仍然是2.6.6版本，考虑到yum是基于python2.6.6才能正常工作，所以不建议卸载。
+#采用下面的方法把系统默认的python修改为2.7.3版本
+mv /usr/bin/python /usr/bin/python2.6.6
+ln -s /usr/local/bin/python2.7 /usr/bin/python
+#检测是否成功
+python -V
+#出现2.7.3版本信息代表成功
+Python 2.7.3
+
+6、解决修改完系统默认python版本后yum不可用的问题
+1
+2
+	
+#修改yum文件
+vi /usr/bin/yum
+将文件头部的
+#!/usr/bin/python
+改为如下内容
+#!/usr/bin/python2.6.6
+整个升级过程完成了。
+
+7、其他问题
+
+经过上面6步的操作本来yum是可用了，但是不知道哪位牛人又修改了系统的什么文件，导致使用yum的时候还是提示 no named yum的错误提示。经过查阅资料得知都是让修改yum的头部python的版本。
+
+但是我已经修改过了（步骤6），不知道怎么解决了。最后放弃了“度娘”采用经常被和谐的Google，在Centos官网上查到了一篇文档，方法如下。
+
+首先找到你安装Centos的光盘或者ISO文件，只要系统版本一样即可。拷贝如下文件到系统中：
+python-2.6.6-36.el6.x86_64.rpm
+python-urlgrabber-3.9.1-8.el6.noarch.rpm
+python-devel-2.6.6-36.el6.x86_64.rpm
+python-libs-2.6.6-36.el6.x86_64.rpm
+yum-3.2.29-40.el6.centos.noarch.rpm
+
+具体版本号，根据你系统盘或者ISO提供为准。我是拷贝到了如下目录
+1
+	
+/usr/local/src/Python-2.6.6
+
+执行安装
+1
+2
+3
+4
+5
+6
+7
+8
+9
+	
+cd /usr/local/src/Python-2.6.6/
+rpm -Uvh --replacepkgs *.rpm
+#出现如下提示
+Preparing... ########################################### [100%]
+1:python-libs ########################################### [ 20%]
+2:python ########################################### [ 40%]
+3:python-urlgrabber ########################################### [ 60%]
+4:yum ########################################### [ 80%]
+5:python-devel ########################################### [100%]
+
+执行yum命令，你熟悉的界面出现了~~
+
+
+wget http://li.nux.ro/download/nux/dextop/el6/x86_64/nux-dextop-release-0-2.el6.nux.noarch.rpm
+
+
+# yum install centos-release-SCL
+# yum install python27

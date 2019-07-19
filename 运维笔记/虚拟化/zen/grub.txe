@@ -1,0 +1,4 @@
+grub 引导错误
+ root (hd0,0) 切换分区类cd
+ kerne /vm tab or root=/dev/sda3要求此分区有/lib/模块
+initrd /inita tab  

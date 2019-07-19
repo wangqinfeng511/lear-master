@@ -1,0 +1,80 @@
+target端：
+tgtadm：
+	target		#管理target
+	logicalunit	#管理lun
+	accout		#管理账号
+	show		#查看
+	new		#新建
+	delete		#删除
+	update		#修改
+###################################################################################################
+安装：
+yum install scsi-target-utils
+启动：service tgtd start
+创建target:
+	tgtadm --lld iscsi --mod target --op new --targetname iqn.2015-12.com.mageedu:113.sdb --tid 1 
+	注释：	tgtadm：内存配置工具。
+		--lld iscsi: 指定驱动为iscsi（局域网scsi驱动）。
+		-op new    :指定为新建
+		--targetname iqn.2015-12.com.mageedu：指定为iqn的命名格式
+lun创建:
+	tgtadm --lld iscsi --mod logicalunit --op new --tid 1 --lun 1 --backing-store /dev/sdb 
+	注释：	－mod logicalunit	:管理lun
+		--op  new	 	: 新建
+		--tid 1			: （target ID号）指定此设备要绑定为哪个target。
+		--lun 1			:设定lun的编号，类似为设备的ID号。
+		--backing-store /dev/sdb:指定设备地址。
+认证：
+	tgtadm --lld iscsi --mode target --op bind --initiator-address 192.168.1.0/24 --tid 1
+	注释：
+		--op bind 		:绑定
+		--initiator-address	:指定哪此地址可以访问此target的lun。
+查看：
+	tgtadm --lld iscsi --mode target --op show
+***********************************************************************************
+常用选项：
+--lld|-L
+--mode|-m
+--op  |-o
+--tid |-t
+--lun |-l
+--backing-store|-b
+--initiator-address|-I
+--targetname|-T
+####################################################################################################
+initiator端
+安装：
+	yum install iscsi-initiator-utils
+启动：
+	service iscsi start
+	service iscsid start
+***********************************************************
+添加iqn格式的命名。
+echo "InitiatorName="(iscsi-iname -p iqn.2015-12.com.mageedu.www)"
+	此iqn我为target设备端名。
+发现target总线设备。
+iscsiadm -m discovery -d 3 -t sendtargets -p 192.168.1.107:3260 －l|-u|-o delete  #登入 ｜登出｜删除。
+	-d 3 ：调式级别。
+	-t send targets 查找的类型。
+	-p targetsIP地址
+移除节点挂载（非mount挂载）
+iscsiadm -m node -u	
+
+##########################################################
+用户名认证方式
+target 配置。
+tgtadm -L iscsi -m account -o new --user fengzi --password fengzi
+绑定：
+tgtadm -L iscsi -m account -o bind --tid 1 --user fengzi
+	指定用此用户连接与哪个target的ID
+
+################################################################以用配置文件设置target端
+vim /etc/target.conf
+ <target>
+ 	iqn.2015-12.com.fengzi.www:s2.s1 #s2.s1为描述
+	backing-store /dev/sdb
+	backing-store /dev/sdc
+	initiator-address 192.168.1.0/24 
+	</target>
+
+ </target>

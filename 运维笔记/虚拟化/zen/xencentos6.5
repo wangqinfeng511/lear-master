@@ -1,0 +1,69 @@
+独立内核domu
+创建img映像文件
+qemu-img create -f raw -o size=20G /home/domu/domu1.img
+为domu1.img创建分区
+# losetup 
+	-a 显示已用的换回设备
+	-f 显示第一个空闲的换回设备
+# losetup /dev/loop1 ./domu1.img 把本目录下的img文件添加至换回设备
+#fdisk /dev/loop1
+#kpartx -av /dev/loop1
+# mkfs -t ext4 /dev/mapper/loop1p1
+# mkfs -t ext4 /dev/mapper/loop1p3
+#mount -o loop /dev/mapper/loop1p1
+#grub-install --root-directory=/mnt /dev/loop1
+		安装grub文件
+vim /grub.conf
+	default=0
+timeout=5
+
+title centos 6.5
+        root (hd0,0)
+        kernel /vmlinuxz or root=/dev/xvda1 selinux=0 init=/bin/sh
+        initrd /initramfs.img
+
+######################################################################################
+安装busybox
+ yum -y groupinstall "DeveloPment Tools"
+ yum groupinstall "server Platform Development"
+安装编译环境
+yum install glibc-static 因为要移植，所以要把库编译成独立。
+环境完成：
+tar -xf busybox-1.22.1.tar.bz2解压
+cp /boot/config-3.18.21-16.el6.x86_64 ./.config #复制本机的内核配置文件到此处
+#make menuconfig
+	busybox sttings-->
+		build options-->
+		 Build BusyBox as a static binary (no shared libs) (NEW)-->
+#make
+#make install
+
+#cp -af _install/* /mnt/ #保持原权限。
+#cd /mnt/ 
+#mkdir proc sys dev etc var boot home
+###########################################################################################
+/etc/xen/domain1 的配置文件
+ 阿里云下载initrd.img vmlinuz 俩文件
+name = "dmain1"
+kernel = "/home/domu/vmlinuz"
+ramdisk = "/home/domu/initrd.img"
+extra = "root=/dev/xvda1 or selinux=0"
+memory = 512
+vcpus = 2
+vif = [ 'bridge=br0' ]
+disk = [ '/home/domu/domu1.img,raw,xvda,rw' ]
+###########################################################################################
+vnc 
+vfd= 真缓冲设备
+vfd=['vnc=1,vnclisten=0.0.0.0,vncpassword=fengzi']
+centos下的vnc工具 #yum install tigervnc
+ 			#vncviewer :5900 
+			#vncviewer 192.168.1.112:0   0代表5900 1代表5901
+###########################################################################################
+lvm卷
+ vgcreate myvg /dev/sda3 也可把img挂载至换回设备上执行
+ lvcreate -L 2G -n bbox(卷名) myvg(卷组名)
+格式化
+
+
+
