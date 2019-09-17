@@ -1,0 +1,9 @@
+下载arm g++变压器gcc-linaro-5.5.0-2017.10-i686_arm-linux-gnueabihf 
+修改树莓派
+# ra-update 
+ln -s libbrcmEGL.so /opt/vc/lib/libEGL.so
+ln -s libbrcmGLESv2.so /opt/vc/lib/libGLESv2.so
+ln -s libbrcmOpenVG.so /opt/vc/lib/libOpenVG.so
+ln -s libbrcmWFC.so /opt/vc/lib/libWFC.so 
+复制树莓派:/usr /opt /lib 到/opt/qt5pi/sysroot目录
+./configure  -opengl es2 -device linux-rasp-pi2-g++ -device-option CROSS_COMPILE=/opt/qt5pi/gcc-linaro-5.5.0-2017.10-i686_arm-linux-gnueabihf/bin/arm-linux-gnueabihf- -sysroot /opt/qt5pi/sysroot_2 -prefix /opt/qt5pi/sysroot_2/usr/local/
