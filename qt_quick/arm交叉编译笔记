@@ -1,6 +1,7 @@
 下载arm g++变压器gcc-linaro-5.5.0-2017.10-i686_arm-linux-gnueabihf 
 修改树莓派
 # rpi-update 
+cd /opt/vc
 ln -s libbrcmEGL.so /opt/vc/lib/libEGL.so
 ln -s libbrcmGLESv2.so /opt/vc/lib/libGLESv2.so
 ln -s libbrcmOpenVG.so /opt/vc/lib/libOpenVG.so
