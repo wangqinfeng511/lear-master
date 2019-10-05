@@ -8,8 +8,14 @@ ln -s libbrcmOpenVG.so /opt/vc/lib/libOpenVG.so
 ln -s libbrcmWFC.so /opt/vc/lib/libWFC.so 
 复制树莓派:/usr /opt /lib 到/opt/qt5pi/sysroot目录
 ./configure  -opengl es2 -device linux-rasp-pi2-g++ -device-option CROSS_COMPILE=/opt/qt5pi/gcc-linaro-5.5.0-2017.10-i686_arm-linux-gnueabihf/bin/arm-linux-gnueabihf- -sysroot /opt/qt5pi/sysroot_2 -prefix /opt/qt5pi/sysroot_2/usr/local/
-
-
+复制交叉编译后的qt到树莓派：
+ scp -r ./qt5 root@192.168.1.107:/usr/local/
+ 复制tslib库到树莓派:
+ scp  -r tslib root@192.168.1.107:/usr/local/
+(用到linux:fd) 树莓派连接tslib库到/usr/lib
+ ln /usr/local/tslib/lib/libts.so.0 /usr/lib/
+ 可以用查看依赖:
+ ldd /usr/local/qt5/plugins/platforms/libqlinuxfb.so |grep not
 -------------------------------------------------
 内核源码安装
   apt-get install raspberrypi-kernel-headers
