@@ -14,3 +14,13 @@ ln -s libbrcmWFC.so /opt/vc/lib/libWFC.so
 内核源码安装
   apt-get install raspberrypi-kernel-headers
   /
+  
+  -------------3.5存sip屏安装：
+   复制驱动，执行./LCD35b1-show 
+---------QT设置linux:fb屏输出+tslib
+    qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
+    qputenv("QT_QPA_PLATFORM","linuxfb:fb=/dev/fb1:size=480x320:tty=/dev/tty1:nographicsmodeswitch");
+    qputenv("QT_QPA_FB_DISABLE_INPUT","1");
+    qputenv("QT_QPA_GENERIC_PLUGINS","tslib:/dev/input/event0");
+    qputenv("TSLIB_CONFFILE", "/usr/local/tslib/etc/ts.conf");
+    qputenv("TSLIB_CALIBFILE","/usr/local/tslib/etc/pointercal");
