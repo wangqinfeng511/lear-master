@@ -1,0 +1,119 @@
+一,CMake编译框架
+   工程部分:
+	camke_mininum_required(VERSION num) 	#Cmake最小版本.
+	project(project_name)	 		#项目名称
+	set(CMAKE_CXX_FLAGS "XXX") 		#设置C++版本例如:std=c++11
+	set(CMAKE_BUILD_TYPE "XXX")		#设定编译模式,例如:Debug/Release
+   依赖执行部分:
+	find_package(std_lib_name VERSION REQUIRED) #引用外部依赖库
+	add_library(<name> [lib_type] source1) #生成库类型(动态,静态)
+	include_directories($(std_lib_name_INCLUID_DIR)) #指定include目录,放在add_executable前.
+	target_link_libraries($(std_lib_name_LIBRARIES))#指定librariess路径
+	add_executable(cur_project_name xxx.cpp ${SRC_LIST})	#指定生成目标.
+   其他部分:
+	function(function_name arg) 	#定义一个函数
+	add_subdirectory(dir)		#添加一个子目录
+	AUX_SOURCE_DIRECTORY(. SRC_LIST)		#查找当前目录所有文件,并保存在SRC_LISE变量中.
+	FORARCH(one_dir $(SRC_LIST))  #循环遍历打印
+		MESSAGE($(one_dir))
+	ENDFOREACH(one)
+   判断部分:expression不需要加$
+	if(expression)  		#if elss语句
+		COMMAND1(args)
+	else(expression)
+		COMMAND2(args)
+	endif(expression)
+	expression #表达式:
+		if(var) #不为空,0|1 NO|OFF TRUE|FALSE NOTFOUND
+		if (NOT var)
+		if(var AND var2)
+		if(var OR var2)
+		if(COMMAND cmd) #返回结果
+		if(EXISTS dir)
+		if(EXISTS file)
+		if(IS_DIRECTORY dirname) #是否目录
+		if(file1 IS_NEWER_THAN file2) #file1 是否比 file2新
+		if(variable MATCHE regex) #符合正则.
+   循环:
+	WHILE(condtion)
+		COMMAND(ARGS)
+	ENDWHILE(condtion)
+########################################################
+常用指令及变量:
+	ADD_DEFINITIONS #为源文件的编译加由-D引入的宏定义.
+		格式: add_definitions(-DFOO -DBAR..)
+			add_definitions(-DWIN32)
+			cmake -D WITH_CUDA=ON
+	OPTION		#提供用户可以选择的选项.
+		格式: option(USE_MYMATH,"描述信息",ON);
+			变量名,描述,值
+	ADD_CUSTOM_TARGET/COMMAND #COMMAND为工程添加一条自定义的构建规则/自定义命令.
+				  #TARGET 用于给指定名称的目标执行指定的指令,该目标没有输出文件,并始终被构建.
+			例子:
+				add_custom_command(TARGET ${CV_ADVANCE_NAME} 
+							PRE_BUILD 
+							COMMAND "cp -rf ./fil1 ./file2"
+						)
+				add_custom_target(CV_ADVANCE) ALL
+							 DEPENDS ${CV_ADVANCE_NAME} COMMENT "复制完成"
+						)
+	ADD_DEPENDENCIES	#用于解决链接时依赖问题;
+	INSTALL			#用于定义安装规则,安装位置
+		INSTALL{
+			TARGETS xxx,xxx,xxx
+			RUNTIME DESTINATION bin 
+			LIBRARY	DESTINATION lib
+			ARCHIVE DESTINATION libstatic
+		}
+	TARGET_INCLUDE_DIRECTORIES  #设置include文件查找的目录,具体包含头文件应用形矢,安装位置等.
+		命令格式:
+			target_include_directories(<target>{SYSTEM}{BEFORE}<INTERFACE|PUBLC|PRIVTE>[items])
+				target:
+				system:
+				before:
+				intface|public|private的范围???给别人用|自己用别人|自己
+	SET_TARGET_PROPERTIES 	#设置目标的一些属性来改变它们的构建方式.
+				set_target_properties(target1 target2...
+							PROPERTIED prop1 value1 prop1 value2
+							)
+				例子:
+					set_target_properties(exampleCv
+						PROPERTIES
+						ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+						LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+						)
+	ENABLE_TESTING/ADD_TEST #enable_testing:用来控制Makefile是否构建test目标.
+				 add_test:	一般需要和enable_testing()配合使用
+				命令格式:
+					ADD_TEST(testname Exename arg1 arg2...)
+				生成makefile后可以用make test测试.
+			例子:
+				ADD_TEST(mytest ${PROJECT_BINARY_DIR}/bin/main)
+				ENABLE_TESTING();
+						
+	常用变量:
+		CMAKE_INSTALL_PREFIX	构建install的路径
+		$ENV{HOME}		HOME环境下的目录路径.
+		PROJECT_NAME		工程名变量.
+		<PKG>_INCLUDE_DIR	导入包头文件全路径.
+		<PKG>_LIBRARIES		导入库文件的全路径.
+		PROJECT_SOURCE_DIR	构建工程的全路径.
+		CMAKE_VERSION		Cmake的版本号
+		CMAKE_SOURCE_DIR	源码树的顶层路径.
+qmlsene:	qml文件效果工具.特点是不用编译应用程序.
+	qmlscene -qt5  app/xxx.qml -I ./path依赖的qml文件路径
+configure_file(source_file,dest_file) #把源文件拷贝到目标文件并替变量(如果有的话)
+	例如:source_file:
+		{
+    		"architecture": "all",
+    		"description": "A music application for ubuntu",
+    		"framework": "ubuntu-sdk-16.04.3-qml",
+    		"hooks": {
+        		"music": {
+            			"apparmor": "apparmor.json",
+            			"content-hub": "music-app-content.json",
+            			"desktop": "@DESKTOP_FILE@",
+            			"urls": "@URLS_FILE@"
+        			}
+   			 }
+	用CMakelist里的URLS_FILE,DESKTOP_FILE替换掉此处的内容类似于jinja2

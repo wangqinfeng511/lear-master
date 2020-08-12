@@ -1,0 +1,28 @@
+1、 pe：存储块、默认为4M
+2、pv:  条带化后的磁盘（分pe后的磁盘）
+3、vg: pe组比如（磁盘a的pv+磁盘b的pv）.
+4、lv 卷组
+流程：先对磁盘pv，再创建vg,把pv添加到vg中，创建lv;
+
+
+查看pv
+	pvdisplay|pvdisplay /dev/sda1(此设备为8e)
+创建：pv
+	pvcreat /dev/sda1
+创建vg：添加pv
+	vgcreate vg_name  /dev/sda1 //创建
+		-s：指明vg大小
+		-t: 测试
+	VG扩充：
+		vgextend 组名 /dev/sdb1
+例：创建并添加pv
+	vgcreat myvg /dev/sda1
+	vgdisplay 
+查看lv卷组
+      lvdisplay
+创建卷组 
+	lvcreate -L 10G -n clv cvg
+删除lv卷组
+      lvremove name
+卷组增大：
+
