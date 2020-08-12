@@ -1,0 +1,170 @@
+Blueprint:
+	from flask import Flask,Blueprint,render_template
+    from flask.views import MethodView
+    import os
+    index_app=Blueprint('admin',__name__,template_folder='templates',static_folder='static') 生成蓝图，名字admin,模版，静态文件夹名字
+    def accasse(df): 装饰器
+      def ags(*args,**kwargs):
+          print(request.path)
+          return df(*args,**kwargs)
+    return ags
+    class index(MethodView):
+    	@accasse
+        def get(self):
+            return render_template('index.html')
+    print(__name__)
+    index_app.add_url_rule('/',view_func=index.as_view('index'))  路由注册
+templates/index.html:模版
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Title</title>
+    </head>
+    <body>
+        <span>{{ url_for('.index',filename='a.text') }} </span>   引用静态文件
+    </body>
+    </html>
+run.py 注册运行
+    from flask import Flask,template_rendered
+    from admin import index_app
+    app=Flask(__name__)
+    app.register_blueprint(index_app,url_prefix='/index')
+    
+    @template_rendered.connect_via(app) 渲染模版信号记录
+    def logs(sender,template,context,**extra):
+        print(context.get('request').path)
+        print(template.name,context)
+    app.run()
+####################信号部分
+@request_started.connect_via(app) //request请求时
+def ceshi(sender,**extra):
+    print(request)
+@template_rendered.connect_via(app) 渲染模版信号记录
+def logs(sender,template,context,**extra):
+     print(context.get('request').path)
+     print(template.name,context)
+flask.request_finished //返回response之前
+def log_response(sender, response, **extra):
+
+#项目布局:
+packe/:
+    project/:#项目目录
+        app.py:#入口文件
+        src/ #源码目录
+        
+        templates/ #html模板目录
+            base.html,
+            index.html
+            login.html
+        static/ #静态文件目录
+            logo.jpg
+            style.css
+            update_file.js
+    setup.py #打包文件
+    NANIFEST.in #打包扩展文件:
+#模块引入
+from flask import Flask
+app=Flask(__name__);#app实例化
+#应用工程 __init__.py:
+    #所有应用相关的配置,注册和其他设置都在此文件内完成,并返回实例化的app.
+    app=Flask(__name__,instance_relative_config=True);
+    #instance_relative_config 支持配置
+    #默认缺省配置
+    app.config.from_mapping(
+                SECRET_KEY='xxxx' #seeion加密密码
+                #数据库路径
+                DATABASE=os.path.join(app.instance_path,'flaskr.sqlite')
+            )
+    #判断config.py文件是否存在
+    app.config.from_pyfile('config.py')
+    #不存在,从变量导入
+    app.config.from_mapping(
+                xxx='xxx'
+                xxx2='xxx'
+            )
+#数据库操作
+#db.py
+import sqlites3
+def connect_db():# 数据库连接
+    if 'db' not in g: #判断db是否在全局变量里
+        g.db=sqlite3.connect(
+                            current_app.config['DATABASE'] #工程里设置的配置变量
+                            detect_types=sqlite3.PARSE_DECLTYPES
+                            )
+        return g.db
+        #current_app app的地址
+        #g全局变量
+def close_db():
+    db=g.pop('db',None)#出寨db并设置原来为None
+    if db is not None:
+        db.close()
+#create_table.py 命令行创建数据库表
+from  db import connect_db
+import click
+from flask.cli import with_appcontext
+def create_table():
+    db=connect_db() #因为是在flask没运行时执行的,所有需要获取db连接
+    with current_app.open_resource("create_table.sql") as f: #数据库文件路径.
+        db.executescript(f.read().decode('utf8'))'
+@click.command('init-db') #添加cmd命令
+@with_appconntext
+def init_db_command():
+    create_table();
+    click.echo('创建数据库表完成')
+#命令注册到应用 __init__.py工程文件:
+    from  db import close_db
+    from create_table import init_db_command
+    #每次请求结束后执行
+    app.teardown_appcontext(close_db) 
+    #运行flask init-db 创建create_table.sql的数据表#if __name__之前
+    app.cli.add_command(init_db_command)
+#Blueprint蓝图
+    #是一种组织一组相关视图的方式比如一组/api/xxxx,
+from flask import Blueprint
+bp=Blueprint('api',__name__,url_prefix='api')
+    #参数一 蓝图的名字
+    #参数二 文件的名字
+    #参数三 url前缀
+bp.rote("/all_user",methonds('GET','POST')) #请求路径:http://127.0.0.1:5000/api/all_user
+######viewMETHod
+def accasse(df): 装饰器
+      def ags(*args,**kwargs):
+          print(request.path)
+          return df(*args,**kwargs)
+    return ags
+    class index(MethodView):
+        @accasse
+        def get(self):
+            return render_template('index.html')
+
+index=Blueprint('api',__name__,url_prefix='api')
+index.add_url_rule("/user",view_func=user.as_view('user'))
+#注册到应用 __init__.py
+    app.register_blueprint(api);
+    app.register_blueprint(index);
+#日志
+    #输出到屏幕
+from logging import Formatter
+from logging.handlers import RotatingFileHandler
+app.logger.setLevel(logging.DEBUG) #日志级别
+    #日志格式 https://docs.python.org/2/library/logging.html#logrecord-attributes
+fmt_str='"%(asctime)s - %(name)s - %(levelname)s - %(message)s"'
+    #文字转日志格式实例
+fmt=Formatter(fmt_str)
+    #设置流日志
+stream_headler=logging.StreamHandler()
+    #设置流日志的格式
+stream_headler.setFormatter(fmt)
+    #把logging的日志设置到flask logger
+app.logger.addHandler(stream_headler)
+#输出到文件
+file_handler=RotatingFileHandler(
+    'tmd.log',maxBytes=1024,backupCount=20
+)
+    #最大1024 行数20
+    #设置格式
+file_handler.setFormatter(fmt)
+    #添加到flask logger
+app.logger.addHandler(file_handler)
+#模板 
