@@ -238,10 +238,41 @@
 		flex-grow 扩展比例
 		flex-basis 伸缩基准
 		flex-shrink 收缩比例
-		align-selif
-		order
-	
-		
-		
+		align-selif 垂直对齐方式
+			auto | stretch | flex-start | flex-end | center | baseline
+		order	排序值
+转换
+	transform:
+		-webkit-前缀
+		translate(x,y) 移动
+		translateX(x) x轴移动
+		translateY(y) y轴移动
+		scale(x,y) 缩放
+		scaleX|Y(x) x缩放
+		rotate(angle) 旋转角度
+		skew(x-angle,yangle) 倾斜变形.
+		skewX|Y(angle)
+	transform-origin:x,y 旋转基准点
+	transform-style:  设置2d/3d
+			flat #2d
+			preserve-3d #3d
+	backface-visibility: 不面向屏幕的是否可见
+			visible
+			hidden
+过度（鼠标经过可用）：
+	transition:组合
+		前缀
+	transition-property ：过度的属性名
+	transition-duration :过度的时间 秒数
+	transition-timing-function: 过度方式
+			linear:匀速
+			ease:慢到快
+			ease-in:慢开始
+			ease-in-out:慢开慢结
+			cubic-bezier(n,n,n,n)杯赛二曲线
+	transition-delay:过度开始时间
+动画：
+
+			
 			
 						
