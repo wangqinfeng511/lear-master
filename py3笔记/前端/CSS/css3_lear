@@ -1,0 +1,247 @@
+模块：
+	选择器
+	盒模型
+	背景和边框
+	文字特效
+	2D/3D转换
+	动画
+	多列布局
+	用户界面
+一、选择器
+	#id{} id选择器
+	.class{} 类选择器
+	[title] 属性选择器
+一、边框
+	圆角：
+		border: red 2px solid
+		border-radius: 复合属性
+			左、右、左下、右下	
+	盒阴影：
+		box-shadow:10px 10px 5px #888888
+	边图片：
+		语法：复合
+		border-image: source slice width outset repeat|initial|inherit;
+			source:border-image-source:url(border.png) 边框图片
+			slice:border-image-slice:50% 50% 图片向内偏移量
+			width:border-image-width:30 30; 边界宽度
+			outset:border-image-outset:length|number
+						length:边框图像于边框的距离
+						number: border-width的倍数
+			repeat:border-image-repeat:
+					stretch:拉伸默认
+					repeat:平铺
+					round:平铺铺不满是拉伸
+					space:平铺 铺不满时扩展分布在周围
+					
+		例子：	
+		border-image:url(border.png) 30 30 round;
+		浏览器前缀：
+		-webkit- 谷歌
+		-o- 偶明
+		-moz- 火狐
+	背景：
+		background-color:背景颜色
+		background-image:背景图片
+				url()
+		background-position:背景图片位置
+				x,y
+				top left right center 组合
+		background-repeat: 背景图像的平铺模式
+				repeat:垂直方向和水平方向重复
+				repeat-x:水平方向重复
+				repeat-y:垂直方向重复
+				no-repeat:不重复
+				
+		background-size: 背景大小
+				width
+				height
+		background-origin:背景图片定位区域
+				padding-box :背景填充框的相对位置
+				border-box：背景图像边界的相对位置。
+				content-box：背景图像的相对位置的内容框
+		background-clip：边框裁剪背景方式。
+				padding-box :背景填充框的相对位置
+                                border-box：背景图像边界的相对位置。
+                                content-box: 按内容裁剪。
+	文字：	color 颜色
+		text-shadow:文字阴影
+			左、下、模糊像素 颜色
+		text-indent: 缩进
+		text-align:水平对齐方式
+			left|right|center|justify
+		word-spacing:单词间隔
+		letter-spacing:字母间隔
+		text-tansform:大小写控制
+			none：默认
+			capitalize:首字母大写
+			uppercase:全大写
+			lowercase:全小写	
+		text-decoration:文本修饰
+				none:默认
+				underline 下线
+				overline 上线
+				line-through: 中线
+				blink 超链接
+		white-space:
+			normal 默认。空白会被浏览器忽略
+			pre	保留空白,但是只有一个空隔
+			nowrap 不换行
+			pre-wrap 保留空白，正常换行
+			pre-line 保留空白不换行
+		direction:文字方向
+			 ltr：默认左到右
+			 rtl:右到左
+		word-wrap:break-word;自动换行
+	字体：
+		font-family:字体
+		font-style: 
+			normal:默认无样式
+			italic:斜体
+			oblique :倾斜
+		font-variant: 
+			normal 默认值。标准字体
+			small-caps 大写字母字体
+	链接：
+		a:link{color:#888888} 未被访问
+		a:visited{color:#88888} 已被访问的连接
+		a:hover{color:#666666} 鼠标悬停
+		a:active{color:#888888} 正在点击连接
+	列表:
+		list-style:复合
+			square inside url('a.png')
+		list-style-type: 标志样式
+			none:无标志
+			disc:默认,实心圆
+			cisc:空心圆
+			square:实心方块
+			decimal:数字
+			decimal-leading-zero :0开头的数字,01 02 03
+			lower-roman:小写罗马数字
+			upper-roman:大写罗马数字
+			lower-alpha:小写字母
+			upper-alpha:大写字母
+			lower-greek:小写希腊字母
+			lower-latin:小写拉丁字母
+			upper-latin:大写拉丁字母
+			hebrew:传统希伯来编号方式
+			armenian:亚美尼亚编号
+			georgian:乔治亚编号
+			cjk-ideographic:简单表意数字
+			hiragana:日本片假名
+			katakana:日文假名
+			hiragana-iroha
+			katakana-iroha
+		list-style-image:url("a.png") 图片标志
+		list-style-position: 标志位置
+			inside:距离不一样文本内
+			outside:左侧
+	表格:
+		border: width solid blue;边框
+		border-collapse:单元格合并方式
+			separate:默认值.边框分开
+			collapse:如果可以合并为单一边框
+		border-spacing:	边框距离
+			水平 垂直.单一值(水平垂直)
+		caption-side:标题放置方式.
+			top
+			bottom
+		empty-cells:空单元格边框
+			hide:不在空单元格绘制边框.
+			show:默认,绘制
+		table-layout:表格布局算法.
+			automatic:默认.列宽度由单元格内容设定.
+			fixed:列宽由表格宽度和列宽度设定.
+	轮廓:
+		outline:轮廓(边框在项目内部,轮廓在外部)
+			outline-color 颜色
+			outline-style 样式
+				none:默认，无
+				dotted:点
+				dashed:虚线
+				solid:实线
+				double:双线
+			outline-width 宽度
+框模型：
+	内边距：
+		padding:元素的内边距
+		padding-top	
+		padding-left
+		padding-bottom
+		padding-right
+	边框：
+		border:
+		border-style:
+			none:默认，无
+                        dotted:点
+                        dashed:虚线
+                        solid:实线
+                        double:双线
+		border-top-style
+			left\right\bottom\left
+		border-width 线宽
+		border-top-width
+			left\right\bottom\left
+		border-color:颜色
+		border-top-color:
+			left\right\bottom\left
+	外边距:
+		margin:外边距
+			top right bottom left
+		margin-top
+			left\right\bottom\left
+定位:
+	position:定位
+		static:没有定位
+		relative:相对定位.
+		absolute:绝对定位,相对于static定位以外的第一个元素
+		fixed:绝对定位,相对于浏览器
+			left\right\bottom\left
+	float:浮动
+		元素移动到另一个元素里面.
+		left\right\bottom\left
+		配合margin使用
+盒子布局:
+	display:flex
+	flex-direction: 主轴方向
+		row :默认水平
+		row-reverse: 反水平
+		column:垂直
+		column-reverse:反垂直
+	flex-wrap:布局换行
+		nowrap:默认属性.不换行
+		wrap:放不下换行
+		wrap-reverse:倒着换行
+	flex-flow: 
+		flex-direction flex-wrap组合
+	justify-content:
+		横轴上的排列.
+		flex-start :默认值.开始处布局
+		flex-end:尾部开始布局
+		center:中间布局
+		space-between:平均布局.
+		space-around:平均布局,前后间隔.
+	align-items:
+		纵轴方向布局
+		flex-start:上
+		flex-end:下
+		center:中心线
+		stretch:拉伸
+		baseline:内容对齐
+	align-content:与justify-content类似
+		高剩余空间会对齐.
+                flex-start :默认值.开始处布局
+                flex-end:尾部开始布局
+                center:中间布局
+                space-between:平均布局.
+                space-around:平均布局,前后间隔.
+	item属性:
+		flex-grow 扩展比例
+		flex-basis 伸缩基准
+		flex-shrink 收缩比例
+		align-selif
+		order
+	
+		
+		
+			
+						
