@@ -41,6 +41,7 @@
 		-moz- 火狐
 	背景：
 		background-color:背景颜色
+		opacity:　透明度
 		background-image:背景图片
 				url()
 		background-position:背景图片位置
@@ -69,6 +70,7 @@
 		text-indent: 缩进
 		text-align:水平对齐方式
 			left|right|center|justify
+		line-height:行高＝上级高度是，上下对齐．
 		word-spacing:单词间隔
 		letter-spacing:字母间隔
 		text-tansform:大小写控制
@@ -92,6 +94,7 @@
 			 ltr：默认左到右
 			 rtl:右到左
 		word-wrap:break-word;自动换行
+		font-weight:normal; 取消加粗h1
 	字体：
 		font-family:字体
 		font-style: 
@@ -271,8 +274,9 @@
 			ease-in-out:慢开慢结
 			cubic-bezier(n,n,n,n)杯赛二曲线
 	transition-delay:过度开始时间
-动画：
-
+鼠标指针样式：
+	cursor:
+		https://www.w3school.com.cn/cssref/pr_class_cursor.asp	
 			
 			
 						

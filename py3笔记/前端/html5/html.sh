@@ -171,7 +171,7 @@
 			autofocus :自动聚焦
 			autocomplete: on/off #是否自动完成表单只能用在form内的input.主要是历史记录的自动完成。
 			pattern  :正则，匹配后可提交不匹配不能提交。例pattern="[0-9]{1}"
-		
+		placeholder:默认显示提醒字符	
 			
 二、
 	<!--用于判断是否小于ie9小于加载js用于解决ie6-ie8不支持nav问题-->
@@ -251,75 +251,3 @@
             					<input id="id" type="checkbox">
             					<span>  </span>
         				</label>
-三、弹性布局：
-	display:-webkit-box 打开弹性布局
-	-webkit-box-flex:1 均分剩余宽度：
-		例：	
-		.list{
-			display:-webkit-box; #使用弹性布局
-			-webkit-box-pack:#对齐方式。不能与-webkit-box-flex同时使用。
-				#start(zuo  )|center(zhong)|end(you)|justify(分散对齐)
-			-webkit-box-align:#垂直对齐start|center|baseline(对齐线)|stretch(默认值)
-			-webkit-box-direction:revers #左右布局反转。
-			-webkit-box-orient:	#排列方式horizontal水平布局，vertical垂直布局。 
-				
-			} 	
-		.list li{
-			-webkit-box-flex:1; #class=list,子级li会均分list下的剩余宽度。比如占2份。
-	}
-	display:flex #开启弹性布局，
-	flex:1; #均分宽度。
-	flex-direction: 更改布局方式。
-		row(水平方向) row-reverse(水平反转)column(垂直方向起点在右)column-reverse
-	flex-shrknk: #收缩比例
-		0表示不参加收缩比例
-		1默认。哪个元素参加收缩
-		int 表示可收缩多少比例。
-	fiex-grow: #扩展比例。
-		0表示不参于扩展。为1或其它值时会多占一定比例。
-	fiex-warp #换行warp|nowarp|warp-reverse
-	justify-content:水平对齐。
-		center剧中。
-		flex-start 轴开始处对齐
-		flex-end   轴结束处对齐
-		space-between 分散对齐。
-		space-around 左右间距离相等对齐，元素有前间距和自身和后间距
-	align-items: 垂直对齐。	
-		flex-start
-		flex-end
-		center
-		baseline
-		stretch #默认跟没给一样
-	align-self #单个元素与其它元素不同的对齐方式。
-	flex-basis #在分配空间之前已经分得的空间，此时元素=basis大小+弹性分得的空间,(最小大小宽度)	
-	flex缩写：
-		flex:1 0 0; 代表：flex-grow,flex-shrink,flex-base
-四、动画。
-	transform: 变换
-		translate() #x，y,z轴的平移多少像素。
-		translateX() #x轴平移。 px
-		translateY() #y轴平移。 px
-		translateZ() #z轴平移。3d开启。px
-		scale()   #缩放 倍数。
-		scaleX()  #X缩放。
-		scaleY()  #Y缩放。
-		scaleZ()  #Z缩放。
-		rotate()  #旋转 deg。
-		rotateX() #X旋转deg.
-		rotateY() #Y旋转deg。
-		rotateZ() #Z旋转deg。
-		skew()	  #斜切 x y 
-	transform-origin:0px 0px; #设置轴心位置。支持left top
-	tansform-style:preserve-3d #打开3D视图。
-	perspective:200px #镜深，加给父级dom
-	transition() #运动。
-		transition: width 5s linear,heigth 2s linear;
-		宽线性增长 5秒。高线性增长2S
-		运动类型：
-			linear 线性过度(均速)
-			ease   平滑过度(缓冲)，动作都有缓冲。
-			ease-in 由慢到快。
-			ease-out 由快到慢。
-			ease-in-out 由慢到快再到慢。
-			setps (数字，start|end) #开始
-
