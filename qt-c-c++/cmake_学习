@@ -8,11 +8,12 @@
 	find_package(std_lib_name VERSION REQUIRED) #引用外部依赖库
 	add_library(<name> [lib_type] source1) #生成库类型(动态,静态)
 	include_directories($(std_lib_name_INCLUID_DIR)) #指定include目录,放在add_executable前.
+	aux_source_directories("src" src) #cpp文件目录 src是变量名．add_executable(${PROJECT_NAME} "main.cpp" "qml.qrc" ${src})引用
 	target_link_libraries($(std_lib_name_LIBRARIES))#指定librariess路径
 	add_executable(cur_project_name xxx.cpp ${SRC_LIST})	#指定生成目标.
    其他部分:
 	function(function_name arg) 	#定义一个函数
-	add_subdirectory(dir)		#添加一个子目录
+	add_subdirectory(dir)		#添加一个子目录目录要用cmakefile.txt
 	AUX_SOURCE_DIRECTORY(. SRC_LIST)		#查找当前目录所有文件,并保存在SRC_LISE变量中.
 	FORARCH(one_dir $(SRC_LIST))  #循环遍历打印
 		MESSAGE($(one_dir))

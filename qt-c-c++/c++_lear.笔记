@@ -1,15 +1,47 @@
 一.学习笔记
+ 	explicit 禁止隐式转换．
+		例：不加explicit
+		class Abc{
+    			public:
+       			//	explicit
+			Abc(int i=0):m(i){};
+        		int get_m(){
+            			qDebug()<<m;
+            			return  m;
+        			}
+    			private:
+        			int m=0;
+    			};
+		Abc abc=100;
+		abc=10000;
+		可以隐式的把100传给i;
+		加了explicit时就不可以这样了．
+		只能:Abc abc(1000);
+	std::function 	std::function<void(int)>fc=print_num;
+    			fc(12);把传进来的值交给print_num处理．
+		例：
+			void cc(std::function<void(int a,int b)> sc){
+    				sc(1,2);
+			}	
+			int main(int argc,char *argv[]){
+				cc([](int a,int b){qDebug()<<a+b});
+			};
 	Template
 		verctor<list<int>>;
 	auto 自动类型
 	一致性初始化：
 		std::vector<int> v {1,2,3,4,5};
 		int array[]={1,2,3,4,5}
+		一致性初始化的原因是：std::initializer_list<>模板的支持．
+		所以说支持一致性初始化的类要有一个std::initializer_list参数的构造函数．
 	for循环：
 		for(int i:{1,2,3,4,5}){};
 		for(auto i:v){};
+		等价于：for(auto _p=coll.begin(),_p!=coll.end;++_p)
 	Move语义：
-		std::move()
+		std::move()搬迁，调用&&的构造函数．A(A&& a);
+				模板类：A(T&& a);
+				搬迁函数不存在时，调用copy函数．
 	字符串字面常量：
 		Raw string:R"abacesx";以R装饰,字符序列，比如输出\\n不需要\\\\n
 		u定义一个string literal 类型为char16_t的字符．
@@ -17,6 +49,7 @@
 		L定义一个wide string literal 类型为wchar_t的字符．
 	noexcept:不抛出异常．
 		void foo() noexcept{}
+		
 	异常捕获：
 		try{
 			throw std::runtime_error("错误") //手动触发异常
@@ -63,4 +96,57 @@
 		    int a=10;
     		　　[&a]{qDebug()<<a;}();
 	decltype:函数返回类型
-			
+		比如：模板：	
+		template<typename T1,typename T2>
+		decltype(x+y) add (T1 x,T2 y);
+		用法二：
+		返回类型在返回之后：
+		auto add(T1 x,T2 y) ->decltype(x+y);
+	std::function 与 using 与lambda以函数为参数．
+		//定义function别名．
+		using uu=std::function<void(int,int)>;
+		//定义一个函数，参数是一个函数．
+		void cc(uu){
+    			qDebug()<<"test";
+		};
+		//调用函数，传入一个lambda的函数，参数为别名中定义的类型和别名．
+		cc([](int i,int c){qDebug()<<i;});
+	任意类型，任意个数参数的函数：
+		void print(){
+		    qDebug()<<"无参";
+		}
+		template<typename T,typename ...Types>
+		void print(const T& firstArg,const Types &... args){
+    			qDebug()<<"firstArg:"<<firstArg;
+   			qDebug()<< "长度:"<<sizeof... (args);
+			print(args...);//再次调用自己，把多参数再次传入．
+		}
+    		print("a",1,2,3,4,"adfasdf");	
+		//重点：
+			...关键字：参数个数随意．
+			第次调用自己时从args中pop出第一个参数传入firstArg.也就是参数递规．
+	模板默认值．
+		template <typename T,typename c=vector<T>>	
+	非类型模板参数：
+		std::bitset<int> 返加一个指定长度的类型．
+	std::pair<T1,T2> //两元素合并万一个元素．
+		.first:第一个元素．
+		.second:第二个元素．
+		支持的操作符：	=,==,!=,<;swap(T1,T2)
+	std::make_pair(T1,T2) 	返回一个std::pair
+模版不同参数条件返不同类型参数：
+	typename std::enable_if<!std::is_integral<T>::value,int>::type
+	//std::enable_if<参数是否为true,返回的类型>
+	is_ok(T a){
+        	return  122;
+	}
+	template <typename T>
+	typename std::enable_if<std::is_integral<T>::value,std::string>::type
+	is_ok(T a){
+       		const std::string c="hello word";
+        	return c;
+	}
+	int main(int argc,char *argv[]){
+    		qDebug()<<is_ok(12).data(); //返回string;
+    		qDebug()<<is_ok("hello???");//返回int;
+	}

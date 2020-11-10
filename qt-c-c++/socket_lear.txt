@@ -1,17 +1,37 @@
 int socket(int domain,int type,int protocol);
-return fd 文件描述符。
-domain 协议族:
-	AF_UNIX  unix本地通信。
-	AF_LOCAL unix本地通信。
-	AF_INET	 IPV4 Internet协议。
-type:
-	SOCK_STREAM	可靠的双向连接，基于字节流,不保留记录边界。
-	SOCK_DGRAM	无连接，不可靠固定长度。
-	SOCK_SEQPACKET	可靠的双向连接，基于字节流。与SOCK_STREAM不同的是，它保留消息边界。(表明发送两个数据包，只能分两次读入，稍后详细解释)
-	SOCK_RAW	提供Raw数据。
-	SOCK_RDM	提供可靠的数据（顺序不确定）。
-protocol 协议
+	return fd 文件描述符。-1表示错误
+	domain 协议族:
+		AF_UNIX  unix本地通信。
+		AF_LOCAL unix本地通信。
+		AF_INET	 IPV4 Internet协议。
+	type:
+		SOCK_STREAM	可靠的双向连接，基于字节流,不保留记录边界。
+		SOCK_DGRAM	无连接，不可靠固定长度。
+		SOCK_SEQPACKET	可靠的双向连接，基于字节流。与SOCK_STREAM不同的是，它保留消息边界。(表明发送两个数据包，只能分两次读入，稍后详细解释)
+		SOCK_RAW	提供Raw数据。
+		SOCK_RDM	提供可靠的数据（顺序不确定）。
+	protocol 设置为０
+绑定：
+	#include <sys/socket.h>
+	#include <netinet/in.h>
+	#include <arpa/inet.h>
+	struct sockaddr_in servaddr;
+   	servaddr.sin_family=AF_INET;
+  	 servaddr.sin_addr.s_addr=htonl(INADDR_ANY);// 0.0.0.0
+   	servaddr.sin_port=htons(8088);
+   	status=bind(lisent_fd,(sockaddr *)&servaddr,sizeof (servaddr));
+	参数：
+		1.socket文件描述符．
+		2.sockaddr结构体指针
+		3.sockaddr长度．
+监听：
+	listen(lisent_fd,25); 参数：1 socket_fd文件描述符．2．．返回：错误返回-1;
 
+取连接的文件描述符：
+	struct sockaddr clinet_addr; //存连接的地址
+   	socklen_t addr_len;　
+   	int client_fd;　//返回文件描述符，错时返回-1;
+	client_fd=accept(listent_socket_fd,(sockaddr*)&clinet_addr,&addr_len);
 errno:
 	EACCES,EPERM：权限不足/防火墙限制。
 	EADDRINUSE:	本地址已经使用。
@@ -197,4 +217,7 @@ cmd操作命令：
 四、F_SETFD: 设置文件描述符标志。
 五、F_GETFL:读取文件描述符状态标准。
 六、F_SETFL:设置文件描述符状态标志。
+例：设置非阻塞．
+	int iFlags=fcntl(client_fd,F_GETFL,0);
+        fcntl(client_fd,F_SETFL,iFlags|O_NONBLOCK);
 
