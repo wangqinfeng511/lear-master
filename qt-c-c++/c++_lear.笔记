@@ -39,9 +39,15 @@
 		for(auto i:v){};
 		等价于：for(auto _p=coll.begin(),_p!=coll.end;++_p)
 	Move语义：
-		std::move()搬迁，调用&&的构造函数．A(A&& a);
+		std::move()搬迁，调用&&的搬迁构造函数．A(A&& a);
 				模板类：A(T&& a);
 				搬迁函数不存在时，调用copy函数．
+		注：只有在构造时调用std::move()才会调用&&;
+		class c ......;
+		c a;
+		std::move(a) //不会调用C(C && a);
+		c b(std::move(a));
+		
 	字符串字面常量：
 		Raw string:R"abacesx";以R装饰,字符序列，比如输出\\n不需要\\\\n
 		u定义一个string literal 类型为char16_t的字符．
@@ -56,6 +62,17 @@
 		} catch(...){ //捕获所有异常．
 			throw;
 		}
+	异常存储：
+		std::exception_ptr eptr;
+		try{
+			throw "异常";
+		}catch(...){
+		　//不作抛出操作，保存异常．
+		 　std::current_exception();
+		}
+		手动抛出异常：
+		std::rethrow_exception(eptr);
+			
 	自定义异常：
 		struct MyException:public exception{
 			const char* what() const throw(){
@@ -111,7 +128,64 @@
 		};
 		//调用函数，传入一个lambda的函数，参数为别名中定义的类型和别名．
 		cc([](int i,int c){qDebug()<<i;});
-	任意类型，任意个数参数的函数：
+线程：
+	容器线程特性：
+		１'并发的只读访问，begin(),end(),rbegin(),rend(),fron(),back(),data(),
+		  find(),lower_bound(),upper_bound(),equal_range(),at(),
+		  operator[]并联式容器除外，不改动时都允许．
+		2'并发处理容器内的不同元素是可以的．
+Pair和Tuple:
+	Pair:两元素合并成一个元素，key value;
+		pair<T1,T2> p;
+		pair<T1,T2> p(t1,t2);搬移式初始化．
+		pair<T1,T2> p(p2);	Copy构造函．
+		p=p2		;赋值．
+		p=rv		;move assign;
+		p.first;	第一个元素．
+		p.second	第二个元素．
+		p<0>(p)		等价于p.first
+		p<1>(p)		等价于p.second;
+		p==p2		是否相等，实现了＝＝重载．
+		p!=p2		!=重载实现了．
+		<,<=,>=,
+		p.swap(p2) 	互换．
+		make_pair(t1,t2); 返回一个pair.
+	Tuple:不定值的值组．
+		tuple不是寻常的容器不允许迭代元素．
+		tuple_size<t>　//元素个数．
+	Smart Pointer:智能指针：
+		shared_ptr :共享式拥有．
+			当是最后一个引用时，会删除自身和对象．
+			use_count()返指针的引用次数．
+			reset(value) 重新赋值．
+		weak_prt:共享不独占
+			std::string *p=new std::string("test");
+    			std::shared_ptr<std::string> cc(p);
+    			std::weak_ptr<std::string> uniqu(cc);
+    			std::thread *acs=new std::thread(test,uniqu);
+    			std::thread *bcs=new std::thread(test,uniqu);
+    			bcs->join();
+    			acs->join();
+		unique_prt :独占式拥有．多线程引用时会报错．
+			例：
+			    	std::string *p=new std::string("test");
+    				std::unique_ptr<std::string> unique_p(p);
+    				std::thread *acs=new std::thread(test, std::move(unique_p));
+    				std::thread *bcs=new std::thread(test,std::move(unique_p));
+    				acs->join();
+    				bcs->join();	
+	tuple_element<idx,tupletype>::type; //返回元素类型．
+    		std::tuple<std::string,int,int,cc> t("hello",12,12,df); //创建tuple
+		std::make_tuple("hello",12,12,df);//make方式创建．
+    		qDebug()<<std::get<0>(t).data(); //取出元素值，data()是为了转为chars
+		std::tuple_size<decltype(t)>::value //获取元素数量．
+		std::tuple_element<index,decltype(t)>::type type_name;//获取指定字断类型．	
+		例：
+		std::vector<std::tuple<std::string,int,int,cc>> dxc; //创建tuple类型的向量．
+    		dxc.push_back(std::make_tuple("hello",12,12,df));　//压入tuple
+    		qDebug()<<dxc.size();
+    		qDebug()<< std::get<0>(dxc[0]).data(); //取出值．
+任意类型，任意个数参数的函数：
 		void print(){
 		    qDebug()<<"无参";
 		}
@@ -136,7 +210,6 @@
 	std::make_pair(T1,T2) 	返回一个std::pair
 模版不同参数条件返不同类型参数：
 	typename std::enable_if<!std::is_integral<T>::value,int>::type
-	//std::enable_if<参数是否为true,返回的类型>
 	is_ok(T a){
         	return  122;
 	}
@@ -150,3 +223,400 @@
     		qDebug()<<is_ok(12).data(); //返回string;
     		qDebug()<<is_ok("hello???");//返回int;
 	}
+	
+	//std::enable_if<参数是否为true,返回的类型>
+Type Trait 和Type Utility
+	#include<type_traits>
+	//std::common_type<T1,T2,...> 类型相同时返回类型．
+		例：
+		　　	template <typename T1,typename T2,typename T3>
+			typename std::common_type<T1,T2,T3>::type min(T1 t1,T2 t2,T3 t3){
+    				qDebug()<<t1<<t2;
+			};
+	单参类型工具：
+		is_void<T> 	void类型．
+		is_integral<T>  整数类型，bool,char,char16_t,char32_t,wchart)
+		is_floating_point<T> 浮点类型．
+		is_arithmetic<T> 数字（整数，浮点，char等）
+		is_signed<T>	带正负的算术类型．
+		is_unsigned<T>	不带正负号的算术类型．
+		is_const<T>	带有const限定符．
+		is_volatile<T>	带有volatile限定符．
+		is_array<T>	寻常的array类型，不是std::array.比如int c[100]={1}
+		is_enum<T>	枚举
+		is_union<T>	联合类型．
+		is_class<T>	class/struct.
+		is_function<T>	函数
+		is_reference<T>  Lvalue或rvalue reference;
+		is_lvalue_reference<T>
+		is_rvalue_reference<T>
+		is_pointer<T>	指针
+		is_member_pointer<T> 指向nostatic成员．
+		is_member_object_pointer<T> 指向nostatic数据成员．
+		is_member_function_pointer<T> 指向nostatic成员函数．
+		is_fundamental<T> void,整数（bool和characteri）或std::nullptr_t
+		is_scalar<T>	整数型包括boolcharacter,浮点，枚举，pointer,member pointer.
+		is_object<T>	任何类型，除void,function,reference;
+		is_compound<T>	array,enumeration,union,class,function,reference,pointer.
+		is_trivial<T>	Scalar,trivial class或类型构成的array;
+		is_standard_layout<T> Scalar,standard layout class 
+		is_pod<T>	Plain old data type,"memcpy()可用来复制对象＂的类型．
+		is_literal_type<T> Scalar,reference,class 或那些类型构成的array
+	针对class的trait
+		is_empty<T>	不带任何成员，virtual成员函数．
+		is_polymorphic<T> class带一个(derived) virtual成员函数．
+		has_virtual_destructor<T>  Class带有virtual析构函数．
+		is_default_constructible<T>     有默认构建函数．
+		is_copy_constructible<T> 	带有copy构造函数．(const class_type & a){};
+		is_move_constructible<T>	带有move构诰函数．
+		is_copy_assignable<T>		能够完成copy任务．cc& operator =(const cc&)=delete ;
+		is_move_assignable<T>		能够完成move任务	cc(cc &&)=delete ;
+		is_destructible<T>		带有可调用的析构函数．
+		is_triviall_default_constructible<T> 构造函数是默认的．
+		is_triviall_copy_constructible<T> 　
+		is_triviall_move_constructible<T> 　
+		is_triviall_destructible<T>	析构是默认的．
+		is_nothrow_default_constructible<T> 构造函数　noexption
+		is_nothrow_copy_constructible<T> copy函数　noexption
+		is_nothrow_move_constructible<T> move函数　noexption
+		is_nothrow_copy|move_assignable<T>
+		is_nothrow_destructible<T> 	回调　nexption  	 　
+	关系类型的trait
+		is_same<T1,T2> 同类型，包括修饰符．
+		is_base_of<T1,T2> T1是T2的父类．
+		is_convertible<T,T2> T可以转换成T2
+		is_constructible<T,Args...> 可以用Args初始化T.
+		is_trivially_constructible<T,Arrgs...> 可以用类型args平凡初始化Ｔ
+		is_nothrow_constructible<T,Args..> 初始化并不抛出异常．
+		is_assignable<T,T2> 可以将类型T2赋值给T
+		is_trivially_assignable<T,T2> 可以将T2的值平凡赋值给T.
+		is_nothrow_assignable<T,T2> t2赋值给T不抛出异常．
+		uses_allocator<T,Alloc> 　Alloc可被转换为T:allocator_type;
+	类型修饰符操作tarit;
+ratio<>编译分数运算．
+	计算：
+		ratio_add<T1,T2> 	和
+		ratio_subtract<T1,T2>	差
+		ratio_multiply<T1,T2>	积
+		ratio_devide<T1,T2>	商
+		ratio_equal<T1,T2>	==
+		ratio_not_equal<T1,T2>	!=
+		ratio_less<T1,T2>	<
+		ratio_less_equal<T1,T2> <=
+		ratio_greater<T1,T2>	>
+		ratio_greater_equal<T1,T2> >=
+Clock和Timer:
+	Chrono:
+		std::chrono::duration<参一，ratio<int,int>>，参一表示类型int64_t就行，参二表示单位(一个tick的值)．
+					无参：表示1以秒为单位．
+					std::ration<60> //一分钟．
+					std::ration<1,1000> //毫秒．		
+		例：
+			typedef std::chrono::duration<int64_t,std::ratio<60*60*24>> day;	
+		运算：+,-,*,/,%,==,!=,<,<=,>,++,--;+=,-=,%=
+		操作：
+			count():返回tick数量．
+			zeron():获取长度为0的duration;
+			max()
+			min()
+			period()
+		std::chrono::duration_cast<std::chrono::hours>(std::duration cc);转的单位为小时．
+	Clock:时钟
+		std::chrono::system_clock:系统即时时钟．
+		std::chrono::stead_clock:
+		std::high_resolution_clock;
+		成员：
+			std::chrono::system_clock::duration 获取clock的duration类型．
+			std::chrono::system_clock::rep	获取tick类型
+			std::chrono::system_clock::period	获取单位的类型．
+			std::chrono::system_clock::time_point	
+			std::chrono::system_clock::is_steady	
+			std::chrono::system_clock::now()	当前时间的time_ponit
+	TimePint:时间点：
+		#time_point;
+			time_point.time_since_epoch() 		#从1970_01_01到这个时间点的差．
+		    	std::chrono::system_clock::time_point c; #计算机元年的时间节点
+    			std::time_t t=std::chrono::system_clock::to_time_t(c); #时间节点转ctime的time_t;
+   			std::cout<<std::ctime(&t)<<std::endl;		#输出string;
+		当前时间：
+			std::chrono::system_clock::time_point c;
+    			c=std::chrono::system_clock::now();
+	例：
+		
+	    	1,	auto cc=std::chrono::system_clock::now();　//获取当前time_point节点．
+    		　　	typedef std::chrono::duration<int64_t,std::ratio<60*60*24>> cx;　//定义一个duration间隔为１天．
+   			auto cds= std::chrono::duration_cast<cx>(cc.time_since_epoch());　//转换为以天为分隔的duration
+   			qDebug()<<"距离计算机元年1970_01_01："<<cds.count()<<"天";
+		2,
+			std::time_t now=std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+   			struct tm *t=localtime(&now);
+   			char date[80];
+   			strftime(date,80,"%YYYYd",t);
+   			qDebug()<<date;
+		
+	ctime:
+		clock_t 数值类型，表现cpu时间，clock()返回．
+		time_t	数值类型，用来表现timeponint.
+		struct tm 日历时间类型．
+			int tm_sec;     /* seconds after the minute - [0,59] */
+			int tm_min;     /* minutes after the hour - [0,59] */
+ 		 	int tm_hour;    /* hours since midnight - [0,23] */
+ 			int tm_mday;    /* day of the month - [1,31] */
+ 			int tm_mon;     /* months since January - [0,11] */
+			int tm_year;    /* years since 1900 */
+			int tm_wday;    /* days since Sunday - [0,6] */
+			int tm_yday;    /* days since January 1 - [0,365] */
+			int tm_isdst;   /* daylight savings time flag */
+		clock()	获取cpu时间．
+		time()	获取当前时间．是个数值．
+		difftime() 获取两个time_t之间的差，是个double值，单位为秒．
+		localtime() 转换time_t为struct tm,按本地时区．
+		gmtime()	转换time_t为struct tm.
+		asctime()	转换tm成为一个字符串．
+		strftime(char *a,int a_size,"ftr",*tr)	转换tm成一个用户自定义字符串．
+			%a 星期几的简写
+			%A 星期几的全称
+			%b 月分的简写
+			%B 月份的全称
+			%c 标准的日期的时间串
+			%C 年份的后两位数字
+			%d 十进制表示的每月的第几天
+			%D 月/天/年
+			%e 在两字符域中，十进制表示的每月的第几天
+			%F 年-月-日
+			%g 年份的后两位数字，使用基于周的年
+			%G 年分，使用基于周的年
+			%h 简写的月份名
+			%H 24小时制的小时
+			%I 12小时制的小时
+			%j 十进制表示的每年的第几天
+			%m 十进制表示的月份
+			%M 十时制表示的分钟数
+			%n 新行符
+			%p 本地的AM或PM的等价显示
+			%r 12小时的时间
+			%R 显示小时和分钟：hh:mm
+			%S 十进制的秒数
+			%t 水平制表符
+			%T 显示时分秒：hh:mm:ss
+			%u 每周的第几天，星期一为第一天 （值从0到6，星期一为0）
+			%U 第年的第几周，把星期日做为第一天（值从0到53）
+			%V 每年的第几周，使用基于周的年
+			%w 十进制表示的星期几（值从0到6，星期天为0）
+			%W 每年的第几周，把星期一做为第一天（值从0到53）
+			%x 标准的日期串
+			%X 标准的时间串
+			%y 不带世纪的十进制年份（值从0到99）
+			%Y 带世纪部分的十进制年份
+			%z，%Z 时区名称，如果不能得到时区名称则返回空字符。
+			%% 百分号
+			例：
+			   	std::time_t now=std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+   			　	struct tm *t=localtime(&now);
+   				char date[80];
+   				strftime(date,80,"%YYYYd",t);
+   				qDebug()<<date;
+		ctime()		转换tm成为一个标准的字符串．
+		mktime()	转换tm为time_t;
+	综合例子：
+		//取出当前时间节点，转换为time_t
+		    std::time_t now=std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());　
+		//timet_t转换为tm,包时区．
+    		struct tm *t=localtime(&now);　
+		//....格式化输出．．．．后面一样．
+		//	tm转换为time_t;
+    		std::time_t now2= mktime(t);
+		//time_t转换为time_point时间节点．
+    		std::chrono::system_clock::time_point d= std::chrono::system_clock::from_time_t(now2);
+		//创建一个1000分钟的时间断．
+    		std::chrono::duration<int64_t,std::ratio<60,1>> c(1000);
+		//时间节点d减少1000分钟．
+    		d-=c;
+		//时间节点转换time_t
+   		std::time_t t2= std::chrono::system_clock::to_time_t(d);
+		//时间节点转为tm
+    		struct tm *t3 =localtime(&t2);
+		//格式化后的字符串buff;
+    		char str_date[80];
+		//格式化字符串
+    		std::strftime(str_date,80,"%x",t3);
+    		qDebug()<<str_date;		
+标准模板库：
+	容器：
+		序列式容器:array vector, deque,list, forward_list
+		关联式容器：set, multiset,multtimap
+		无序容器：unordered_set,unordered_multiset,unordered_map,unordered_multimap
+	vector:
+		尾追加速度快，中间添加删除会引起后面的整体移动．
+		vector<type> xx={type a,type b,....};
+	Deque:
+		首尾追加速度快，中间添加，删除会引起后面的整体移动．
+		::push_fron(type value); 首部添加
+	Array:
+		不可改变元素个数．
+		array<type ,number>
+	List:
+		双向链表实现,增删速度快．但是读写中间的元素就是遍历	
+	Set:
+		元素自动排序，每个元素只出现一次．
+	Multiset 元素可以重复．
+	Map	key/value pair,key不可重复;
+	Multimap	key/value pair,key 可以重复
+迭代器：
+	operator *返回当前位置上的元素值．
+	operator ++ 下一个元素．
+	operator == !=　
+	operator = 赋值．
+	begin() 指向容器的起点．
+	end()	指身容器的终点．
+	例：
+	for(auto dc=cc.begin(); dc!=cc.end();++dc){
+     	   		qDebug()<<*dc;
+   	 }
+	迭代器类型：
+		前向迭代器
+		双向迭代器
+		随机访问迭代器
+		输入型迭代器
+		输出型迭代器
+算法：
+	*std::min_element(cc.begin(),cc.end())	//返回最小的元素．
+	*std::max_element(cc.begin(),cc.end())   //返回最大的元素．
+	#//find
+	 std::vector<std::string> cc={"ad","asdf","ccc","kasdji1"};
+    	 auto ds= find(cc.begin(),cc.end(),"ccc"); //查找元素"ccc"．
+         std::reverse(ds,cc.end());		//元素对调．
+	#///find_if
+	auto d=find_if(cc.begin(),cc.end(),[](string){ //lamble返回ture时返回元素．
+		return i=="ccc"||i=="ad"
+	})
+	if(d==cc.end()){qDebug()<<"查无元素"};
+	#迭代插入
+	std::deque<std::string> dd;
+    	std::copy(cc.begin(),cc.end(),std::front_inserter(dd));　//迭代前部插入，要支持首插入．
+	#std::inserter(value,pos) //指定位置插入．
+	#std::back_insert(value) //尾部插入．
+随机产生：
+	std::default_random_engine dre;　#种子
+    	std::uniform_int_distribution<int> dsc{0,1000};#随机池．
+    	for (int i=0;i<100;i++){
+       		qDebug()<<dsc(dre);
+    	}
+并发：
+	async()和Future:
+	async:声明一个异步．返回一个future;
+	future调用get时执行函数．
+	例：想不出用它的地方．
+		int ts(std::shared_ptr<int> c){
+    			const std::chrono::duration<int,std::ratio<3,1>>cx(1);
+    			std::this_thread::sleep_for( cx);
+    			return 100;
+			}
+		std::shared_ptr<int>ps(&dsf);
+    		std::chrono::system_clock::time_point strart_time= std::chrono::system_clock::now();
+    		std::future<int> result(std::async(ts,ps));
+     		qDebug()<< result.get();
+     		std::chrono::system_clock::time_point end_time=std::chrono::system_clock::now();
+     		qDebug()<<"one"<<std::chrono::duration_cast<std::chrono::duration<float,std::ratio<1>>>(end_time-strart_time).count();
+     		std::future<int> result2(std::async(ts,ps));
+     		qDebug()<< result2.get();
+     		end_time=std::chrono::system_clock::now();
+      		qDebug()<<"one"<<std::chrono::duration_cast<std::chrono::duration<float,std::ratio<1>>>(end_time-strart_time).count();
+线程：
+	void test(){
+		printf("%s","Hello Word");
+	}
+	std::thread t1(test);
+	t1.join() //阻塞运行
+	t1.detach() //线程运行
+错误捕获：
+	try{
+		for(int i=0;i<10;i++){
+			std::thread t1.detach();
+		}
+	catch(...) //捕获所有错误
+		{
+			throw; //正常输出错误。
+
+		}	
+	}
+锁：
+	std::mutex mu;
+	mu.lock();
+	y=20;
+	mu.unlock()
+线程安全自解锁：
+	1 {
+		std::mutex mu;
+		std::unique_lock<std::mutex>lock(mu)
+		y=23;
+	  }
+
+	2 {
+		std::mutex mu;
+    		std::unique_lock<std::mutex>lock(mu,std::try_to_lock); //表示不阻塞等待锁
+    		if(lock.owns_lock()){ //拿到锁怎么处理;
+
+    		}else { //没拿到锁怎么处理
+
+    		}	
+	}
+	3 {
+		std::mutex mu;
+    		std::unique_lock<std::mutex>lock(mu,std::defer_lock); //表示未加锁
+    		lock.lock();
+    		y=100;
+    		lock.unlock();
+	}
+线程某对象在所有线程只运行一次;
+	void set_winner(int x) { printf("%d",12); };
+	std::once_flag flag;
+	std::call_once(flag,set_winner,1);
+全局条件变量：
+	#include <condition_variable>
+	std::condition_variable cond;
+	std::mutex mu;
+	void set_winner() {
+    		QThread::msleep(10000);
+    		cond.notify_one();
+    		printf("%d",12); };
+
+	void test(){
+   	std::unique_lock<std::mutex>lock(mu,std::defer_lock);
+   	cond.wait(lock); 阻塞等待set_winner执行cond.notify_one();
+    	printf("%s","hello worder");
+   	fflush(stdout);
+	}	
+	int main(int argc, char *argv[])
+	{
+    		std::thread t2(set_winner);
+    		std::thread t1(test);
+    		t2.detach();
+    		t1.detach();
+	}
+线程任务：
+	std::packaged_task<>;
+	例：
+		//std::packaged_task<int(int,int)>=std::function<int(int,int)>
+    		std::packaged_task<void(int,int)> stask([](int x,int y){
+        		qDebug()<<"值:"<<x+y;
+    		});
+    		std::thread t1(std::move(stask),100,120);
+线程间通信：
+	std::promise 　
+		注：只能执行一次set_value().
+	例：
+		int ts(std::promise<int> &x){
+  		  //阻寒等待值来
+            		qDebug()<<x.get_future().get();
+    		return 100;
+		}
+		实例化
+		std::promise<int>d;
+    		std::thread t1(ts,std::ref(d));
+    		t1.detach();线程启动．
+    		std::chrono::duration<int,std::ratio<10,1>> ms;
+    		std::this_thread::sleep_for(ms);
+		设置值．
+    		d.set_value(100);
+		线程内才会打钌	
