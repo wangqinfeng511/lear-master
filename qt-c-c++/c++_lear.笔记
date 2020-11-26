@@ -17,6 +17,10 @@
 		可以隐式的把100传给i;
 		加了explicit时就不可以这样了．
 		只能:Abc abc(1000);
+	std::placeholders 占位符：
+		bind时使用
+	std::bind:
+		绑定默认值．和占位符．
 	std::function 	std::function<void(int)>fc=print_num;
     			fc(12);把传进来的值交给print_num处理．
 		例：
@@ -26,6 +30,15 @@
 			int main(int argc,char *argv[]){
 				cc([](int a,int b){qDebug()<<a+b});
 			};
+		例二：std::bind配合使用．
+			void test(int a,int b){
+    				qDebug()<<a+b;
+			}
+			std::function<void(int,int)> x=test;
+			int main(){
+				auto dx= std::bind(test,std::placeholders::_1,13);
+    				dx(12);
+			}
 	Template
 		verctor<list<int>>;
 	auto 自动类型
