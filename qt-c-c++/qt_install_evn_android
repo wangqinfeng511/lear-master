@@ -1,0 +1,13 @@
+1、下载cmd_sdk;
+	https://developer.android.com/studio 
+	commandlinetools-mac-6858069_latest.zip
+2、安装latest;
+./sdkmanager --sdk_root=/Users/wangqinfeng/mysdk --install "cmdline-tools;latest"
+3、安装platform-tools
+./sdkmanager --sdk_root=/Users/wangqinfeng/mysdk --install "platform-tools"
+4、安装android-29
+./sdkmanager --sdk_root=/Users/wangqinfeng/mysdk --install "platform;android-29"
+5、安装build-tools
+./sdkmanager --sdk_root=/Users/wangqinfeng/mysdk --install "build-tools;29.0.2"
+6、安装ndk
+./sdkmanager --sdk_root=/Users/wangqinfeng/mysdk --install "ndk;21.3.6528147"

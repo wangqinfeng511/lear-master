@@ -1,7 +1,7 @@
+git config --global user.name "centos" 全局用户名。
+git config --global user.email "360065954@qq.com" #添加你的联系方式
 git init  /home/git #初始化仓库目录.
 	--bare 指定.git的目录
-git config --global user.name "centos"
-git config --global user.email "360065954@qq.com" #添加你的联系方式
 git add 方件名#添加文件至git的暂存区。
 git commit -m "wrote a readme file" #把文件上传到git分支区。
 		-m:描述信息
