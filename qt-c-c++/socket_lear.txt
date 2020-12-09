@@ -11,13 +11,96 @@ int socket(int domain,int type,int protocol);
 		SOCK_RAW	提供Raw数据。
 		SOCK_RDM	提供可靠的数据（顺序不确定）。
 	protocol 设置为０
+#地址存储结构体：
+	struct sockaddr; 所有的链接都要用这个结构体。
+	htons(int port) 把数字端口转为系统可识别的端口号。
+	inet_addr(char * ip) 把字符串转为系统识别的地址。
+	htonl(INADDR_ANY) 把0.0.0.0转换为系统识别的地址。
+	struct sockaddr_in;便于操作的sockadd，方便设置地址端口。
+		sockaddr_in::sin_addr.s_addr=inet_addr("192.168.0.1"); 设置地址
+		sockaddr_in::sin_port=htons(80); 设置端口。
+		sockaddr_in::sin_addr.s_addr=htonl(INADDR_ANY) ;设置地址为0.0.0.0
+	struct sockaddr_storage 也是sockaddr的变体。
+	读取ip 端口号
+	sockaddr_in addr 或者　sockaddr_storage addr;
+	htonl(INADDR_ANY);// 0.0.0.0 
+        htons(8088);int 转系统地址端口。
+	返回char*类型。
+	ntohs((reinterpret_cast<struct sockaddr_in *>(&addr)->sin_port)) 端口号。
+	inet_ntoa(((struct sockaddr_in *)&addr)->sin_addr); IP地址
+	*reinterpret_cast是明转化，下面IP地址是隐式转化。	
+	取出链接后或bind后的 sockfd 的sockaddr然后再读取地址。
+	getsockname(int socket_fd,struct sockaddr *addr,int &addr_len);	
+	取出链接后对端的 sockfd 的sockaddr然后再读取地址。
+	getpeername(int socket_fd,struct sockaddr *addr,int &addr_len);
+#addrinfo dns解析结构体。
+	addrinfo::ai_family
+		指定协议簇。
+		AF_INET 2 IPV4
+		AF_INET6	23	IPV6
+		AF_UNSPEC	0	协议无关。		
+	addrinfo::ai_socktype
+		SOCK_STREAM 或 SOCK_DGRAM  socket类型。
+	addrinfo::ai_flags
+		测试不知道有啥用
+		AI_ADDRCONFIG	查询配置的地址类型（）
+		AI_PASSIVE	套接字地址用于监听绑定。
+	addrinfo::ai_addr *sockaddr 指针。	
+#getaddrinfo(char *host_name,char *port,const struct addrinfo *base,struct addrinfo ** out_list)
+	按照base的设定参考解析host_name:port的dns地址写入out_list链表。
+	例子：
+		struct   addrinfo test;
+   		memset(&test,0,sizeof (test));
+    		test.ai_family=AF_UNSPEC;
+    		test.ai_socktype=SOCK_STREAM;
+    		test.ai_flags=AI_PASSIVE;
+    		struct addrinfo *test1=(addrinfo *)malloc(sizeof (addrinfo));;
+    		char port[]="443";
+    		int rv=getaddrinfo("www.jd.com",port,(const struct addrinfo *)&test,&test1);
+    		if(rv!=0){
+        		qDebug()<<"解析失败";
+   		 }
+		#for (auto rp = result; rp; rp = rp->ai_next) 也可以这样写
+    		for(auto p=test1;p!=nullptr;p->ai_next){
+       			qDebug()<<inet_ntoa(((sockaddr_in*)p->ai_addr)->sin_addr)<<":"<<ntohs(((sockaddr_in *)p->ai_addr)->sin_port);
+        	if(p->ai_next==nullptr){
+            		break;
+        	}else {
+            		p=p->ai_next;
+        	}
+    		}
+setsocketopt 套接字设置：
+		SO_REUSEADDR 	bool	 允许套接字和一个已经在使用的地址捆绑，bind之前设置。
+		SO_SNDTIMEO	int	发送数据超时时间毫秒。
+		SO_RCVTIMEO	int	接收数据超时时间毫秒。
+		SO_RCVBUF	int 	接收缓存区大小。
+		SO_SNDBUF	int	发送缓存区大小。
+		SO_BROADCAST	bool	是否广播。
+		SO_CONITONAL_ACCEPT	在服务端执行accept()之前客户端发不了数据过来，在客户端发fin时返回rest.
+		SO_LINGER	struct linger;	设置socket的close()方式
+				struct linger{
+					int l-onoff;
+					int l_linger;
+				}
+			l_onoff为0时该选项关闭，l_linger的值被忽略。使用默认的close方式关闭。
+			l_onoff非0时：
+				　以l_linger为0.　丢掉未数据直接关闭
+				　以l_linger设置的超时时间执行close。在时间内数据没发送完也关闭。
+		SO_DEBUG	bool	打开调试信息。
+		SO_DONTLINER	BOOL 相等于SO_LINGER 的linger的为0.
+		SO_KEEPALIVE	BOOL	检测客户端是否在线，心跳包。
+		TCP_NODELAY	BOOL	禁止发送合并的Nagle算法。
+		例：
+			bool bDontLinger = false;
+    			setsockopt(sock_fd,SOL_SOCKET,SO_REUSEPORT,(const char*)&bDontLinger,sizeof(bool));
 绑定：
 	#include <sys/socket.h>
 	#include <netinet/in.h>
 	#include <arpa/inet.h>
 	struct sockaddr_in servaddr;
    	servaddr.sin_family=AF_INET;
-  	 servaddr.sin_addr.s_addr=htonl(INADDR_ANY);// 0.0.0.0
+  	servaddr.sin_addr.s_addr=htonl(INADDR_ANY);// 0.0.0.0
+				#inet_addr("0.0.0.0"); 同上
    	servaddr.sin_port=htons(8088);
    	status=bind(lisent_fd,(sockaddr *)&servaddr,sizeof (servaddr));
 	参数：
@@ -32,6 +115,21 @@ int socket(int domain,int type,int protocol);
    	socklen_t addr_len;　
    	int client_fd;　//返回文件描述符，错时返回-1;
 	client_fd=accept(listent_socket_fd,(sockaddr*)&clinet_addr,&addr_len);
+客户端链接:
+	int socke_fd=socket(AF_INET,SOCK_STREAM,0);
+    	struct sockaddr_in addr_ser;
+    	addr_ser.sin_addr.s_addr=inet_addr("39.156.66.18");
+    	addr_ser.sin_port=htons(80);
+    	int status= connect(socke_fd,(sockaddr*)&addr_ser,sizeof (addr_ser));
+	链接成功0；
+读取数据：
+	int recv( SOCKET s,char* buf,int len,int flags);  
+	flags 默认为0；
+	返回读取到的数据长度。
+写数据：
+	int send( SOCKET s,const char* buf,int len,int flags);
+	flags 默认为0；
+	返回发送的数据长度。
 errno:
 	EACCES,EPERM：权限不足/防火墙限制。
 	EADDRINUSE:	本地址已经使用。

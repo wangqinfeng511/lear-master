@@ -1,4 +1,33 @@
 一.学习笔记
+	inline 内联修饰符：
+		豫编译时建议编译器展开函数，类似于宏定义的展开。只是建议，函数复杂时编译器并不接受建议。
+	宏定义：
+		#define AD(x, y)(x*y);
+		AD(10+1,20) 展开为　10+1*20. 是错误的。用inline就不会有这个问题。
+	override 重写虚构函数。
+		例：
+			class Ac{
+				public:
+    					explicit Ac()=default;
+    					virtual void c(){};
+				};
+			class Bc :public Ac {
+ 				public:
+    					void c() override { //看到就知道是继承重写。
+        					qDebug()<<"cc";
+  					  };
+
+				};
+	系统判断预编译：
+		#ifdef __APPLE__
+       			qDebug()<<"MACOS";
+ 		#elif __linux__
+       			qDebug()<<"linux";
+ 		#elif _WIN32
+        		qDebug()<<"win32";
+ 		#elif _WIN64
+    			qDebug()<<"win64";
+		#endif
  	explicit 禁止隐式转换．
 		例：不加explicit
 		class Abc{
@@ -131,7 +160,9 @@
 		decltype(x+y) add (T1 x,T2 y);
 		用法二：
 		返回类型在返回之后：
-		auto add(T1 x,T2 y) ->decltype(x+y);
+		auto add(T1 x,T2 y) ->decltype(x+y){
+			return x+y;
+		};
 	std::function 与 using 与lambda以函数为参数．
 		//定义function别名．
 		using uu=std::function<void(int,int)>;
@@ -186,7 +217,30 @@ Pair和Tuple:
     				std::thread *acs=new std::thread(test, std::move(unique_p));
     				std::thread *bcs=new std::thread(test,std::move(unique_p));
     				acs->join();
-    				bcs->join();	
+    				bcs->join();
+	原子类型 std::atomic #include<stdatomic.h>
+		用于解决多线程变量问题。保证不会导致数据竞争。
+		例：
+		std::atomic<int> d;
+		void test_atomic(int c){
+        		const std::chrono::duration<int,std::ratio<1,3>> cx(1);
+        		while (true) {
+            			d  =c;
+            			qDebug()<<d<<c;
+            			std::this_thread::sleep_for(cx);
+        		}
+
+    		}
+		int main(){
+		  	std::thread *a=new std::thread (test_atomic,10);
+    			std::thread *b=new std::thread (test_atomic,12);
+    			a->detach();
+    			b->detach();
+    			while (true) {
+                		const std::chrono::duration<int,std::ratio<3,1>> cx(1);
+        			std::this_thread::sleep_for(cx);
+    			}
+		}	
 	tuple_element<idx,tupletype>::type; //返回元素类型．
     		std::tuple<std::string,int,int,cc> t("hello",12,12,df); //创建tuple
 		std::make_tuple("hello",12,12,df);//make方式创建．
