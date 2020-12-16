@@ -4,20 +4,46 @@
 	宏定义：
 		#define AD(x, y)(x*y);
 		AD(10+1,20) 展开为　10+1*20. 是错误的。用inline就不会有这个问题。
-	override 重写虚构函数。
+	using 
+		别名的用法：using Handlers = std::vector<std::pair<std::regex, Handler>>;
+	class 特殊方法：
+		复制：A(A &a)
+		搬迁：A(A &&a)
+		虚构：virtual void test(){};  继承类：void test() override{ 我就重载操作}
+		析构：~A();
+		运算符重载: A operator >>(A & a);
 		例：
-			class Ac{
+			class A{
 				public:
-    					explicit Ac()=default;
-    					virtual void c(){};
+    					explicit A()=default;
+					//    default 表示默认 delete表示删除这个方法。
+    					A(int dd):cc(dd){ };
+    					A(A& a){
+        					//此时 this表示复制的目标对象，a表示源复制的对象。
+        					std::cout<<"复制调用:"<<&a<<"与"<<this<<std::endl;
+        					cc=a.cc;
+    						};
+					A operator >> (A& a){
+						//此时 a表示右边的值，this表示当前值
+        					qDebug()<<">>"<<a.cc<<cc;
+        					a.cc+=cc;
+        					return  a;
+    					}
+    					A(A&& a){
+        					//此时 this表示复制的目标对象，a表示源对象。
+        					std::cout<<"搬移调用:"<<&a<<"与"<<this<<std::endl;
+        					c=a.c;
+    						};
+    					int cc=0;
+    					int *c=(int *) malloc( sizeof (int));;
+    					~A(){};
 				};
-			class Bc :public Ac {
- 				public:
-    					void c() override { //看到就知道是继承重写。
-        					qDebug()<<"cc";
-  					  };
-
-				};
+			int main(){
+				A a(120);
+    				A d=a; 复制操作
+    				std::cout<<d.cc<<std::endl;
+    				A c= std::move(a); 搬迁操作。
+			}
 	系统判断预编译：
 		#ifdef __APPLE__
        			qDebug()<<"MACOS";
@@ -250,7 +276,8 @@ Pair和Tuple:
 		例：
 		std::vector<std::tuple<std::string,int,int,cc>> dxc; //创建tuple类型的向量．
     		dxc.push_back(std::make_tuple("hello",12,12,df));　//压入tuple
-    		qDebug()<<dxc.size();
+    		dxc.emplace_back(std::make_tuple("hello",12,12,df)) //压入tuple
+		qDebug()<<dxc.size();
     		qDebug()<< std::get<0>(dxc[0]).data(); //取出值．
 任意类型，任意个数参数的函数：
 		void print(){
@@ -335,7 +362,7 @@ Type Trait 和Type Utility
 		has_virtual_destructor<T>  Class带有virtual析构函数．
 		is_default_constructible<T>     有默认构建函数．
 		is_copy_constructible<T> 	带有copy构造函数．(const class_type & a){};
-		is_move_constructible<T>	带有move构诰函数．
+		is_move_constructible<T>	带有move构诰函数． &, &&
 		is_copy_assignable<T>		能够完成copy任务．cc& operator =(const cc&)=delete ;
 		is_move_assignable<T>		能够完成move任务	cc(cc &&)=delete ;
 		is_destructible<T>		带有可调用的析构函数．
@@ -589,6 +616,33 @@ Clock和Timer:
      		qDebug()<< result2.get();
      		end_time=std::chrono::system_clock::now();
       		qDebug()<<"one"<<std::chrono::duration_cast<std::chrono::duration<float,std::ratio<1>>>(end_time-strart_time).count();
+	std::future:未来取值：
+		get();取值如果没有
+		std::future_status std::future::wait_for(std::chronno) 设置等待数据的最长时间。
+		std::future_status::ready 数据可以get了。
+		std::future_status::timeout 数据超时。
+		std::future_status::deferred 
+	std::promise
+         	注：只能执行一次set_value().
+        	用处：必然需要从网上下载数据后交给另外的线程处理时。
+       	 	例：
+        	void create_mesg(std::promise<std::string> &pr_msg){
+                	std::string str="王钦丰";
+                	std::this_thread::sleep_for(std::chrono::seconds(3));
+                	pr_msg.set_value(str); //消息创建，设置值。
+        	}
+        	void proces_mesg(std::promise<std::string>&pr_msg){
+                	qDebug()<<"执行取值！";
+                	std::future<std::string> msg= pr_msg.get_future();
+                	qDebug()<<msg.get().data();
+        	}
+        	int main(){
+                	std::promise<std::string> dx;
+                	std::thread t1(create_mesg,std::ref(dx));
+                	std::thread t2(proces_mesg,std::ref(dx));
+                	t1.detach();
+                	t2.join();
+        	}
 线程：
 	void test(){
 		printf("%s","Hello Word");
@@ -672,18 +726,22 @@ Clock和Timer:
 线程间通信：
 	std::promise 　
 		注：只能执行一次set_value().
+	用处：必然需要从网上下载数据后交给另外的线程处理时。
 	例：
-		int ts(std::promise<int> &x){
-  		  //阻寒等待值来
-            		qDebug()<<x.get_future().get();
-    		return 100;
-		}
-		实例化
-		std::promise<int>d;
-    		std::thread t1(ts,std::ref(d));
-    		t1.detach();线程启动．
-    		std::chrono::duration<int,std::ratio<10,1>> ms;
-    		std::this_thread::sleep_for(ms);
-		设置值．
-    		d.set_value(100);
-		线程内才会打钌	
+	void create_mesg(std::promise<std::string> &pr_msg){
+    		std::string str="王钦丰";
+    		std::this_thread::sleep_for(std::chrono::seconds(3));
+    		pr_msg.set_value(str); //消息创建，设置值。
+	}
+	void proces_mesg(std::promise<std::string>&pr_msg){
+    		qDebug()<<"执行取值！";
+    		std::future<std::string> msg= pr_msg.get_future();
+    		qDebug()<<msg.get().data();
+	}
+	int main(){
+		std::promise<std::string> dx;
+    		std::thread t1(create_mesg,std::ref(dx));
+    		std::thread t2(proces_mesg,std::ref(dx));
+    		t1.detach();
+    		t2.join();
+	}

@@ -251,3 +251,11 @@
             					<input id="id" type="checkbox">
             					<span>  </span>
         				</label>
+iframe 标签 网页嵌套：
+	例子：配合form实现返回数据缓存。
+		<iframe name="tmp_data" style="display:none"></iframe>
+		<form id="get_data" method="get" action="/api" target="tmp_data"> 
+		在执行sumbit()时返回的数据结果存到iframe中。
+		js里取出数据：
+			var d=window.frames["tmp_data"].docment.body.innerText;
+			JSON.parse(d);	
