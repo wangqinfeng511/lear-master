@@ -6,44 +6,6 @@
 		AD(10+1,20) 展开为　10+1*20. 是错误的。用inline就不会有这个问题。
 	using 
 		别名的用法：using Handlers = std::vector<std::pair<std::regex, Handler>>;
-	class 特殊方法：
-		复制：A(A &a)
-		搬迁：A(A &&a)
-		虚构：virtual void test(){};  继承类：void test() override{ 我就重载操作}
-		析构：~A();
-		运算符重载: A operator >>(A & a);
-		例：
-			class A{
-				public:
-    					explicit A()=default;
-					//    default 表示默认 delete表示删除这个方法。
-    					A(int dd):cc(dd){ };
-    					A(A& a){
-        					//此时 this表示复制的目标对象，a表示源复制的对象。
-        					std::cout<<"复制调用:"<<&a<<"与"<<this<<std::endl;
-        					cc=a.cc;
-    						};
-					A operator >> (A& a){
-						//此时 a表示右边的值，this表示当前值
-        					qDebug()<<">>"<<a.cc<<cc;
-        					a.cc+=cc;
-        					return  a;
-    					}
-    					A(A&& a){
-        					//此时 this表示复制的目标对象，a表示源对象。
-        					std::cout<<"搬移调用:"<<&a<<"与"<<this<<std::endl;
-        					c=a.c;
-    						};
-    					int cc=0;
-    					int *c=(int *) malloc( sizeof (int));;
-    					~A(){};
-				};
-			int main(){
-				A a(120);
-    				A d=a; 复制操作
-    				std::cout<<d.cc<<std::endl;
-    				A c= std::move(a); 搬迁操作。
-			}
 	系统判断预编译：
 		#ifdef __APPLE__
        			qDebug()<<"MACOS";
@@ -54,24 +16,6 @@
  		#elif _WIN64
     			qDebug()<<"win64";
 		#endif
- 	explicit 禁止隐式转换．
-		例：不加explicit
-		class Abc{
-    			public:
-       			//	explicit
-			Abc(int i=0):m(i){};
-        		int get_m(){
-            			qDebug()<<m;
-            			return  m;
-        			}
-    			private:
-        			int m=0;
-    			};
-		Abc abc=100;
-		abc=10000;
-		可以隐式的把100传给i;
-		加了explicit时就不可以这样了．
-		只能:Abc abc(1000);
 	std::placeholders 占位符：
 		bind时使用
 	std::bind:
@@ -96,90 +40,13 @@
 			}
 	Template
 		verctor<list<int>>;
-	auto 自动类型
-	一致性初始化：
-		std::vector<int> v {1,2,3,4,5};
-		int array[]={1,2,3,4,5}
-		一致性初始化的原因是：std::initializer_list<>模板的支持．
-		所以说支持一致性初始化的类要有一个std::initializer_list参数的构造函数．
-	for循环：
-		for(int i:{1,2,3,4,5}){};
-		for(auto i:v){};
-		等价于：for(auto _p=coll.begin(),_p!=coll.end;++_p)
-	Move语义：
-		std::move()搬迁，调用&&的搬迁构造函数．A(A&& a);
-				模板类：A(T&& a);
-				搬迁函数不存在时，调用copy函数．
-		注：只有在构造时调用std::move()才会调用&&;
-		class c ......;
-		c a;
-		std::move(a) //不会调用C(C && a);
-		c b(std::move(a));
+	
 		
 	字符串字面常量：
 		Raw string:R"abacesx";以R装饰,字符序列，比如输出\\n不需要\\\\n
 		u定义一个string literal 类型为char16_t的字符．
 		U定义一个string literal 类型为char32_t的字符．
 		L定义一个wide string literal 类型为wchar_t的字符．
-	noexcept:不抛出异常．
-		void foo() noexcept{}
-		
-	异常捕获：
-		try{
-			throw std::runtime_error("错误") //手动触发异常
-		} catch(...){ //捕获所有异常．
-			throw;
-		}
-	异常存储：
-		std::exception_ptr eptr;
-		try{
-			throw "异常";
-		}catch(...){
-		　//不作抛出操作，保存异常．
-		 　std::current_exception();
-		}
-		手动抛出异常：
-		std::rethrow_exception(eptr);
-			
-	自定义异常：
-		struct MyException:public exception{
-			const char* what() const throw(){
-				return "返回自定义错误"
-			}
-		}
-		try{ throw MyException()
-		}catch(MyException &e){
-			std::cout<<e.what()<<std::endl;
-		}
-	常用异常：
-		std::exception	该异常是所有标准 C++ 异常的父类。
-		std::bad_alloc	该异常可以通过 new 抛出。
-		std::bad_cast	该异常可以通过 dynamic_cast 抛出。
-		std::bad_exception	这在处理 C++ 程序中无法预期的异常时非常有用。
-		std::bad_typeid	该异常可以通过 typeid 抛出。
-		std::logic_error	理论上可以通过读取代码来检测到的异常。
-		std::domain_error	当使用了一个无效的数学域时，会抛出该异常。
-		std::invalid_argument	当使用了无效的参数时，会抛出该异常。
-		std::length_error	当创建了太长的 std::string 时，会抛出该异常。
-		std::out_of_range	该异常可以通过方法抛出，例如 std::vector 和 std::bitset<>::operator[]()。
-		std::runtime_error	理论上不可以通过读取代码来检测到的异常。
-		std::overflow_error	当发生数学上溢时，会抛出该异常。
-		std::range_error	当尝试存储超出范围的值时，会抛出该异常。
-		std::underflow_error	当发生数学下溢时，会抛出该异常。
-	保存异常
-		catch(....){        
-			std::exception_ptr eptr;
-        		eptr=std::current_exception();
-		}
-	lambda:
-		    auto l= []{qDebug()<<"test";};
-    		     l();:
-		传参：不可以是template
-		[](const int &a){qDebug()<<a}(12);直接调用
-		作用域：
-		　　要访问没有传入lambda内的对象．需要引入
-		    int a=10;
-    		　　[&a]{qDebug()<<a;}();
 	decltype:函数返回类型
 		比如：模板：	
 		template<typename T1,typename T2>
