@@ -1,6 +1,0 @@
-server_name: wordpress 
-IPADDR:	192.168.99.160
-disk_number: 2
-disk_1_name: vda 
-disk_2_name: vdb
-
