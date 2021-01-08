@@ -1,5 +1,217 @@
 
 
+# C
+
+### stdio.h
+
+#### fopen
+
+​	FILE *fopen(char *file,'w|r|w+|a') 
+
+​	打开成功返回FILE地址,失败返回NULL
+
+#### fwrite
+
+size_t fwrite(char *buff,int size,int block_size,FILE *fp) 
+			成功返回写入的块数=block_size, 
+
+#### fread
+
+​		size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
+​			成功返回写入的块数=block_size,
+
+#### fclose
+
+​		fclose(FILE *fp)
+
+#### fseek
+
+​		int fseek(FILE *stream, long int offset, int whence)
+​			seek移动,从whence开始移动
+
+#### ftell
+
+​		long int ftell(FILE *stream)
+​			返回seek的位置
+
+#### remove		
+
+int remove(const char *filename)
+			删除文件
+
+#### rename
+
+int rename(const char *old_filename, const char *new_filename)
+			文件重命名
+
+#### fgetc
+
+int fgetc(FILE *stream)
+			读取一个字节
+
+#### fgets
+
+char *fgets(char *str, int n, FILE *stream)
+			读取一行
+
+####  fputc
+
+int fputc(int char, FILE *stream)
+			写入一个字节
+
+####  fputs
+
+int fputs(const char *str, FILE *stream)
+			写入一个字节流
+
+####  feof
+
+int feof(FILE *stream)
+			文件是否结束
+
+#### strlen
+
+strlen(char *)
+			返回chas的长度
+
+### string.h
+
+#### memcpy
+
+void *memcpy(void *dest, const void *src, size_t n)
+			scr复制n个字节到desc,desc要有内存空间
+
+#### strcpy
+
+char *strcpy(char *dest, const char *src)
+			完全复制,dest的空间大于等于src
+
+#### find
+
+*str.find("char*")
+			返回第一次出现的位置
+
+#### replace
+
+str.replace(int start_pos,int chars_size,char* chars)
+			替换
+
+### limits.h
+
+CHAR_BIT
+			char 类型位数
+CHAR_MAX
+			char类型的最大值127
+CHAR_MIN
+			char类型最小值-127
+INT_MAX
+INT_MIN
+
+### float.h
+
+FIL_MANT_DIG
+			float类型的尾数位数
+FIL_DIG
+			数字部分的最小位数
+
+### printf()
+
+修饰符(-,+,空格,#,0)
+%Nd 如果宽度不够前面加空格
+".Nf" 浮点位数
+"%hd" 格式化为short
+%a 浮点数,十六进制技术法
+%A 浮点,十六进制和P计算法
+%C 单字符
+%e 浮点数e计数方法
+%E浮点数e计数方法
+%f 浮点数十进制表示方法
+%g根据情况自动(%e,%f)
+%i有符号十进制
+%p 指针
+%u无符号十进制
+%x无符号十六进制
+%X 大写十六进制
+
+### math.h
+
+​		cos(x)
+​	预处理
+​		#Define MEAN(x,y) x*y   宏替换为(x*y)的值
+
+结合运算替换符号,x##y (12,12)>1212
+
+​		#define MAX(x,y) ((x)>(y)?(x):(y))函数宏
+​		#ifdef 条件编译
+​		#if条件
+​	链表
+
+### fcntl.h
+
+#### open
+
+```c++
+int open(const char *path,int flag)
+flag
+O_RDONLY
+//只读
+O_WRONLY
+//只写
+O_RDWR
+//读写
+O_CREAT
+//不存在创建文件
+O_EXCL
+//不存在创建文件
+O_NOCTTY		
+O_APPEND
+//追加
+O_NONBLOCK
+//非阻sa
+O_SYNC
+//异步
+```
+
+
+返回文件描述符．
+
+#### open
+
+int open(const char *path,int flag,mode_t mode)
+
+#### close
+
+int close(int fd)
+
+#### read
+
+size_t read(int fd,void *buf,size_t count)
+		文件描述符，char*,读多长数据．
+		返回读取数据长度．
+
+#### write
+
+size_t write(int fd,const void *buf,size_t count)
+		写入文件长度．
+
+#### fcntl
+
+fcntl()
+		修改文件描述符
+		int fcntl(int fd ,int cmd)
+
+#### flock
+
+flock(int fd)
+		锁定文件和解锁定
+
+#### lseek
+
+lseek(int pos)
+		移动指针
+
+# C++
+
 ##### auto #####
 
 自推导类型。
@@ -1915,4 +2127,313 @@ int main(){
 }
 ```
 
-　
+# CMAKE
+
+### #工程部分:
+
+#### camke_mininum_required
+
+​	camke_mininum_required(VERSION num) 	#Cmake最小版本.
+
+#### project	
+
+​	project(project_name)	 		#项目名称
+
+#### set
+
+​	set(CMAKE_CXX_FLAGS "XXX") 		#设置C++版本例如:std=c++11
+​	set(CMAKE_BUILD_TYPE "XXX")		#设定编译模式,例如:Debug/Release
+
+### #依赖执行部分:
+
+#### find_package
+
+​	find_package(std_lib_name VERSION REQUIRED) #引用外部依赖库
+
+#### add_library
+
+​	add_library(<name> [lib_type] source1) #生成库类型(动态,静态)
+
+#### include_directories
+
+​	include_directories($(std_lib_name_INCLUID_DIR)) #指定include目录,放在add_executable前.
+
+#### aux_source_directories
+
+​	aux_source_directories("src" src) #cpp文件目录 src是变量名．add_executable(${PROJECT_NAME} "main.cpp" "qml.qrc" ${src})引用
+
+#### target_link_libraries	
+
+   target_link_libraries($(std_lib_name_LIBRARIES))#指定librariess路径
+
+#### add_executable
+
+​	add_executable(cur_project_name xxx.cpp ${SRC_LIST})	#指定生成目标.
+
+### #其他部分:
+
+#### function
+
+​	function(function_name arg) 	#定义一个函数
+
+#### add_subdirectory
+
+​	add_subdirectory(dir)		#添加一个子目录目录要用cmakefile.txt
+
+#### AUX_SOURCE_DIRECTORY
+
+​	AUX_SOURCE_DIRECTORY(. SRC_LIST)		#查找当前目录所有文件,并保存在SRC_LISE变量中.
+
+#### FORARCH	
+
+FORARCH(one_dir $(SRC_LIST))  #循环遍历打印
+		MESSAGE($(one_dir))
+	ENDFOREACH(one)
+
+### #判断部分:expression不需要加$
+
+​	if(expression)  		#if elss语句
+​		COMMAND1(args)
+​	else(expression)
+​		COMMAND2(args)
+​	endif(expression)
+
+### #表达式:
+
+​	expression #表达式:
+​	if(var) #不为空,0|1 NO|OFF TRUE|FALSE NOTFOUND
+​	if (NOT var)
+​	if(var AND var2)
+​	if(var OR var2)
+​	if(COMMAND cmd) #返回结果
+​	if(EXISTS dir)
+​	if(EXISTS file)
+​	if(IS_DIRECTORY dirname) #是否目录
+​	if(file1 IS_NEWER_THAN file2) #file1 是否比 file2新
+​	if(variable MATCHE regex) #符合正则.
+
+#### #循环:
+
+​	WHILE(condtion)
+​		COMMAND(ARGS)
+​	ENDWHILE(condtion)
+########################################################
+
+#### #常用指令及变量:
+
+##### ADD_DEFINITION
+
+​	ADD_DEFINITIONS #为源文件的编译加由-D引入的宏定义.
+​		格式: add_definitions(-DFOO -DBAR..)
+​			add_definitions(-DWIN32)
+​			cmake -D WITH_CUDA=ON
+
+##### OPTION
+
+​	OPTION		#提供用户可以选择的选项.
+​		格式: option(USE_MYMATH,"描述信息",ON);
+​			变量名,描述,值
+
+##### ADD_CUSTOM_TARGET/COMMAND
+
+​	ADD_CUSTOM_TARGET/COMMAND #COMMAND为工程添加一条自定义的构建规则/自定义命令.
+​				  #TARGET 用于给指定名称的目标执行指定的指令,该目标没有输出文件,并始终被构建.
+​			#例子:
+​				add_custom_command(TARGET ${CV_ADVANCE_NAME} 
+​							PRE_BUILD 
+​							COMMAND "cp -rf ./fil1 ./file2"
+​						)
+​				add_custom_target(CV_ADVANCE) ALL
+​							 DEPENDS ${CV_ADVANCE_NAME} COMMENT "复制完成"
+​						)
+
+##### ADD_DEPENDENCIES
+
+ADD_DEPENDENCIES	#用于解决链接时依赖问题;
+
+##### INSTALL
+
+​	INSTALL			#用于定义安装规则,安装位置
+​		INSTALL{
+​			TARGETS xxx,xxx,xxx
+​			RUNTIME DESTINATION bin 
+​			LIBRARY	DESTINATION lib
+​			ARCHIVE DESTINATION libstatic
+​		}
+
+##### TARGET_INCLUDE_DIRECTORIES
+
+TARGET_INCLUDE_DIRECTORIES  #设置include文件查找的目录,具体包含头文件应用形矢,安装位置等.
+#命令格式:
+			target_include_directories(<target>{SYSTEM}{BEFORE}<INTERFACE|PUBLC|PRIVTE>[items])
+				target:
+				system:
+				before:
+				intface|public|private的范围???给别人用|自己用别人|自己
+
+##### SET_TARGET_PROPERTIES
+
+​	SET_TARGET_PROPERTIES 	#设置目标的一些属性来改变它们的构建方式.
+​				set_target_properties(target1 target2...
+​							PROPERTIED prop1 value1 prop1 value2
+​							)
+​	#例子:
+​		set_target_properties(exampleCv
+​			PROPERTIES
+​			ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+​			LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+​		)
+
+##### ENABLE_TESTING/ADD_TEST
+
+​	ENABLE_TESTING/ADD_TEST #enable_testing:用来控制Makefile是否构建test目标.
+​				 add_test:	一般需要和enable_testing()配合使用
+​				命令格式:
+​					ADD_TEST(testname Exename arg1 arg2...)
+​				生成makefile后可以用make test测试.
+​	#例子:
+​				ADD_TEST(mytest ${PROJECT_BINARY_DIR}/bin/main)
+​				ENABLE_TESTING();
+​						
+
+### #常用变量:
+
+#### CMAKE_INSTALL_PREFIX
+
+​		CMAKE_INSTALL_PREFIX	构建install的路径
+
+#### $ENV{HOME}	
+
+​		$ENV{HOME}		HOME环境下的目录路径.
+
+#### PROJECT_NAME
+
+​		PROJECT_NAME		工程名变量.
+
+##### INCLUDE_DIR
+
+​	    INCLUDE_DIR	导入包头文件全路径.
+
+##### LIBRARIES
+
+​		LIBRARIES		导入库文件的全路径.
+
+##### PROJECT_SOURCE_DIR
+
+​		PROJECT_SOURCE_DIR	构建工程的全路径.
+
+##### CMAKE_VERSION
+
+​		CMAKE_VERSION		Cmake的版本号
+
+#### CMAKE_SOURCE_DIR
+
+​		CMAKE_SOURCE_DIR	源码树的顶层路径.
+
+### qmlsene
+
+qmlsene:	qml文件效果工具.特点是不用编译应用程序.
+qmlscene -qt5  app/xxx.qml -I ./path依赖的qml文件路径
+configure_file(source_file,dest_file) #把源文件拷贝到目标文件并替变量(如果有的话)
+	例如:source_file:
+		{
+    		"architecture": "all",
+    		"description": "A music application for ubuntu",
+    		"framework": "ubuntu-sdk-16.04.3-qml",
+    		"hooks": {
+        		"music": {
+            			"apparmor": "apparmor.json",
+            			"content-hub": "music-app-content.json",
+            			"desktop": "@DESKTOP_FILE@",
+            			"urls": "@URLS_FILE@"
+        			}
+   			 }
+#用CMakelist里的URLS_FILE,DESKTOP_FILE替换掉此处的内容类似于jinja2
+
+ 
+
+# 树莓派
+
+### 交叉编译
+
+下载arm g++变压器gcc-linaro-5.5.0-2017.10-i686_arm-linux-gnueabihf 
+修改树莓派
+
+```bash
+#1、
+rpi-update 
+#2、
+cd /opt/vc
+ln -s libbrcmEGL.so /opt/vc/lib/libEGL.so
+ln -s libbrcmGLESv2.so /opt/vc/lib/libGLESv2.so
+ln -s libbrcmOpenVG.so /opt/vc/lib/libOpenVG.so
+ln -s libbrcmWFC.so /opt/vc/lib/libWFC.so 
+3、
+#复制树莓派:/usr /opt /lib 到本地/opt/qt5pi/sysroot目录
+#4、
+#编译
+./configure  -opengl es2 -device linux-rasp-pi2-g++ -device-option CROSS_COMPILE=/opt/qt5pi/gcc-linaro-5.5.0-2017.10-i686_arm-linux-gnueabihf/bin/arm-linux-gnueabihf- -sysroot /opt/qt5pi/sysroot_2 -prefix /opt/qt5pi/sysroot_2/usr/local/
+#5、
+#复制交叉编译后的qt到树莓派：
+ scp -r ./qt5  root@192.168.1.107:/usr/local/
+#复制tslib库到树莓派:
+ scp  -r tslib root@192.168.1.107:/usr/local/
+#(用到linux:fd) 树莓派连接tslib库到/usr/lib
+ ln /usr/local/tslib/lib/libts.so.0 /usr/lib/
+#可以用查看依赖:
+ ldd /usr/local/qt5/plugins/platforms/libqlinuxfb.so |grep not
+#内核源码安装
+  apt-get install raspberrypi-kernel-headers
+
+  -------------3.5存sip屏安装：
+   复制驱动，执行./LCD35b1-show 
+---------QT设置linux:fb屏输出+tslib
+qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
+qputenv("QT_QPA_PLATFORM","linuxfb:fb=/dev/fb1:size=480x320:tty=/dev/tty1:nographicsmodeswitch");
+qputenv("QT_QPA_FB_DISABLE_INPUT","1");
+qputenv("QT_QPA_GENERIC_PLUGINS","tslib:/dev/input/event0");
+qputenv("TSLIB_CONFFILE", "/usr/local/tslib/etc/ts.conf");
+qputenv("TSLIB_CALIBFILE","/usr/local/tslib/etc/pointercal");
+```
+
+
+
+### 树莓派寄存器地址
+
+#### 	功能:
+
+​		GPFESL
+​			选择引脚功能寄存器
+​		GPSET
+​			设置高电平寄存器
+​		GPCLR
+​			设置低电平寄存器
+
+#### 	地址
+
+​		32功能引脚寄存器:每3位控制一个引脚:001输出,000输入
+​		GPFSL0
+​			0X3F200000
+​				GPIO0-GPIO9
+​		GPFSL1
+​			0X3F200004
+​				GPIO10-GPIO19
+​		GPFSL2
+​			0X3F200008
+​				GPIO20-GPIO29
+​		GPFSL3
+​			0X3F20000C
+​				GPIO30-GPIO39
+​		GPFSL4
+​			0X3F200010
+​				GPIO40-GPIO49
+​		GPFSL5
+​			0X3F200014
+​				GPIO50-GPIO53
+
+```c++
+unsigned int * ctl_gpio_addr=ioremap(0X3F200000,4) //4*8=32
+int x=readl(ctl_gpio_addr);
+writel(ctl_gpio_addr|(0x001<<16),ctl_gpio_addr)
+```
+
