@@ -2,7 +2,14 @@
 
 ### 安卓环境：
 
+https://doc.qt.io/qt-5/android-getting-started.html
+
 #### 	下载 jdk  (java) 1.8以上
+https://www.oracle.com/java/technologies/javase-jdk15-downloads.html
+
+//删除原来java macos 当前java路径 /Library/Java/JavaVirtualMachines/
+
+jdk-8u271-macosx-x64.dmg
 
 #### 	下载commandline  
 
@@ -15,6 +22,12 @@
 ./sdkmanager --sdk_root=<ANDROID_SDK_ROOT> --install "cmdline-tools;latest"
 ./sdkmanager --sdk_root=<ANDROID_SDK_ROOT> --install "platform-tools" "platforms;android-29" "build-tools;29.0.2" "ndk;21.3.6528147"
 ```
+
+```bash
+./sdkmanager --sdk_root=<ANDROID_SDK_ROOT> --install "platforms;android-30" "build-tools;30.0.2"
+```
+
+ 点击download openssl会下载openssl到sdk目录
 
 #### 设置设备-安卓jdk，　ndk的位置：
 
@@ -39,7 +52,13 @@ brew install mysql-client
 brew info mysql-client; 
 ```
 
-修改src/plugins/sqldrivers/mysql.pro
+```bash
+sqldrivers  目录执行qmake,生成配置文件。
+cd ....../src/qtbase/src/plugins/sqldrivers
+qmake
+```
+
+修改src/qtbase/src/plugins/sqldrivers/mysql/mysql.pro
 
 ```bash
 TARGET = qsqlmysql
@@ -61,6 +80,7 @@ include(../qsqldriverbase.pri)
 ```
 
 ```bash
+cd ....../src/qtbase/src/plugins/sqldrivers/mysql/
 qmake	#编译。
 make	#编译
 make install	#安装
