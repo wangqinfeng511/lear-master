@@ -4,7 +4,7 @@
 
 ### stdio.h
 
-#### fopen
+#### fopen/
 
 ​	FILE *fopen(char *file,'w|r|w+|a') 
 
