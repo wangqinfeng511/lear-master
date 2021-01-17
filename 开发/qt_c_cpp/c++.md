@@ -379,6 +379,43 @@ Vce<int> coll; 等价于：std::vector<int,MyAlloc<int>> coll;
 template<typename T,typename T2=int>
 ```
 
+##### 模版类 cpp中实现：
+
+```c++
+#dir.h
+#ifndef DIR_H
+#define DIR_H
+
+template <typename  T>
+class dir
+{
+public:
+    dir();
+    int a=100;
+};
+
+#endif // DIR_H
+```
+
+```c++
+#dir.cpp
+#include "dir.h"
+template <typename  T>
+dir<T>::dir()
+{
+
+}
+```
+
+```
+#include "dir.cpp"
+int main(){
+	dir d;
+}
+```
+
+
+
 ##### 任意类型，任意个数参数的函数：
 
 ```c++
@@ -630,8 +667,6 @@ shared_ptr<int> pa(new int[100],[](int *p){
 pa.get()[0]=1000;
 std::cout<<pa.get()[0];
 ```
-
-​	
 
 <font color=orange>系统有辅助函数实现销毁：</font>
 
@@ -971,6 +1006,9 @@ std::cout<<std::ctime(&t)<<std::endl;           		//输出string;
 //当前时间：
 std::chrono::system_clock::time_point c;
 c=std::chrono::system_clock::now();						//当前时间
+//1周前的时间 //测试过
+std::chrono::duration<int,std::ratio<60*60*24*7> one_zhou(1); //一周
+c+=one_zhou(1); //1周后的时间点
 ```
 
 ```c++
@@ -1445,7 +1483,15 @@ insert()			//插入字符
 erase(),pop_back()	//删除字符。
 clear()			//删除所有字符。
 resize() 		//改变字符容器长度。在尾部删除或添加字符。
+find()			//返回查找到字符的位置。
 replace() 	//替换字符。
+  //例子
+      void replace(std::string src,std::string dsr){
+        std::string::size_type str_pos= sql.find(src);
+        if(str_pos!= std::string::npos){
+            sql.replace(str_pos,dsr.size(),dsr);
+        }
+    };
 +						//拼接字符串
 ==,!=,<,<=,>,>=,compare()		//比较字符床。
 empty()			//判断字符串为空。
@@ -1467,6 +1513,28 @@ data(),c_str()	//以char*返回。
 substr()				//返回某个字符串。
 begin(),end()....
 get_allocator()			//返回分配器。
+```
+
+```c++
+	//创建切分目录递归创建。
+	std::cout<<path<<std::endl;
+        std::string::size_type pos=path.find("/");
+        while (pos!=std::string::npos) {
+           tmp=path.substr(0,pos);
+           status=chdir(tmp.c_str());
+           if(status!=0){  //不存在则创建目录
+                status=mkdir(tmp.c_str(),0755);
+                if(status==-1){
+                    throw "创建目录失败请确定你有创建目录的权限";
+                }else {
+                    status=chdir(tmp.c_str());
+//                    std::cout<<"创建目录OK"<<std::endl;
+                }
+           }
+//           std::cout<<tmp<<std::endl;
+            pos=path.find("/");
+            path.erase(0,pos+1);
+        }
 ```
 
 #### 正则表达式：
@@ -2162,9 +2230,26 @@ int main(){
 
 ​	aux_source_directories("src" src) #cpp文件目录 src是变量名．add_executable(${PROJECT_NAME} "main.cpp" "qml.qrc" ${src})引用
 
+#### link_directories 
+
+添加库目录。相当于 -L
+
+```cmake
+link_directories(/usr/local/opt/openssl@1.1/lib)
+```
+
 #### target_link_libraries	
 
+指定程序用到的库文件 相等于 -l
+
    target_link_libraries($(std_lib_name_LIBRARIES))#指定librariess路径
+
+```cmake
+#引用ssl cryptor库
+target_link_libraries(项目名 ssl crypto)
+```
+
+
 
 #### add_executable
 

@@ -26,6 +26,11 @@ int main(){
         printf("%X",*(md5_str[i]));
     }
 	}
+```
+
+### sha256 哈希
+
+```c++
 //sha256 哈希：
 char strs[]="我是安忍的小学生";
 unsigned char hash[64]={0};
@@ -34,6 +39,8 @@ for(int i=0;i<=64;i++){
      printf("%X.",*(hash+i));
 }
 ```
+
+
 
 ### DES	对称加密：
 
@@ -182,4 +189,4 @@ int main(){
 ```
 
 
-	
+​	

@@ -255,7 +255,7 @@ db.contains("xxxx")
 //数据库连接是否存在
 db.removeDatabase("xxxx")
 //删除连接
-db=QSqlDatabase("QMYSQL","xxxxx");
+db=QSqlDatabase::addDatabase("QMYSQL","xxxxx");
 //实例化连接
 db.setHostName("xxx.xxx.xxx.xxx")
 //设置数据库连接地址
