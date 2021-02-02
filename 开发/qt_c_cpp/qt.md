@@ -92,6 +92,7 @@ make install	#安装
 	https://www.oracle.com/database/technologies/instant-client/macos-intel-x86-downloads.html
 	instantclient-basic-macos.x64-19.8.0.0.0dbru.zip
 	instantclient-sdk-macos.x64-19.8.0.0.0dbru.zip
+	win:https://www.oracle.com/database/technologies/instant-client/winx64-64-downloads.html
 
 ```bash
 #移动：
